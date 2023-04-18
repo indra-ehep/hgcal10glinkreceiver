@@ -1,0 +1,211 @@
+#ifndef RecordBuffer_HH
+#define RecordBuffer_HH
+
+/***********************************************************************
+ RecordBuffer - Buffer between reader and writer to store records
+                after VME readout but before being written to disk.
+***********************************************************************/
+
+#include <sys/types.h>
+#include <signal.h>
+#include <unistd.h>
+
+#include <ctime>
+#include <iostream>
+
+#include "Record.hh"
+
+#define DUMMYPID 123456789
+#define SLEEPPERIOD 100     // in millisec
+
+void usrSignalHandler(int signal) {
+  //  std::cout << "Process " << getpid() << " received signal " 
+  //  << signal << std::endl;
+}
+
+
+class RecordBuffer {
+
+ public:
+
+  RecordBuffer() {
+    reset();
+  }
+
+  void reset() {
+    nIn=0;
+    nOut=0;
+    bMon=false;
+
+    _producerPid=0;
+    _consumerPid=0;
+    _producerSleep=false;
+    _consumerSleep=false;
+    _totalProducerSleep=0;
+    _totalConsumerSleep=0;
+  }
+
+  pid_t producerPid() const {
+    return _producerPid;
+  }
+  
+  bool producerPid(pid_t p=getpid()) {
+    if(_producerPid!=0) return false;
+    _producerPid=p;
+    signal(SIGUSR1,usrSignalHandler);
+    return true;
+  }
+  
+  void zeroProducerPid() {
+    _producerPid=0;
+  }
+  
+  pid_t consumerPid() const {
+    return _consumerPid;
+  }
+  
+  bool consumerPid(pid_t p=getpid()) {
+    if(_consumerPid!=0) return false;
+    _consumerPid=p;
+    signal(SIGUSR2,usrSignalHandler);
+    return true;
+  }
+  
+  void zeroConsumerPid() {
+    _consumerPid=0;
+  }
+
+  bool shutDown() const {
+    if(nIn>0 && nOut==0 &&
+       ((RecordHeader*)array[(nIn-1)%arraySize])->recordType()==RecordHeader::shutDown)
+      return true;
+
+    if(nIn==0 && nOut>0 &&
+       ((RecordHeader*)array[(nOut-1)%arraySize])->recordType()==RecordHeader::shutDown)
+      return true;
+
+    if(nIn>0 && nOut>0 &&
+       ((RecordHeader*)array[(nIn-1)%arraySize])->recordType()==RecordHeader::shutDown &&
+       ((RecordHeader*)array[(nOut-1)%arraySize])->recordType()==RecordHeader::shutDown)
+      return true;
+
+    return false;
+  }
+  
+  RecordHeader* getLastHeaderIn() {
+    if(nIn==0) return 0;
+    return (RecordHeader*)array[(nIn-1)%arraySize];
+  }
+  
+  RecordHeader* getLastHeaderOut() {
+    if(nOut==0) return 0;
+    return (RecordHeader*)array[(nOut-1)%arraySize];
+  }
+  
+  Record* getNewEvent() {
+    while((nIn-nOut)>=arraySize && _consumerPid!=DUMMYPID) {
+      _producerSleep=true;
+      _totalProducerSleep+=SLEEPPERIOD-usleep(1000*SLEEPPERIOD);
+      _producerSleep=false;
+    }
+    return (Record*)array[nIn%arraySize];
+  }
+
+  void releaseNewEvent() {
+    nIn++;
+    if(_consumerPid==DUMMYPID) nOut=nIn;
+    if(_consumerSleep) kill(_consumerPid,SIGUSR2);
+  }
+
+  Record* getOldEvent() {
+    while(nOut>=nIn && _producerPid!=DUMMYPID) {
+      _consumerSleep=true;
+      _totalConsumerSleep+=SLEEPPERIOD-usleep(1000*SLEEPPERIOD);
+      _consumerSleep=false;
+    }
+    return (Record*)array[nOut%arraySize];
+  }
+
+  void releaseOldEvent() {
+    nOut++;
+    if(_producerPid==DUMMYPID) nIn=nOut+1;
+    if(_producerSleep) kill(_producerPid,SIGUSR1);
+  }
+  
+  Record* getMonEvent() {
+    if(bMon) return (Record*)array[nMon%arraySize];
+    if(nMon>=nIn) return 0;
+    nMon=nIn;
+    return (Record*)array[nMon%arraySize];
+  }
+
+  void releaseMonEvent() {
+    bMon=false;
+  }
+
+  unsigned getNIn() {
+    return nIn;
+  }
+
+  unsigned getNOut() {
+    return nOut;
+  }
+
+  void print(unsigned printLevel=0) {
+    std::cout << "RecordBuffer::print  Producer pid " << _producerPid;
+    if(_producerSleep) std::cout << " asleep";
+    else              std::cout << " awake";
+    std::cout << "  Time asleep " << _totalProducerSleep 
+	      << "(ms)  Records in " << nIn;
+    if(nIn>0) std::cout << " (last buffer " << (nIn-1)%arraySize << ")";
+    std::cout << std::endl;
+    std::cout << "                     Consumer pid " << _consumerPid;
+    if(_consumerSleep) std::cout << " asleep";
+    else              std::cout << " awake";
+    std::cout << "  Time asleep " << _totalConsumerSleep 
+	      << "(ms)  Records out " << nOut;
+    if(nOut>0) std::cout << " (last buffer " << (nOut-1)%arraySize << ")";
+    std::cout << std::endl;
+
+    if(bMon) std::cout << " mon " << nMon << std::endl;
+    else     std::cout << std::endl;
+
+    if(printLevel==1) {
+      if(nIn>0) {
+	std::cout << "Header of latest buffer in:" << std::endl;
+	((RecordHeader*)array[(nIn-1)%arraySize])->print(std::cout);
+      }
+      if(nOut>0) {
+	std::cout << "Header of latest buffer out:" << std::endl;
+	((RecordHeader*)array[(nOut-1)%arraySize])->print(std::cout);
+      }
+    }
+
+    if(printLevel>1) {
+      for(unsigned i(0);i<arraySize;i++) {
+	unsigned *p((unsigned*)(array+i));
+	std::cout << "Buffer ";
+	if(i<10) std::cout << " ";
+	std::cout << i << " header";
+	for(unsigned j(0);j<6;j++) std::cout << " " << p[j];
+	std::cout << std::endl;
+      }
+    }
+  }
+
+
+ private:
+  enum {
+    arraySize = 32
+  };
+  
+
+  pid_t _producerPid, _consumerPid;
+  bool _producerSleep, _consumerSleep;
+  unsigned _totalProducerSleep, _totalConsumerSleep;
+  unsigned nIn,nOut,nMon;
+  bool bMon;
+  unsigned array[arraySize][8192];
+};
+
+#endif
