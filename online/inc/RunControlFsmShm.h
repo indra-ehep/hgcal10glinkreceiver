@@ -28,6 +28,10 @@ class RunControlFsmShm {
     EndOfFsmRequestsEnum
   };
 
+  enum {
+    FsmRequestDataBufferSize=16
+  };
+  
   enum FsmStates {
     Initial,
     Halted,
@@ -56,60 +60,90 @@ class RunControlFsmShm {
     EndOfErrorStatesEnum
   };
 
-  
+  // Set defaults in contructor  
   RunControlFsmShm() {
     _rcHasLock=true;
-    _fsmRequest=Initialize;
+    //_fsmRequest=Initialize;
+    _fsmRequest=EndOfFsmRequestsEnum;
+    _fsmRequestDataSize=0;
     _fsmState=Initial;
     _errorState=Good;
-
-    for(unsigned i(0);i<EndOfFsmStatesEnum;i++) {
-      std::cout << std::setw(2) << i << " = "
-		<< _fsmStateNames[i] << " is "
-		<< (i<EndOfStaticEnum?"Static":"Transitional")
-		<< std::endl;
-    }
   }
-  
+
+  // Get information about request and its data
   FsmRequests fsmRequest() const {
     return _fsmRequest;
   }
   
+  uint32_t fsmRequestDataSize() const {
+    return _fsmRequestDataSize;
+  }
+  
+  uint64_t* fsmRequestDataBuffer() {
+    return _fsmRequestDataBuffer;
+  }
+  
+  // Get information about state and error level
   FsmStates fsmState() const {
     return _fsmState;
+  }
+  
+  bool fsmStaticState() const {
+    return _fsmState<EndOfStaticEnum;
   }
   
   ErrorStates errorState() const {
     return _errorState;
   }
-  
+
+  // Control who has access
   void setRcLock() {
     _rcHasLock=true;
   }
-  
-  bool setFsmRequest(FsmRequests r) {
-    //if(!_rcHasLock) return false;
 
-    // Some connectivity logic here
+  // Send or force a request
+  void forceFsmRequest(FsmRequests r) {
     _fsmRequest=r;
     _rcHasLock=false;
-
+  }
+  
+  bool setFsmRequest(FsmRequests r) {
+    if(!_rcHasLock) return false;
+    forceFsmReset(r);
+    return true;
+  }
+  
+  // Change the state
+  void forceFsmState(FsmStates s) {
+    _fsmState=s;
+    _rcHasLock=fsmStaticState();
+  }
+  
+  bool setFsmState(FsmStates s) {
+    if(_rcHasLock) return false;
+    forceFsmState(s);
     return true;
   }
   
   bool setFsmState(FsmStates s, ErrorStates e) {
-    //if(_rcHasLock) return false;
-
-    // Some connectivity logic here
-    _fsmState=s;
+    if(!setFsmState(s)) return false;
     _errorState=e;
-    _rcHasLock=!_fsmState<EndOfStaticEnum;
-
     return true;
   }
-  
+
+  // Conversion of enum values to human-readable strings
   static const std::string& fsmRequestName(RunControlFsmShm::FsmRequests r) {
     if(r<EndOfFsmRequestsEnum) return _fsmRequestNames[r];
+    return _unknown;
+  }
+
+  static const std::string& fsmStateName(RunControlFsmShm::FsmStates s) {
+    if(r<EndOfFsmStatesEnum) return _fsmStateNames[s];
+    return _unknown;
+  }
+
+  static const std::string& errorStateName(RunControlFsmShm::ErrorStates e) {
+    if(r<EndOfErrorStatesEnum) return _fsmErrorStateNames[e];
     return _unknown;
   }
 
@@ -118,20 +152,29 @@ class RunControlFsmShm {
   }
   
   const std::string& fsmStateName() const {
-    if(_fsmState<EndOfFsmStatesEnum) return _fsmStateNames[_fsmState];
-    return _unknown;
+    return fstStateName(_fsmState);
   }
   
   const std::string& errorStateName() const {
-    if(_errorState<EndOfErrorStatesEnum) return _errorStateNames[_errorState];
-    return _unknown;
+    return errorStateName(_errorState);
   }
-  
+
+  // Used for displaying results
   void print(std::ostream &o=std::cout) const {
     o << "RunControlFsmShm::print()" << std::endl;
     o << " RC request "
       << ( _rcHasLock?"has lock  ":"is blocked")
-      << ", request = " << fsmRequestName() << std::endl;
+      << ", request = " << fsmRequestName()
+      << ", data size = " << _fsmRequestDataSize  << std::endl;
+
+    for(unsigned i(0);i<std::min(_fsmRequestDataSize,uint32_t(FsmRequestBufferSize));i++) {
+      o << "  Buffer word " << std::setw(2) << i << " = 0x"
+	<< std::hex << std::setfill('0')
+	<< _fsmRequestDataBuffer[i]
+	<< std::dec << std::setfill(' ') << std::endl;
+    }
+    o << std::endl;
+    
     o << " FSM state  "
       << (!_rcHasLock?"has lock  ":"is blocked") 
       << ", state   = " << fsmStateName() << " = "
@@ -140,23 +183,25 @@ class RunControlFsmShm {
   }
   
  private:
+
+  // Handshake
   bool _rcHasLock;
+
+  // Request
   FsmRequests _fsmRequest;
+  uint32_t _fsmRequestDataSize;
+  uint64_t _fsmRequestDataBuffer[FsmRequestDataBufferSize];
+
+  // State
   FsmStates   _fsmState;
   ErrorStates _errorState;
-  
-  //static const bool _fsmStaticState[EndOfFsmStatesEnum];
 
+  // Human-readable names
   static const std::string _unknown;
   static const std::string _fsmRequestNames[EndOfFsmRequestsEnum];
   static const std::string _fsmStateNames[EndOfFsmStatesEnum];
   static const std::string _errorStateNames[EndOfErrorStatesEnum];
 };
-
-//const bool RunControlFsmShm::_fsmStaticState[EndOfFsmStatesEnum]={
-//  true,false, true,false,false, true,false,false,
-//  true,false,false, true,false,false, true
-//};
 
 const std::string RunControlFsmShm::_unknown="Unknown";
 
@@ -176,6 +221,7 @@ const std::string RunControlFsmShm::_fsmRequestNames[EndOfFsmRequestsEnum]={
 };
 
 const std::string RunControlFsmShm::_fsmStateNames[EndOfFsmStatesEnum]={
+  // Statics
   "Initial       ",
   "Halted        ",
   "PreConfigured ",
@@ -183,6 +229,7 @@ const std::string RunControlFsmShm::_fsmStateNames[EndOfFsmStatesEnum]={
   "Running       ",
   "Paused        ",
 
+  // Transitionals
   "Initializing  ",
   "PreConfiguring",
   "Configuring   ",
