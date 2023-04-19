@@ -6,8 +6,6 @@
 #include <fstream>
 #include <sstream>
 #include <cstdint>
-#include <cassert>
-#include <vector>
 
 class RunControlFsmShm {
 
@@ -82,7 +80,7 @@ class RunControlFsmShm {
   uint64_t* fsmRequestDataBuffer() {
     return _fsmRequestDataBuffer;
   }
-  
+
   // Get information about state and error level
   FsmStates fsmState() const {
     return _fsmState;
@@ -109,7 +107,13 @@ class RunControlFsmShm {
   
   bool setFsmRequest(FsmRequests r) {
     if(!_rcHasLock) return false;
-    forceFsmReset(r);
+    forceFsmRequest(r);
+    return true;
+  }
+  
+  bool setFsmRequestDataSize(uint32_t s) {
+    if(s>FsmRequestDataBufferSize) return false;
+    _fsmRequestDataSize=s;
     return true;
   }
   
@@ -125,6 +129,18 @@ class RunControlFsmShm {
     return true;
   }
   
+  void forceErrorState(ErrorStates e) {
+    _errorState=e;
+  }
+  
+  bool setErrorState(ErrorStates e) {
+    if(_errorState<e) {
+      _errorState=e;
+      return true;
+    }
+    return false;
+  }
+  
   bool setFsmState(FsmStates s, ErrorStates e) {
     if(!setFsmState(s)) return false;
     _errorState=e;
@@ -138,12 +154,12 @@ class RunControlFsmShm {
   }
 
   static const std::string& fsmStateName(RunControlFsmShm::FsmStates s) {
-    if(r<EndOfFsmStatesEnum) return _fsmStateNames[s];
+    if(s<EndOfFsmStatesEnum) return _fsmStateNames[s];
     return _unknown;
   }
 
   static const std::string& errorStateName(RunControlFsmShm::ErrorStates e) {
-    if(r<EndOfErrorStatesEnum) return _fsmErrorStateNames[e];
+    if(e<EndOfErrorStatesEnum) return _errorStateNames[e];
     return _unknown;
   }
 
@@ -152,7 +168,7 @@ class RunControlFsmShm {
   }
   
   const std::string& fsmStateName() const {
-    return fstStateName(_fsmState);
+    return fsmStateName(_fsmState);
   }
   
   const std::string& errorStateName() const {
@@ -167,7 +183,7 @@ class RunControlFsmShm {
       << ", request = " << fsmRequestName()
       << ", data size = " << _fsmRequestDataSize  << std::endl;
 
-    for(unsigned i(0);i<std::min(_fsmRequestDataSize,uint32_t(FsmRequestBufferSize));i++) {
+    for(unsigned i(0);i<std::min(_fsmRequestDataSize,uint32_t(FsmRequestDataBufferSize));i++) {
       o << "  Buffer word " << std::setw(2) << i << " = 0x"
 	<< std::hex << std::setfill('0')
 	<< _fsmRequestDataBuffer[i]

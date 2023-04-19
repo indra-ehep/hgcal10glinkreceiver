@@ -14,8 +14,7 @@ RunFileShm0* p0;
 RunFileShm1* p1;
 RunFileShm2* p2;
 
-void request(RunControlFsmShm::FsmRequests fr, uint32_t s=0) {
-  p2->_runControlFsmShm.setFsmRequestDataSize(s);
+void request(RunControlFsmShm::FsmRequests fr) {
   p2->_runControlFsmShm.forceFsmRequest(fr);
   std::cout << "SLEEP " << std::endl;
   sleep(2);
@@ -29,13 +28,8 @@ int main(int argc, char *argv[]) {
   p0=shm0.payload();
   p1=shm1.payload();
   p2=shm2.payload();
-
-  uint64_t *pdb(p2->_runControlFsmShm.fsmRequestDataBuffer());
-  pdb[0]=time(0);
   
-  request(RunControlFsmShm::PreConfigure,1);
-  request(RunControlFsmShm::Configure);
-  request(RunControlFsmShm::Start);
+  request(RunControlFsmShm::Initialize);
 
   return 0;
 }

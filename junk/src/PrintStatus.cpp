@@ -101,6 +101,9 @@ int main(int argc, char *argv[]) {
     pOld[2]=pNew;
     bOld[2]=bNew;
 
+    std::cout << std::endl << "Disk:" << std::endl;
+    system("df -h RunDatFiles");
+
     sleep(1);    
   }
 

@@ -10,32 +10,28 @@ g++ -I inc src/RunStart.cpp -o bin/RunStart.exe
 
 #include "RunFileShm.h"
 
+RunFileShm0* p0;
+RunFileShm1* p1;
+RunFileShm2* p2;
+
+void request(RunControlFsmShm::FsmRequests fr) {
+  p2->_runControlFsmShm.forceFsmRequest(fr);
+  std::cout << "SLEEP " << std::endl;
+  sleep(2);
+}
+
 int main(int argc, char *argv[]) {
   ShmSingleton<RunFileShm0> shm0;
   ShmSingleton<RunFileShm1> shm1;
   ShmSingleton<RunFileShm2> shm2;
-
-  //shm2.payload()->_runControlFsmShm.setRcLock();
-  RunControlFsmShm::FsmRequests fr;
-
-  fr=RunControlFsmShm::Stop;
-  shm0.payload()->_runControlFsmShm.setFsmRequest(fr);
-  shm1.payload()->_runControlFsmShm.setFsmRequest(fr);
-  shm2.payload()->_runControlFsmShm.setFsmRequest(fr);
-  std::cout << "SLEEP " << std::endl;
-  sleep(3);
-
-  fr=RunControlFsmShm::Unconfigure;
-  shm0.payload()->_runControlFsmShm.setFsmRequest(fr);
-  shm1.payload()->_runControlFsmShm.setFsmRequest(fr);
-  shm2.payload()->_runControlFsmShm.setFsmRequest(fr);
-  std::cout << "SLEEP " << std::endl;
-  sleep(3);
-
-  fr=RunControlFsmShm::Halt;
-  shm0.payload()->_runControlFsmShm.setFsmRequest(fr);
-  shm1.payload()->_runControlFsmShm.setFsmRequest(fr);
-  shm2.payload()->_runControlFsmShm.setFsmRequest(fr);
+  
+  p0=shm0.payload();
+  p1=shm1.payload();
+  p2=shm2.payload();
+  
+  request(RunControlFsmShm::Stop);
+  request(RunControlFsmShm::Unconfigure);
+  request(RunControlFsmShm::Halt);
 
   return 0;
 }

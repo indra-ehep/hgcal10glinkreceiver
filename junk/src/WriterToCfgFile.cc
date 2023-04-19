@@ -31,8 +31,11 @@ int main(int argc, char *argv[]) {
   // Connect to shared memory
   ShmSingleton<RunFileShm> shmU;
   RunFileShm* const ptrRunFileShm(shmU.payload());
-  ptrRunFileShm->ColdStart();
+  //ptrRunFileShm->ColdStart();
 
+  // Access to data buffer of requests
+  uint64_t* const ptrFsmRequestDataBuffer(ptrRunFileShm->_runControlFsmShm.fsmRequestDataBuffer());
+  
   // Variables for files
   std::ofstream fout;
   std::string openFileName;
@@ -68,7 +71,13 @@ int main(int argc, char *argv[]) {
 
 	// PreConfiguring; set to transitional state
 	ptrRunFileShm->_runControlFsmShm.setFsmState(RunControlFsmShm::PreConfiguring,RunControlFsmShm::Good);
-      
+
+	if(ptrRunFileShm->_runControlFsmShm.fsmRequestDataSize()>0) {
+	  ptrRunFileShm->_runNumber=ptrFsmRequestDataBuffer[0]&0xffffffff;
+	} else {
+	  ptrRunFileShm->_runNumber=0;
+	}
+	
 	openFileName=CfgFileName(ptrRunFileShm->_runNumber,LINKNUMBER,ptrRunFileShm->_fileNumber);
       
 	if(writeEnable) {
