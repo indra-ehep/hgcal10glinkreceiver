@@ -175,6 +175,14 @@ class RunControlFsmShm {
     return errorStateName(_errorState);
   }
 
+  // Setting requests with data
+  /*
+  bool setPreConfigure(PreConfigureRequestData &d) {
+    _fsmRequestDataSize=(sizeof(PreConfigureRequestData)+7)/8;
+    //_fsmRequestDataBuffer;
+    return setFsmRequest(PreConfigure);
+  }
+  */
   // Used for displaying results
   void print(std::ostream &o=std::cout) const {
     o << "RunControlFsmShm::print()" << std::endl;
