@@ -9,42 +9,46 @@ namespace Hgcal10gLinkReceiver {
     
     enum Command {
       Initialize,
-      ColdReset,
-      Reset,
-      Shutdown,
-      PreConfigure,
-      Halt,
-      Configure,
-      Unconfigure,
+      ConfigureA,
+      //PreConfigure=ConfigureA, // OLD
+      ConfigureB,
+      //Configure=ConfigureB, // OLD
       Start,
-      Stop,
       Pause,
       Resume,
+      Stop,
+      HaltB,
+      //Unconfigure=HaltB, // OLD
+      HaltA,
+      //Halt=HaltA, // OLD
+      Reset,
       EndOfCommandEnum
-    };
-    
-    enum {
-      CommandDataBufferSize=16
     };
     
     enum State {
       Initial,
       Halted,
-      PreConfigured,
-      Configured,
+      ConfiguredA,
+      //PreConfigured=ConfiguredA, // OLD
+      ConfiguredB,
+      //Configured=ConfiguredB, // OLD
       Running,
       Paused,
       EndOfStaticEnum,
       
       Initializing=EndOfStaticEnum,
-      PreConfiguring,
-      Configuring,
+      ConfiguringA,
+      //PreConfiguring=ConfiguringA, // OLD
+      ConfiguringB,
+      //Configuring=ConfiguringB, // OLD
       Starting,
       Pausing,
       Resuming,
       Stopping,
-      Unconfiguring,
-      Halting,
+      HaltingB,
+      //Unconfiguring=HaltingB, // OLD
+      HaltingA,
+      //Halting=HaltingA, // OLD
       EndOfStateEnum
     };
     
@@ -58,39 +62,37 @@ namespace Hgcal10gLinkReceiver {
     const std::string _unknown="Unknown";
     
     const std::string _commandName[EndOfCommandEnum]={
-      "Initialize  ",
-      "ColdReset   ",
-      "Reset       ",
-      "Shutdown    ",
-      "PreConfigure",
-      "Halt        ",
-      "Configure   ",
-      "Unconfigure ",
-      "Start       ",
-      "Stop        ",
-      "Pause       ",
-      "Resume      "
+      "Initialize",
+      "ConfigureA",
+      "ConfigureB",
+      "Start     ",
+      "Pause     ",
+      "Resume    ",
+      "Stop      ",
+      "HaltB     ",
+      "HaltA     ",
+      "Reset     "
     };
     
     const std::string _stateName[EndOfStateEnum]={
       // Statics
-      "Initial       ",
-      "Halted        ",
-      "PreConfigured ",
-      "Configured    ",
-      "Running       ",
-      "Paused        ",
+      "Initial    ",
+      "Halted     ",
+      "ConfiguredA",
+      "ConfiguredB",
+      "Running    ",
+      "Paused     ",
       
       // Transitionals
-      "Initializing  ",
-      "PreConfiguring",
-      "Configuring   ",
-      "Starting      ",
-      "Pausing       ",
-      "Resuming      ",
-      "Stopping      ",
-      "Unconfiguring ",
-      "Halting       ",
+      "Initializing",
+      "ConfiguringA",
+      "ConfiguringB",
+      "Starting    ",
+      "Pausing     ",
+      "Resuming    ",
+      "Stopping    ",
+      "HaltingB    ",
+      "HaltingA    ",
     };
     
     const std::string _stateErrorName[EndOfStateErrorEnum]={
@@ -100,7 +102,7 @@ namespace Hgcal10gLinkReceiver {
     };
     
     // Conversion of enum values to human-readable strings
-    static const std::string& commandName(Command r) {
+    const std::string& commandName(Command r) {
       if(r<EndOfCommandEnum) return _commandName[r];
       return _unknown;
     }
@@ -113,6 +115,38 @@ namespace Hgcal10gLinkReceiver {
     static const std::string& stateErrorName(RunControlFsmEnums::StateError e) {
       if(e<EndOfStateErrorEnum) return _stateErrorName[e];
       return _unknown;
+    }
+    
+    State staticStateBeforeCommand(Command c) {
+      if(c==Initialize) return Initial;
+      if(c==ConfigureA) return Halted;
+      if(c==ConfigureB) return ConfiguredA;
+      if(c==Start     ) return ConfiguredB;
+      if(c==Pause     ) return Running;
+
+      if(c==Reset     ) return Halted;
+      if(c==HaltA     ) return ConfiguredA;
+      if(c==HaltB     ) return ConfiguredB;
+      if(c==Stop      ) return Running;
+      if(c==Resume    ) return Paused;
+
+      return EndOfStateEnum;
+    }
+    
+    State staticStateAfterCommand(Command c) {
+      if(c==Initialize) return Halted;
+      if(c==ConfigureA) return ConfiguredA;
+      if(c==ConfigureB) return ConfiguredB;
+      if(c==Start     ) return Running;
+      if(c==Pause     ) return Paused;
+
+      if(c==Reset     ) return Initial;
+      if(c==HaltA     ) return Halted;
+      if(c==HaltB     ) return ConfiguredA;
+      if(c==Stop      ) return ConfiguredB;
+      if(c==Resume    ) return Running;
+
+      return EndOfStateEnum;
     }
   }
 }

@@ -1,7 +1,3 @@
-/*
-g++ -I inc src/RunStart.cpp -o bin/RunStart.exe
- */
-
 #include <iostream>
 #include <sstream>
 

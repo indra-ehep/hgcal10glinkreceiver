@@ -14,6 +14,10 @@ namespace Hgcal10gLinkReceiver {
   class RunControlFsmShm {
 
   public:
+    enum {
+      CommandDataBufferSize=1024
+    };
+
     RunControlFsmShm() {
       _rcHasLock=true;
       _command=RunControlFsmEnums::EndOfCommandEnum;
@@ -23,7 +27,12 @@ namespace Hgcal10gLinkReceiver {
       _request=RunControlFsmEnums::EndOfCommandEnum;
     }
 
-    // Get information about request and its data
+    // Get information about lock
+    bool rcLock() const {
+      return _rcHasLock;
+    }
+
+    // Get information about command and its data
     RunControlFsmEnums::Command command() const {
       return _command;
     }
@@ -58,9 +67,9 @@ namespace Hgcal10gLinkReceiver {
     void forceCommand(RunControlFsmEnums::Command r) {
       _command=r;
 
-      _header.setIdentifier(RecordHeader::StateData);
+      //_header.setIdentifier(RecordHeader::StateData);
       //_header.setTransition(RunControlFsmEnums::Initializing);
-      _header.setUtc();
+      //_header.setUtc();
 
       _rcHasLock=false;
     }
@@ -72,9 +81,9 @@ namespace Hgcal10gLinkReceiver {
     }
   
     bool setCommandDataSize(uint16_t s) {
-      if(s>RunControlFsmEnums::CommandDataBufferSize) return false;
+      if(s>CommandDataBufferSize) return false;
       _commandDataSize=s;
-      _header.setLength(s);
+      //_header.setLength(s);
       return true;
     }
   
@@ -157,7 +166,7 @@ namespace Hgcal10gLinkReceiver {
 	<< ", request = " << commandName()
 	<< ", data size = " << _commandDataSize  << std::endl;
 
-      for(unsigned i(0);i<std::min(_commandDataSize,uint32_t(RunControlFsmEnums::CommandDataBufferSize));i++) {
+      for(unsigned i(0);i<std::min(_commandDataSize,uint32_t(CommandDataBufferSize));i++) {
 	o << "  Buffer word " << std::setw(2) << i << " = 0x"
 	  << std::hex << std::setfill('0')
 	  << _commandDataBuffer[i]
@@ -188,8 +197,8 @@ namespace Hgcal10gLinkReceiver {
 
     // Command data
     uint32_t _commandDataSize;
-    RecordHeader _header;
-    uint64_t _commandDataBuffer[RunControlFsmEnums::CommandDataBufferSize];
+    //RecordHeader _header;
+    uint64_t _commandDataBuffer[CommandDataBufferSize];
   };
 
 }
