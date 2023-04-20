@@ -49,14 +49,19 @@ namespace Hgcal10gLinkReceiver {
       return _stateError;
     }
 
-    // Control who has access
-    void setRcLock() {
-      _rcHasLock=true;
+    // Override control for who has access
+    void setRcLock(bool l=true) {
+      _rcHasLock=l;
     }
 
     // Send or force a request
     void forceCommand(RunControlFsmEnums::Command r) {
       _command=r;
+
+      _header.setIdentifier(RecordHeader::StateData);
+      //_header.setTransition(RunControlFsmEnums::Initializing);
+      _header.setUtc();
+
       _rcHasLock=false;
     }
   
@@ -66,9 +71,10 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
   
-    bool setCommandDataSize(uint32_t s) {
+    bool setCommandDataSize(uint16_t s) {
       if(s>RunControlFsmEnums::CommandDataBufferSize) return false;
       _commandDataSize=s;
+      _header.setLength(s);
       return true;
     }
   
@@ -174,13 +180,16 @@ namespace Hgcal10gLinkReceiver {
 
     // Command
     RunControlFsmEnums::Command _command;
-    uint32_t _commandDataSize;
-    uint64_t _commandDataBuffer[RunControlFsmEnums::CommandDataBufferSize];
 
     // State
     RunControlFsmEnums::State   _state;
     RunControlFsmEnums::StateError _stateError;
     RunControlFsmEnums::Command _request;
+
+    // Command data
+    uint32_t _commandDataSize;
+    RecordHeader _header;
+    uint64_t _commandDataBuffer[RunControlFsmEnums::CommandDataBufferSize];
   };
 
 }
