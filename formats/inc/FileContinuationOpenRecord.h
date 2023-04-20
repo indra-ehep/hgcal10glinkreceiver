@@ -1,17 +1,16 @@
-#ifndef Hgcal10gLinkReceiver_PreConfiguringRecord_h
-#define Hgcal10gLinkReceiver_PreConfiguringRecord_h
+#ifndef Hgcal10gLinkReceiver_FileContinuationOpenRecord_h
+#define Hgcal10gLinkReceiver_FileContinuationOpenRecord_h
 
 #include <iostream>
-#include <iomanip>
 
 #include "Record.h"
 
 namespace Hgcal10gLinkReceiver {
 
-  class PreConfiguringRecord : public Record<1> {
+  class FileContinuationOpenRecord : public Record<1> {
   
   public:
-    PreConfiguringRecord() {
+    FileContinuationOpenRecord() {
     }
     
     void setHeader(uint32_t t=time(0)) {
@@ -31,13 +30,13 @@ namespace Hgcal10gLinkReceiver {
     }
    
     void print(std::ostream &o=std::cout, std::string s="") {
-      o << s << "PreConfiguringRecord::print()" << std::endl;
+      o << s << "FileContinuationOpenRecord::print()" << std::endl;
       RecordHeader::print(o,s+" ");
       
       for(unsigned i(0);i<length();i++) {
 	o << s << "   Payload word " << std::setw(5) << " = 0x"
 	  << std::hex << std::setfill('0')
-	  << std::setw(16) << _payload[i]
+	  << std::setw(8) << _payload[i]
 	  << std::dec << std::setfill(' ') << std::endl;
 	if(i==0) {
 	  o << s << "    SuperRun number = "

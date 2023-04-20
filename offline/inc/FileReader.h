@@ -6,6 +6,7 @@
 
 #include "FileContinuationCloseRecord.h"
 #include "FileContinuationOpenRecord.h"
+#include "FileNamer.h"
 
 namespace Hgcal10gLinkReceiver {
 
@@ -27,16 +28,16 @@ namespace Hgcal10gLinkReceiver {
       return _inputFile;
     }
 
-    bool read(uint64_t *d, unsigned n) {
-      _inputFile.read((char*)d,8);
-      _inputFile.read((char*)(d+1),8*);
+    //bool read(uint64_t *d, unsigned n) {
+    bool read(RecordHeader *h) {
+      _inputFile.read((char*)h,8);
+      if(!_inputFile) return false;
+      _inputFile.read((char*)(h+1),8*h->length());
       
-      _numberOfBytesInFile+=8*n;
+      //_inputFile.read((char*)d,8);
+      //_inputFile.read((char*)(d+1),8*);
       
-      if(FCCR) {
-	FileContinuationCloseRecord fccr;
-	fccr.setRunNumber(_runNumber);
-	fccr.setFileNumber(_fileNumber);
+      if(h->identifier()==RecordHeader::FileContinuationEof) {
 	
 	_inputFile.close();
 	
@@ -44,17 +45,15 @@ namespace Hgcal10gLinkReceiver {
 	setRunFileName();
 	
 	_inputFile.open(_fileName.c_str(),std::ios::binary);
-	
-	
-	FileContinuationOpenRecord fcor;
-	fcor.setRunNumber(_runNumber);
-	fcor.setFileNumber(_fileNumber);
-	
-	_inputFile.read((char*)(&fcor),sizeof(FileContinuationOpenRecord));
+
+	_inputFile.read((char*)h,8);
+	assert(h->identifier()==RecordHeader::FileContinuationBof);
+	_inputFile.read((char*)(h+1),8*h->length());
+
+	_inputFile.read((char*)h,8);
+      h->print();
+	_inputFile.read((char*)(h+1),8*h->length());
       }
-      
-      
-      _inputFile.read((char*)(&fcor),sizeof(FileContinuationOpenRecord));
       
       return true;
     }
@@ -64,10 +63,10 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool read(RecordHeader *h) {
-      _inputFile.read((char*)h,8);
-      _inputFIle.read((char*)(h+1),8*h->length());
-    }
+    //bool read(RecordHeader *h) {
+    //  _inputFile.read((char*)h,8);
+    //  _inputFIle.read((char*)(h+1),8*h->length());
+    //}
     
   private:
     std::ifstream _inputFile;

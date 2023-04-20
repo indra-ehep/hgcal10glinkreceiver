@@ -6,18 +6,18 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "RunControlFsmShm.h"
+#include "RunControlFsmEnums.h"
 
 namespace Hgcal10gLinkReceiver {
 
   class RecordHeader {
   
   public:
-    enum Identifiers {
-      FsmStateData=0x33,
+    enum Identifier {
+      StateData=0x33,
       ConfigurationData=0xcc,
       EventData=0xdd,
-      EndOfIdentifiersEnum,
+      EndOfIdentifierEnum,
     
       // For information
       FileContinuationEof=0xee,
@@ -28,12 +28,12 @@ namespace Hgcal10gLinkReceiver {
     };
 
     // Get values
-    Identifiers identifier() const {
-      return (Identifiers)(_header>>56);
+    Identifier identifier() const {
+      return (Identifier)(_header>>56);
     }
 
-    RunControlFsmShm::FsmStates fsmState() const {
-      return (RunControlFsmShm::FsmStates)((_header>>48)&0xff);
+    RunControlFsmEnums::State state() const {
+      return (RunControlFsmEnums::State)((_header>>48)&0xff);
     }
   
     uint16_t length() const {
@@ -49,8 +49,8 @@ namespace Hgcal10gLinkReceiver {
       return ctime((time_t*)(&t));
     }
 
-    static const std::string identifierName(Identifiers i) {
-      if(i==FsmStateData     ) return "FsmStateData     ";
+    static const std::string identifierName(Identifier i) {
+      if(i==StateData        ) return "StateData        ";
       if(i==ConfigurationData) return "ConfigurationData";
       if(i==EventData        ) return "EventData        ";
       return _unknown;
@@ -61,12 +61,12 @@ namespace Hgcal10gLinkReceiver {
     }
 
     // Set values
-    void setIdentifier(Identifiers i) {
+    void setIdentifier(Identifier i) {
       _header&=0x00ffffffffffffff;
       _header|=(uint64_t(i)<<56);
     }
 
-    void setFsmState(RunControlFsmShm::FsmStates t) {
+    void setState(RunControlFsmEnums::State t) {
       _header&=0xff00ffffffffffff;
       _header|=(uint64_t(t)<<48);
     }
@@ -85,10 +85,10 @@ namespace Hgcal10gLinkReceiver {
     void print(std::ostream &o=std::cout, std::string s="") {
       o << s << "RecordHeader::print()  Data = 0x"
 	<< std::hex << std::setfill('0')
-	<< _header
+	<< std::setw(16) << _header
 	<< std::dec << std::setfill(' ') << std::endl;
       o << s << " Identifier = " << identifierName() << std::endl;
-      o << s << " FsmState   = " << RunControlFsmShm::fsmStateName(fsmState())
+      o << s << " State   = " << RunControlFsmEnums::stateName(state())
 	<< std::endl;
       o << s << " UTC = " << std::setw(10) << utc() << " = " << utcDate(); // endl already in ctime
       o << s << " Payload length = " << std::setw(5)
@@ -99,13 +99,13 @@ namespace Hgcal10gLinkReceiver {
     uint64_t _header;
 
     static const std::string _unknown;
-    //static const std::string _identifierNames[EndOfIdentifiersEnum];
+    //static const std::string _identifierNames[EndOfIdentifierEnum];
   };
 
   const std::string RecordHeader::_unknown="Unknown";
   /*
-  const std::string RecordHeader::_identifierNames[EndOfIdentifiersEnum]={
-    "FsmStateData     ",
+  const std::string RecordHeader::_identifierNames[EndOfIdentifierEnum]={
+    "StateData     ",
     "ConfigurationData",
     "EventData        "
   };

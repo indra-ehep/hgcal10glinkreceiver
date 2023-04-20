@@ -6,6 +6,7 @@
 
 #include "FileContinuationCloseRecord.h"
 #include "FileContinuationOpenRecord.h"
+#include "FileNamer.h"
 
 namespace Hgcal10gLinkReceiver {
 
@@ -13,6 +14,7 @@ namespace Hgcal10gLinkReceiver {
   public:
     enum {
       MaximumBytesPerFile=2000000000
+      //MaximumBytesPerFile=2000
     };
     
     FileWriter() : _protectFiles(false) { // While debugging
@@ -36,17 +38,18 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool write(uint64_t *d, unsigned n) {
+    //bool write(uint64_t *d, unsigned n) {
+    bool write(const RecordHeader* h) {
       if(_writeEnable) {
-	_outputFile.write((char*)d,8*n);
+	_outputFile.write((char*)h,8*(h->length()+1));
       }
 
-      _numberOfBytesInFile+=8*n;
+      _numberOfBytesInFile+=8*(h->length()+1);
 
       if(_numberOfBytesInFile>MaximumBytesPerFile) {
 	FileContinuationCloseRecord fccr;
-	fccr.setRunNumber(_runNumber);
-	fccr.setFileNumber(_fileNumber);
+	//fccr.setRunNumber(_runNumber);
+	//fccr.setFileNumber(_fileNumber);
 
 	if(_writeEnable) {
 	  _outputFile.write((char*)(&fccr),sizeof(FileContinuationCloseRecord));
@@ -61,8 +64,8 @@ namespace Hgcal10gLinkReceiver {
 	setRunFileName();
 
 	FileContinuationOpenRecord fcor;
-	fcor.setRunNumber(_runNumber);
-	fcor.setFileNumber(_fileNumber);
+	//fcor.setRunNumber(_runNumber);
+	//fcor.setFileNumber(_fileNumber);
 
 	if(_writeEnable) {
 	  _outputFile.open(_fileName.c_str(),std::ios::binary);
@@ -83,9 +86,9 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool write(const RecordHeader &h) {
-      write((char*)(&h),8*(h.length()+1));
-    }
+    //bool write(const RecordHeader &h) {
+    //  outputFile_.write((char*)(&h),8*(h.length()+1));
+    //}
     
   private:
     std::ofstream _outputFile;

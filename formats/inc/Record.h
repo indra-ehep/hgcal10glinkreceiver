@@ -28,7 +28,7 @@ namespace Hgcal10gLinkReceiver {
       for(unsigned i(0);i<length();i++) {
 	o << "   Payload word " << std::setw(5) << " = 0x"
 	  << std::hex << std::setfill('0')
-	  << std::setw(8) << _payload[i]
+	  << std::setw(16) << _payload[i]
 	  << std::dec << std::setfill(' ') << std::endl;
       }
     }

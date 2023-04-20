@@ -1,22 +1,21 @@
-#ifndef Hgcal10gLinkReceiver_PreConfiguringRecord_h
-#define Hgcal10gLinkReceiver_PreConfiguringRecord_h
+#ifndef Hgcal10gLinkReceiver_FileContinuationCloseRecord_h
+#define Hgcal10gLinkReceiver_FileContinuationCloseRecord_h
 
 #include <iostream>
-#include <iomanip>
 
 #include "Record.h"
 
 namespace Hgcal10gLinkReceiver {
 
-  class PreConfiguringRecord : public Record<1> {
+  class FileContinuationCloseRecord : public Record<1> {
   
   public:
-    PreConfiguringRecord() {
+    FileContinuationCloseRecord() {
     }
     
     void setHeader(uint32_t t=time(0)) {
-      setIdentifier(Hgcal10gLinkReceiver::RecordHeader::StateData);
-      setState(RunControlFsmEnums::PreConfiguring);
+      setIdentifier(Hgcal10gLinkReceiver::RecordHeader::FileContinuationEof);
+      setState(RunControlFsmEnums::EndOfStateEnum);
       setLength();
       setUtc(t);
     }
@@ -31,7 +30,7 @@ namespace Hgcal10gLinkReceiver {
     }
    
     void print(std::ostream &o=std::cout, std::string s="") {
-      o << s << "PreConfiguringRecord::print()" << std::endl;
+      o << s << "FileContinuationCloseRecord::print()" << std::endl;
       RecordHeader::print(o,s+" ");
       
       for(unsigned i(0);i<length();i++) {
