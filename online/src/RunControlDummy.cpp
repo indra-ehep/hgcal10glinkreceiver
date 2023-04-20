@@ -1,5 +1,6 @@
 #include <iostream>
 #include <sstream>
+#include <vector>
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -23,10 +24,51 @@ void request(RunControlFsmShm *p, RunControlFsmEnums::Command fr, uint32_t s=0) 
 }
 
 int main(int argc, char *argv[]) {
+  uint16_t bits(1);
+  unsigned nBits(1);
+  bool isBit[8]={true,false,false,false,false,false,false,false};
+  
+  if(argc>1) {
+    std::istringstream sin(argv[argc-1]);
+    sin >> bits;
 
+    nBits=0;
+  for(unsigned i(0);i<8;i++) {
+    if((bits&(1<<i))!=0) {
+      nBits++;
+      isBit[i]=true;
+    } else {
+      isBit[i]=false;
+    }
+  }
+    
+  std::cout << "Bits = 0x"
+	    << std::hex << std::setfill('0')
+	    << std::setw(2) << unsigned(bits)
+	    << std::dec << std::setfill(' ')
+	    << ", nbits = " << nBits
+	    << std::endl;
+  }
+  
+  std::vector< ShmSingleton<RunControlFsmShm> > vShmSingleton(nBits);
+  std::vector<RunControlFsmShm*> vPtr;
+
+  unsigned j(0);
+  for(unsigned i(0);i<8;i++) {
+    if(isBit[i]) {
+      vShmSingleton[j].setup(1234560+i);
+      vPtr.push_back(vShmSingleton[j].payload());
+      j++;
+    }
+  }
+  assert(j==nBits);
+  
   // Connect to shared memory
-  ShmSingleton<RunControlFsmShm> shmU;
-  RunControlFsmShm* const ptrRunFileShm(shmU.payload());
+  //ShmSingleton<RunControlFsmShm> shmU;
+  //ShmSingleton<RunControlFsmShm> &shmU(vShmSingleton[0]);  
+  //RunControlFsmShm* const ptrRunFileShm(shmU.payload());
+  RunControlFsmShm* const ptrRunFileShm(vPtr[0]);
+  
   /*
   request(ptrRunFileShm,RunControlFsmEnums::ConfigureA);
   request(ptrRunFileShm,RunControlFsmEnums::ConfigureB);
@@ -40,16 +82,19 @@ int main(int argc, char *argv[]) {
   request(ptrRunFileShm,RunControlFsmEnums::HaltA);
   */
 
-  unsigned iOld(999);
   unsigned cx;
+
+  
   
   while(true) {
-  ptrRunFileShm->print();
+  vPtr[0]->print();
 
   std::cout << "WAIT" << std::endl;
-  while(!ptrRunFileShm->rcLock());
-
-  ptrRunFileShm->print();
+  for(unsigned i(0);i<vShmSingleton.size();i++) {
+    while(!vPtr[i]->rcLock());
+  }
+  
+  vPtr[0]->print();
 
   std::cout << std::endl;
   for(unsigned i(0);i<RunControlFsmEnums::EndOfCommandEnum;i++) {
@@ -58,30 +103,14 @@ int main(int argc, char *argv[]) {
 
   std::cout << std::endl << "Enter next command number:" << std::endl;
   std::cin >> cx;
-  if(iOld==999) iOld=cx+1;
-  
-  if(iOld==9 && cx==0) {
-  } else if(iOld>cx) {
-    if((iOld-cx)>1) {
-      std::cout << std::endl << "SURE??? Re-enter command number:" << std::endl;
-      std::cin >> cx;
-    }
-  } else if(iOld==cx) {
-      std::cout << std::endl << "SURE??? Re-enter command number:" << std::endl;
-      std::cin >> cx;    
-  } else if(iOld<cx) {
-    if((cx-iOld)>1) {
-      std::cout << std::endl << "SURE??? Re-enter command number:" << std::endl;
-      std::cin >> cx;
-    }
-  }
-  iOld=cx;
   
   RunControlFsmEnums::Command c((RunControlFsmEnums::Command)cx);
   
   std::cout << "Command " << cx << " = " << RunControlFsmEnums::commandName(c) << std::endl;
-  ptrRunFileShm->setCommand(c);
-  }
   
+  for(unsigned i(0);i<vShmSingleton.size();i++) {
+    vPtr[i]->setCommand(c);
+  }
+  }
   return 0;
 }

@@ -17,10 +17,20 @@ template <class Payload> class ShmSingleton {
 
  public:
 
-  ShmSingleton(int access = 0666) : thePayload(0) {//, theKey(123456789) {
+  //ShmSingleton() : thePayload(0) {
+  //}
+  
+ ShmSingleton(bool sup=false, int access = 0666) : thePayload(0) {
+    if(sup) {
+      theNewKey=theKey;
+      setup(theNewKey,access);
+    }
+  }
+  
+  void setup(key_t theNewKey, int access = 0666) {
     bool created(false);
 
-    shmId = shmget(theKey, 1, access);
+    shmId = shmget(theNewKey, 1, access);
     if(shmId == -1) {
       std::cerr << "ShmSingleton<>::ctor() shmget(" << theKey << ","
 		<< 1 << "," << std::oct << access
@@ -29,12 +39,12 @@ template <class Payload> class ShmSingleton {
     
       std::cerr << "shmget successful" << std::endl;
 
-      shmId = shmget(theKey, sizeof(Payload), IPC_CREAT | access);
-      //shmId = shmget(theKey, 1, IPC_CREAT | access);
+      shmId = shmget(theNewKey, sizeof(Payload), IPC_CREAT | access);
+      //shmId = shmget(theNewKey, 1, IPC_CREAT | access);
 
       if(shmId == -1) {
 	//      perror("ShmSingleton<>::ctor() shmget");
-	std::cerr << "ShmSingleton<>::ctor() shmget(" << theKey << ","
+	std::cerr << "ShmSingleton<>::ctor() shmget(" << theNewKey << ","
 		  << sizeof(Payload) << "," << std::oct << (IPC_CREAT | access) 
 	  		  << std::dec << ")" << std::endl;
 	perror(0);
@@ -104,6 +114,7 @@ template <class Payload> class ShmSingleton {
 
  private:
   int shmId;
+  key_t theNewKey;
   Payload* thePayload;
 };
 

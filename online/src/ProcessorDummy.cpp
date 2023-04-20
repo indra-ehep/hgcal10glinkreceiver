@@ -28,8 +28,19 @@ int main(int argc, char *argv[]) {
     printEnable=true;
   }
 
+  key_t theKey;//(ShmSingleton<RunControlFsmShm>::theKey);
+  if(argc>1) {
+    std::istringstream sin(argv[argc-1]);
+    std::string sKey(sin.str());
+    if(sKey[0]=='0' && sKey[1]=='x') {
+    } else {
+      sin >> theKey;
+    }
+  }
+  
   // Connect to shared memory
   ShmSingleton<RunControlFsmShm> shmU;
+  shmU.setup(theKey);
   RunControlFsmShm* const ptrRunFileShm(shmU.payload());
 
   // Force to Initial on startup
