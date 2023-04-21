@@ -107,12 +107,12 @@ namespace Hgcal10gLinkReceiver {
       return _unknown;
     }
     
-    static const std::string& stateName(RunControlFsmEnums::State s) {
+    const std::string& stateName(RunControlFsmEnums::State s) {
       if(s<EndOfStateEnum) return _stateName[s];
       return _unknown;
     }
     
-    static const std::string& stateErrorName(RunControlFsmEnums::StateError e) {
+    const std::string& stateErrorName(RunControlFsmEnums::StateError e) {
       if(e<EndOfStateErrorEnum) return _stateErrorName[e];
       return _unknown;
     }

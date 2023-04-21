@@ -58,6 +58,11 @@ int main(int argc, char *argv[]) {
     if(isBit[i]) {
       vShmSingleton[j].setup(1234560+i);
       vPtr.push_back(vShmSingleton[j].payload());
+      std::cout << j << " with key "
+	    << std::hex << std::setfill('0')
+	    << std::setw(2) << 1234560+i
+	    << std::dec << std::setfill(' ')
+	    << std::endl;
       j++;
     }
   }

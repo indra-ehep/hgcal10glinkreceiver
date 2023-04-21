@@ -28,7 +28,7 @@ namespace Hgcal10gLinkReceiver {
     }
 
     // Get information about lock
-    bool rcLock() const {
+    bool rcLock() {
       return _rcHasLock;
     }
 
