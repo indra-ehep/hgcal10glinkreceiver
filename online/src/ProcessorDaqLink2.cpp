@@ -9,7 +9,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "ProcessorDummy.h"
+#include "ProcessorDaqLink2.h"
 
 using namespace Hgcal10gLinkReceiver;
 
@@ -25,8 +25,8 @@ int main(int argc, char *argv[]) {
     printEnable=true;
   }
 
-  ProcessorDummy pb;
+  ProcessorDaqLink2 pb;
   pb.setPrintEnable(printEnable);
-  pb.startFsm();
+  pb.startFsm(RunControlFsmShm::DaqLink2);
   return 0;
 }

@@ -49,6 +49,7 @@ namespace Hgcal10gLinkReceiver {
       //Unconfiguring=HaltingB, // OLD
       HaltingA,
       //Halting=HaltingA, // OLD
+      Resetting,
       EndOfStateEnum
     };
     
@@ -93,6 +94,7 @@ namespace Hgcal10gLinkReceiver {
       "Stopping    ",
       "HaltingB    ",
       "HaltingA    ",
+      "Resetting   ",
     };
     
     const std::string _stateErrorName[EndOfStateErrorEnum]={
@@ -147,6 +149,26 @@ namespace Hgcal10gLinkReceiver {
       if(c==Resume    ) return Running;
 
       return EndOfStateEnum;
+    }
+    
+    State transitionStateForCommand(Command c) {
+      if(c==Initialize) return Initializing;
+      if(c==ConfigureA) return ConfiguringA;
+      if(c==ConfigureB) return ConfiguringB;
+      if(c==Start     ) return Starting;
+      if(c==Pause     ) return Pausing;
+
+      if(c==Reset     ) return Resetting;
+      if(c==HaltA     ) return HaltingA;
+      if(c==HaltB     ) return HaltingB;
+      if(c==Stop      ) return Stopping;
+      if(c==Resume    ) return Resuming;
+
+      return EndOfStateEnum;
+    }
+
+    bool staticState(State s) {
+      return s<RunControlFsmEnums::EndOfStaticEnum;
     }
   }
 }

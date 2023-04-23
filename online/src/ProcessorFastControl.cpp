@@ -9,7 +9,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "ProcessorDummy.h"
+#include "ProcessorFastControl.h"
 
 using namespace Hgcal10gLinkReceiver;
 
@@ -25,8 +25,10 @@ int main(int argc, char *argv[]) {
     printEnable=true;
   }
 
-  ProcessorDummy pb;
+  //ProcessorFastControl pb;
+  ProcessorBase pb;
   pb.setPrintEnable(printEnable);
-  pb.startFsm();
+  pb.startFsm(RunControlFsmShm::FastControl);
+  //pb.setUpBuffer();
   return 0;
 }

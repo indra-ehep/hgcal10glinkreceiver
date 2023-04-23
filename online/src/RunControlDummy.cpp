@@ -10,13 +10,11 @@
 
 using namespace Hgcal10gLinkReceiver;
 
-template<> const key_t ShmSingleton<RunControlFsmShm>::theKey(0xcebe00);
-
 void request(RunControlFsmShm *p, RunControlFsmEnums::Command fr, uint32_t s=0) {
   std::cout << "WAIT" << std::endl;
   while(!p->rcLock());
   
-  p->setCommandDataSize(s);
+  p->resetCommandData();
   //p->forceCommand(fr);
   p->setCommand(fr);
   std::cout << "SLEEP" << std::endl;
@@ -50,9 +48,10 @@ int main(int argc, char *argv[]) {
 	    << std::endl;
   }
   
-  std::vector< ShmSingleton<RunControlFsmShm> > vShmSingleton(nBits);
+  //std::vector< ShmSingleton<RunControlFsmShm> > vShmSingleton(nBits);
+  std::vector< ShmSingleton<RunControlFsmShm> > vShmSingleton(1);
   std::vector<RunControlFsmShm*> vPtr;
-
+  /*
   unsigned j(0);
   for(unsigned i(0);i<8;i++) {
     if(isBit[i]) {
@@ -67,12 +66,17 @@ int main(int argc, char *argv[]) {
     }
   }
   assert(j==nBits);
-  
+  */
+  vShmSingleton[0].setup(RunControlFsmShm::identifier[RunControlFsmShm::Testing]);
+  for(unsigned i(0);i<vShmSingleton.size();i++) {
+    vPtr.push_back(vShmSingleton[i].payload());
+  }
+      
   // Connect to shared memory
   //ShmSingleton<RunControlFsmShm> shmU;
   //ShmSingleton<RunControlFsmShm> &shmU(vShmSingleton[0]);  
   //RunControlFsmShm* const ptrRunFileShm(shmU.payload());
-  RunControlFsmShm* const ptrRunFileShm(vPtr[0]);
+  //RunControlFsmShm* const ptrRunFileShm(vPtr[0]);
   
   /*
   request(ptrRunFileShm,RunControlFsmEnums::ConfigureA);
@@ -89,6 +93,7 @@ int main(int argc, char *argv[]) {
 
   unsigned cx;
 
+  vPtr[0]->print();
   
   
   while(true) {

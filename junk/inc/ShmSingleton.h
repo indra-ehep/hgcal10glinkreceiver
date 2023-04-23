@@ -17,22 +17,22 @@ template <class Payload> class ShmSingleton {
 
  public:
 
-  //ShmSingleton() : thePayload(0) {
-  //}
-  
+  ShmSingleton() : thePayload(0) {
+  }
+  /*
  ShmSingleton(bool sup=false, int access = 0666) : thePayload(0) {
     if(sup) {
       theNewKey=theKey;
       setup(theNewKey,access);
     }
   }
-  
+  */
   void setup(key_t theNewKey, int access = 0666) {
     bool created(false);
 
     shmId = shmget(theNewKey, 1, access);
     if(shmId == -1) {
-      std::cerr << "ShmSingleton<>::ctor() shmget(" << theKey << ","
+      std::cerr << "ShmSingleton<>::ctor() shmget(" << theNewKey << ","
 		<< 1 << "," << std::oct << access
 		<< std::dec << ")" << std::endl;
       //perror(0);
@@ -110,7 +110,7 @@ template <class Payload> class ShmSingleton {
   }
 
   // Needs to be public
-  static const key_t theKey;
+  //static const key_t theKey;
 
  private:
   int shmId;
