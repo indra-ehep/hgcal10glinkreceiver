@@ -10,6 +10,7 @@
 #include <new>
 #include <cassert>
 #include <iostream>
+#include <iomanip>
 
 #include "ShmIdData.hh"
 
@@ -28,6 +29,12 @@ template <class Payload> class ShmSingleton {
   }
   */
   void setup(key_t theNewKey, int access = 0666) {
+    std::cout << "ShmSingleton<>::setup key = 0x"
+	      << std::hex << std::setfill('0')
+	      << std::setw(8) << theNewKey
+	      << std::dec << std::setfill(' ')
+	      << std::endl;
+
     bool created(false);
 
     shmId = shmget(theNewKey, 1, access);

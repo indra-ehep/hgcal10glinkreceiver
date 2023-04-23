@@ -8,6 +8,7 @@
 
 #include "RunControlFsmShm.h"
 #include "ShmSingleton.h"
+#include "ShmKeys.h"
 
 namespace Hgcal10gLinkReceiver {
 
@@ -84,11 +85,11 @@ namespace Hgcal10gLinkReceiver {
     void paused() {
     }
 
-    void startFsm(RunControlFsmShm::Identifier id=RunControlFsmShm::Testing) {
+    void startFsm(uint32_t theKey) {
   
       // Connect to shared memory
       ShmSingleton<RunControlFsmShm> shmU;
-      shmU.setup(RunControlFsmShm::identifier[id]);
+      shmU.setup(theKey);
       RunControlFsmShm* const ptrRunFileShm(shmU.payload());
 
       // Force to Initial on startup
@@ -124,7 +125,7 @@ namespace Hgcal10gLinkReceiver {
 	ptrRunFileShm->print();
       }
 
-      while(!ptrRunFileShm->matchingStates());
+      //while(!ptrRunFileShm->matchingStates());
 
       if(_printEnable) {
 	std::cout << "Got system match" << std::endl;
@@ -138,7 +139,7 @@ namespace Hgcal10gLinkReceiver {
 	  ptrRunFileShm->print();
 	}
 
-	assert(ptrRunFileShm->matchingStates());
+	//assert(ptrRunFileShm->matchingStates());
 
 	if(     ptrRunFileShm->processState()==RunControlFsmEnums::Initial    ) initial();
 	else if(ptrRunFileShm->processState()==RunControlFsmEnums::Halted     ) halted();
@@ -234,16 +235,20 @@ namespace Hgcal10gLinkReceiver {
 	    
 	  assert(ptrRunFileShm->completed());
 
-	  while(!ptrRunFileShm->isStaticState());///////////////////////////////////////
+	  while(!ptrRunFileShm->isStartStatic());///////////////////////////////////////
 	    
 	  if(change) ptrRunFileShm->forceProcessState(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command()));
+
+	  assert(ptrRunFileShm->matchingStates());
 
 	  if(_printEnable) {
 	    std::cout << "Entering static state" << std::endl;
 	    ptrRunFileShm->print();
 	  }
 	  
-	  //assert(ptrRunFileShm->matchingStates()); // NOT GUARANTEED
+	  assert(ptrRunFileShm->matchingStates());
+
+	  assert(ptrRunFileShm->ended());
 	}
 	//}
       }

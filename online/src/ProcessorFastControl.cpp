@@ -9,6 +9,7 @@
 #include <iostream>
 #include <cassert>
 
+#include "ShmKeys.h"
 #include "ProcessorFastControl.h"
 
 using namespace Hgcal10gLinkReceiver;
@@ -28,7 +29,7 @@ int main(int argc, char *argv[]) {
   //ProcessorFastControl pb;
   ProcessorBase pb;
   pb.setPrintEnable(printEnable);
-  pb.startFsm(RunControlFsmShm::FastControl);
+  pb.startFsm(RunControlFastControlShmKey);
   //pb.setUpBuffer();
   return 0;
 }

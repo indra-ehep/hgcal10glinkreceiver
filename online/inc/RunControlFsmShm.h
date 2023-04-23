@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <cstdint>
+#include <cassert>
 
 #include "RunControlCommand.h"
 #include "RunControlResponse.h"
@@ -28,7 +29,7 @@ namespace Hgcal10gLinkReceiver {
       Repair,
       Changed,
       Repaired,
-      //StartStatic,
+      StartStatic,
       EndOfHandshakeStateEnum
     };
 
@@ -127,18 +128,18 @@ namespace Hgcal10gLinkReceiver {
     
     // Finish up sequence
     
-    bool staticState() {
+    bool startStatic() {
       if(_handshakeState==Changed) {
 	assert(matchingStates());
 	_command.changeSystemState();
 	//_command.setNextState();
 	//_response.setNextState();
-	_handshakeState=StaticState;
+	_handshakeState=StartStatic;
 	return true;
 
       } else if(_handshakeState==Repaired) {
 	assert(matchingStates());
-	_handshakeState=StaticState;
+	_handshakeState=StartStatic;
 	return true;
       }
       
@@ -206,7 +207,19 @@ namespace Hgcal10gLinkReceiver {
       return false;
     }
 
-    // Request a change
+    // Wait for change to static state
+
+    bool isStartStatic() const {
+      return _handshakeState==StartStatic;
+    }
+
+    bool ended() {
+      if(_handshakeState!=StartStatic) return false;
+      _handshakeState=StaticState;
+      return true;
+    }
+
+    // Request a change???
 
     bool request() {
       if(_handshakeState!=StaticState) return false;

@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include "RunControlFsmShm.h"
+#include "ShmKeys.h"
 #include "ShmSingleton.h"
 
 using namespace Hgcal10gLinkReceiver;
@@ -70,9 +71,9 @@ int main(int argc, char *argv[]) {
     }
     assert(j==nBits);
   */
-  vShmSingleton[0].setup(RunControlFsmShm::identifier[RunControlFsmShm::FastControl]);
+  vShmSingleton[0].setup(RunControlFastControlShmKey);
   //vShmSingleton[1].setup(RunControlFsmShm::identifier[RunControlFsmShm::DaqLink2]);
-  vShmSingleton[1].setup(RunControlFsmShm::identifier[RunControlFsmShm::Testing]);
+  vShmSingleton[1].setup(RunControlTestingShmKey);
   for(unsigned i(0);i<vShmSingleton.size();i++) {
     vPtr.push_back(vShmSingleton[i].payload());
   }
@@ -80,6 +81,7 @@ int main(int argc, char *argv[]) {
   std::cout << std::endl << "Checking for responding processors" << std::endl;
   bool active[100];
   for(unsigned i(0);i<vShmSingleton.size();i++) {
+    vPtr[i]->_handshakeState=RunControlFsmShm::StaticState; // HACK!
     vPtr[i]->print();
     active[i]=false;
     if(vPtr[i]->ping()) active[i]=true;
@@ -91,7 +93,7 @@ int main(int argc, char *argv[]) {
 
   std::cout << "SLEEP" << std::endl;
       vPtr[0]->print();
-  sleep(1); // Assume all will have responded by now
+  sleep(5); // Assume all will have responded by now
       vPtr[0]->print();
   std::cout << "AWAKE" << std::endl;
   
@@ -157,7 +159,8 @@ int main(int argc, char *argv[]) {
   sleep(1);
   
   std::cout << std::endl << "Now starting commands" << std::endl;
-  for(unsigned k(0);k<100000;k++) {
+  for(unsigned k(0);k<10;k++) {
+    //sleep(1);
     std::cout << std::endl;
     for(unsigned j(0);j<10;j++) {
       std::cout << std::endl << "Sending prepare" << std::endl;
@@ -208,7 +211,7 @@ int main(int argc, char *argv[]) {
       for(unsigned i(0);i<vShmSingleton.size();i++) {
 	if(active[i]) {
 	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
-	  assert(vPtr[i]->staticState());
+	  assert(vPtr[i]->startStatic());
 	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
 	}
       }

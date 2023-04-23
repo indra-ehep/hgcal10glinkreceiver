@@ -23,7 +23,7 @@ namespace Hgcal10gLinkReceiver {
 
     void setUpBuffer() {
       ShmSingleton<RunFileShm2> shmU;
-      shmU.setup(RunControlFsmShm::DaqLink0);
+      shmU.setup(ProcessorFastControlDataShmKey);
       ptrRunFileShm=shmU.payload();
     }
     /*    
