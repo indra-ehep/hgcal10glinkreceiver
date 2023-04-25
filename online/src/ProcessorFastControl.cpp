@@ -26,10 +26,11 @@ int main(int argc, char *argv[]) {
     printEnable=true;
   }
 
-  //ProcessorFastControl pb;
-  ProcessorBase pb;
+  ProcessorFastControl pb;
+  //ProcessorBase pb;
   pb.setPrintEnable(printEnable);
-  pb.startFsm(RunControlFastControlShmKey);
-  //pb.setUpBuffer();
+  //pb.setUpAll(RunControlFastControlShmKey,ProcessorFastControlDataShmKey);
+  pb.setUpAll(RunControlFastControlShmKey,ProcessorFastControlDataShmKey,
+	      ProcessorDaqLink0FifoShmKey,ProcessorDaqLink1FifoShmKey);
   return 0;
 }

@@ -13,8 +13,8 @@ namespace Hgcal10gLinkReceiver {
     Record() {
     }
 
-    void setLength() {
-      RecordHeader::setLength(NumberOfPayloadWords);
+    void setPayloadLength() {
+      RecordHeader::setPayloadLength(NumberOfPayloadWords);
     }
     
     uint64_t* payload() {
@@ -25,7 +25,7 @@ namespace Hgcal10gLinkReceiver {
       o << "Record::print()" << std::endl;
       RecordHeader::print(o," ");
       
-      for(unsigned i(0);i<length();i++) {
+      for(unsigned i(0);i<payloadLength();i++) {
 	o << "   Payload word " << std::setw(5) << " = 0x"
 	  << std::hex << std::setfill('0')
 	  << std::setw(16) << _payload[i]

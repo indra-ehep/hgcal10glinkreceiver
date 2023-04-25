@@ -13,7 +13,7 @@
 #include <sys/types.h>
 #include <getopt.h>
 
-#include "formats/src/RunFileName.cc"
+#include "FileReader.h"
 
 int main(int argc, char** argv) {
   if(argc<3) {
@@ -36,8 +36,13 @@ int main(int argc, char** argv) {
   std::istringstream issLink(argv[2]);
   issLink >> linkNumber;
 
-  
-
+  FileReader _fileReader;
+  RecordHeader *h;
+  _fileReader.open(runNumber,linkNumber,true);
+  while(_fileReader.read(h)) {
+    h->print();
+  }
+  return 0;
   /*
   
   std::ostringstream ossRun;

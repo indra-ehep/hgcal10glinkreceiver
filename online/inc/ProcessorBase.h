@@ -20,57 +20,62 @@ namespace Hgcal10gLinkReceiver {
 	_usSleep[i]=1000;
       }
     }
-    void setPrintEnable(bool p) {
+
+    virtual ~ProcessorBase() {
+    }
+    
+    virtual void setPrintEnable(bool p) {
       _printEnable=p;
     }
 
-    void initializing() {
+    virtual void initializing() {
     }
     
-    void configuringA() {
+    virtual void configuringA() {
     }
     
-    void configuringB() {
+    virtual void configuringB() {
     }
     
-    void starting() {
+    virtual void starting() {
       std::cout << "********************************************************** Starting a run" << std::endl;
     }
     
-    void pausing() {
+    virtual void pausing() {
     }
     
-    void resuming() {
+    virtual void resuming() {
     }
     
-    void stopping() {
+    virtual void stopping() {
       std::cout << "********************************************************** Stopping a run" << std::endl;
     }
     
-    void haltingB() {
+    virtual void haltingB() {
     }
     
-    void haltingA() {
+    virtual void haltingA() {
     }
     
-    void resetting() {
+    virtual void resetting() {
     }
 
     //////////////////////////////////////////////
     
-    void initial() {
+    virtual void initial() {
     }
     
-    void halted() {
+    virtual void halted() {
     }
     
-    void configuredA() {
+    virtual void configuredA() {
     }
     
-    void configuredB() {
+    virtual void configuredB() {
+      assert(false);
     }
     
-    void running(RunControlFsmShm* const p) {
+    virtual void running(RunControlFsmShm* const p) {
       std::cout << "********************************************************** Doing a run" << std::endl;
       unsigned n(0);
       while(p->isStaticState()) {
@@ -82,10 +87,10 @@ namespace Hgcal10gLinkReceiver {
       std::cout << "********************************************************** Done  a run " << n << std::endl;
     }
     
-    void paused() {
+    virtual void paused() {
     }
 
-    void startFsm(uint32_t theKey) {
+    virtual void startFsm(uint32_t theKey) {
   
       // Connect to shared memory
       ShmSingleton<RunControlFsmShm> shmU;
@@ -141,12 +146,12 @@ namespace Hgcal10gLinkReceiver {
 
 	//assert(ptrRunFileShm->matchingStates());
 
-	if(     ptrRunFileShm->processState()==RunControlFsmEnums::Initial    ) initial();
-	else if(ptrRunFileShm->processState()==RunControlFsmEnums::Halted     ) halted();
-	else if(ptrRunFileShm->processState()==RunControlFsmEnums::ConfiguredA) configuredA();
-	else if(ptrRunFileShm->processState()==RunControlFsmEnums::ConfiguredB) configuredB();
-	else if(ptrRunFileShm->processState()==RunControlFsmEnums::Running    ) running(ptrRunFileShm);
-	else if(ptrRunFileShm->processState()==RunControlFsmEnums::Paused     ) paused();
+	if(     ptrRunFileShm->processState()==RunControlFsmEnums::Initial    ) this->initial();
+	else if(ptrRunFileShm->processState()==RunControlFsmEnums::Halted     ) this->halted();
+	else if(ptrRunFileShm->processState()==RunControlFsmEnums::ConfiguredA) this->configuredA();
+	else if(ptrRunFileShm->processState()==RunControlFsmEnums::ConfiguredB) this->configuredB();
+	else if(ptrRunFileShm->processState()==RunControlFsmEnums::Running    ) this->running(ptrRunFileShm);
+	else if(ptrRunFileShm->processState()==RunControlFsmEnums::Paused     ) this->paused();
 	else assert(false);
 	  
 	if(_printEnable) {
@@ -201,16 +206,16 @@ namespace Hgcal10gLinkReceiver {
 	    
 	    assert(ptrRunFileShm->matchingStates());
 
-	    if(     ptrRunFileShm->processState()==RunControlFsmEnums::Initializing) initializing();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::ConfiguringA) configuringA();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::ConfiguringB) configuringB();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Starting    ) starting();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Pausing     ) pausing();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Resuming    ) resuming();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Stopping    ) stopping();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::HaltingB    ) haltingB();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::HaltingA    ) haltingA();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Resetting   ) resetting();
+	    if(     ptrRunFileShm->processState()==RunControlFsmEnums::Initializing) this->initializing();
+	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::ConfiguringA) this->configuringA();
+	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::ConfiguringB) this->configuringB();
+	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Starting    ) this->starting();
+	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Pausing     ) this->pausing();
+	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Resuming    ) this->resuming();
+	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Stopping    ) this->stopping();
+	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::HaltingB    ) this->haltingB();
+	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::HaltingA    ) this->haltingA();
+	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Resetting   ) this->resetting();
 	    else assert(false);
 	      
 	    assert(ptrRunFileShm->matchingStates());

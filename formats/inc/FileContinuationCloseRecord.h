@@ -16,7 +16,7 @@ namespace Hgcal10gLinkReceiver {
     void setHeader(uint32_t t=time(0)) {
       setIdentifier(Hgcal10gLinkReceiver::RecordHeader::FileContinuationEof);
       setState(RunControlFsmEnums::EndOfStateEnum);
-      setLength();
+      setPayloadLength();
       setUtc(t);
     }
 
@@ -33,7 +33,7 @@ namespace Hgcal10gLinkReceiver {
       o << s << "FileContinuationCloseRecord::print()" << std::endl;
       RecordHeader::print(o,s+" ");
       
-      for(unsigned i(0);i<length();i++) {
+      for(unsigned i(0);i<payloadLength();i++) {
 	o << s << "   Payload word " << std::setw(5) << " = 0x"
 	  << std::hex << std::setfill('0')
 	  << std::setw(16) << _payload[i]

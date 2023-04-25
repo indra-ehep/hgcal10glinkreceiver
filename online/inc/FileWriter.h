@@ -33,7 +33,7 @@ namespace Hgcal10gLinkReceiver {
 
       if(_writeEnable) {
 	_outputFile.open(_fileName.c_str(),std::ios::binary);
-	return _outputFile;
+	if(!_outputFile) return false;
       }
       return true;
     }
@@ -41,10 +41,10 @@ namespace Hgcal10gLinkReceiver {
     //bool write(uint64_t *d, unsigned n) {
     bool write(const RecordHeader* h) {
       if(_writeEnable) {
-	_outputFile.write((char*)h,8*(h->length()+1));
+	_outputFile.write((char*)h,8*h->totalLength());
       }
 
-      _numberOfBytesInFile+=8*(h->length()+1);
+      _numberOfBytesInFile+=8*h->totalLength();
 
       if(_numberOfBytesInFile>MaximumBytesPerFile) {
 	FileContinuationCloseRecord fccr;

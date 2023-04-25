@@ -27,6 +27,6 @@ int main(int argc, char *argv[]) {
 
   ProcessorDaqLink2 pb;
   pb.setPrintEnable(printEnable);
-  pb.startFsm(RunControlFsmShm::DaqLink2);
+  pb.setUpAll(RunControlDaqLink2ShmKey,ProcessorDaqLink2FifoShmKey);
   return 0;
 }

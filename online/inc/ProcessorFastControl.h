@@ -9,7 +9,7 @@
 #include "RunControlFsmShm.h"
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
-#include "RunFileShm.h"
+#include "DataFifo.h"
 #include "RecordHeader.h"
 
 
@@ -21,10 +21,28 @@ namespace Hgcal10gLinkReceiver {
     ProcessorFastControl() {
     }
 
-    void setUpBuffer() {
-      ShmSingleton<RunFileShm2> shmU;
-      shmU.setup(ProcessorFastControlDataShmKey);
-      ptrRunFileShm=shmU.payload();
+    virtual ~ProcessorFastControl() {
+    }
+
+    void setUpAll(uint32_t rcKey, uint32_t fifoKey2,
+		  uint32_t fifoKey0, uint32_t fifoKey1) {
+      _CB=0;
+      
+      ShmSingleton< DataFifoT<6,1024> > shm0;
+      shm0.setup(fifoKey0);
+      ptrFifoShm0=shm0.payload();
+      ShmSingleton< DataFifoT<6,1024> > shm1;
+      shm1.setup(fifoKey1);
+      ptrFifoShm1=shm1.payload();
+
+      setUpAll(rcKey,fifoKey2);
+    }
+    
+    void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
+      ShmSingleton< DataFifoT<6,1024> > shm2;
+      shm2.setup(fifoKey);
+      ptrFifoShm2=shm2.payload();
+      startFsm(rcKey);
     }
     /*    
     void initializing() {
@@ -80,11 +98,25 @@ namespace Hgcal10gLinkReceiver {
     void configuredA() {
       sleep(1);
     }
-    
-    void configuredB() {
+    */    
+
+    virtual void configuredB() {
+      //assert(false);
+      _CB++;
+      std::cout << "HERE " << _CB << std::endl;
+
+      RecordHeader h;
+      h.setIdentifier(RecordHeader::EventData);
+      h.setState(RunControlFsmEnums::ConfiguredB);
+      h.setPayloadLength(_CB);
+      h.setUtc();
+      h.print();
+
+      assert(ptrFifoShm2->write(h.totalLength(),(uint64_t*)(&h)));
       sleep(1);
     }
-    */    
+
+    /*
     void running(RunControlFsmShm* const p) {
       RecordHeader h;
       h.setIdentifier(RecordHeader::EventData);
@@ -103,10 +135,13 @@ namespace Hgcal10gLinkReceiver {
     void paused() {
       sleep(1);
     }
+    */
    
   private:
-    RunFileShm2 *ptrRunFileShm;
-
+    DataFifoT<6,1024> *ptrFifoShm2;
+    DataFifoT<6,1024> *ptrFifoShm0;
+    DataFifoT<6,1024> *ptrFifoShm1;
+    unsigned _CB;
   };
 
 }

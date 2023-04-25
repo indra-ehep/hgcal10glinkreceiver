@@ -36,8 +36,12 @@ namespace Hgcal10gLinkReceiver {
       return (RunControlFsmEnums::State)((_header>>48)&0xff);
     }
   
-    uint16_t length() const {
+    uint16_t payloadLength() const {
       return (_header>>32)&0xffff;
+    }
+
+    uint32_t totalLength() const {
+      return payloadLength()+1;
     }
 
     uint32_t utc() const {
@@ -71,7 +75,7 @@ namespace Hgcal10gLinkReceiver {
       _header|=(uint64_t(t)<<48);
     }
 
-    void setLength(uint16_t l) {
+    void setPayloadLength(uint16_t l) {
       _header&=0xffff0000ffffffff;
       _header|=(uint64_t(l)<<32);
 
@@ -92,7 +96,7 @@ namespace Hgcal10gLinkReceiver {
 	<< std::endl;
       o << s << " UTC = " << std::setw(10) << utc() << " = " << utcDate(); // endl already in ctime
       o << s << " Payload length = " << std::setw(5)
-	<< length() << " eight-byte words " << std::endl;
+	<< payloadLength() << " eight-byte words " << std::endl;
     }
   
   private:

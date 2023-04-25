@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
   }
   
   //std::vector< ShmSingleton<RunControlFsmShm> > vShmSingleton(nBits);
-  std::vector< ShmSingleton<RunControlFsmShm> > vShmSingleton(2);
+  std::vector< ShmSingleton<RunControlFsmShm> > vShmSingleton(6);
   std::vector<RunControlFsmShm*> vPtr;
   /*
     unsigned j(0);
@@ -71,9 +71,14 @@ int main(int argc, char *argv[]) {
     }
     assert(j==nBits);
   */
-  vShmSingleton[0].setup(RunControlFastControlShmKey);
-  //vShmSingleton[1].setup(RunControlFsmShm::identifier[RunControlFsmShm::DaqLink2]);
-  vShmSingleton[1].setup(RunControlTestingShmKey);
+  
+  vShmSingleton[0].setup(RunControlTestingShmKey);
+  vShmSingleton[1].setup(RunControlFastControlShmKey);
+  vShmSingleton[2].setup(RunControlTcds2ShmKey);
+  vShmSingleton[3].setup(RunControlDaqLink0ShmKey);
+  vShmSingleton[4].setup(RunControlDaqLink1ShmKey);
+  vShmSingleton[5].setup(RunControlDaqLink2ShmKey);
+
   for(unsigned i(0);i<vShmSingleton.size();i++) {
     vPtr.push_back(vShmSingleton[i].payload());
   }
@@ -159,10 +164,13 @@ int main(int argc, char *argv[]) {
   sleep(1);
   
   std::cout << std::endl << "Now starting commands" << std::endl;
-  for(unsigned k(0);k<10;k++) {
+  for(unsigned k(0);k<12;k++) {
     //sleep(1);
     std::cout << std::endl;
     for(unsigned j(0);j<10;j++) {
+      if((k== 0 && j==0) ||
+	 (k>0 && k<11 && j>0 && j<9) ||
+	 (k==11 && j==9)) {
       std::cout << std::endl << "Sending prepare" << std::endl;
       for(unsigned i(0);i<vShmSingleton.size();i++) {
 	if(active[i]) {
@@ -233,7 +241,7 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  
+  }  
   std::cout << "Exiting..." << std::endl;
   return 0;
 
