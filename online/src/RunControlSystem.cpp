@@ -162,6 +162,7 @@ int main(int argc, char *argv[]) {
   }
 
   sleep(1);
+
   
   std::cout << std::endl << "Now starting commands" << std::endl;
   for(unsigned k(0);k<12;k++) {
@@ -176,7 +177,17 @@ int main(int argc, char *argv[]) {
       for(unsigned i(0);i<vShmSingleton.size();i++) {
 	if(active[i]) {
 	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
+
 	  vPtr[i]->setCommand((RunControlFsmEnums::Command)((j+1)%10));
+	  if(vPtr[i]->command()==RunControlFsmEnums::ConfigureA) {
+	    uint64_t srn(time(0));
+	    vPtr[i]->setCommandData(1,&srn);
+	  }
+	  if(vPtr[i]->command()==RunControlFsmEnums::Start) {
+	    uint64_t rn(time(0));
+	    vPtr[i]->setCommandData(1,&rn);
+	  }
+	  
 	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
 	  assert(vPtr[i]->prepare());
 	  std::cout << "Proc" << i << ": ";vPtr[i]->print();

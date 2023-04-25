@@ -14,6 +14,9 @@
 #include <getopt.h>
 
 #include "FileReader.h"
+#include "RecordHeader.h"
+
+using namespace Hgcal10gLinkReceiver;
 
 int main(int argc, char** argv) {
   if(argc<3) {

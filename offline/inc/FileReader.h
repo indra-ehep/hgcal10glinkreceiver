@@ -25,14 +25,14 @@ namespace Hgcal10gLinkReceiver {
       setRunFileName();
 
       _inputFile.open(_fileName.c_str(),std::ios::binary);
-      return _inputFile;
+      return (_inputFile?true:false);
     }
 
     //bool read(uint64_t *d, unsigned n) {
     bool read(RecordHeader *h) {
       _inputFile.read((char*)h,8);
       if(!_inputFile) return false;
-      _inputFile.read((char*)(h+1),8*h->length());
+      _inputFile.read((char*)(h+1),8*h->payloadLength());
       
       //_inputFile.read((char*)d,8);
       //_inputFile.read((char*)(d+1),8*);
@@ -48,11 +48,11 @@ namespace Hgcal10gLinkReceiver {
 
 	_inputFile.read((char*)h,8);
 	assert(h->identifier()==RecordHeader::FileContinuationBof);
-	_inputFile.read((char*)(h+1),8*h->length());
+	_inputFile.read((char*)(h+1),8*h->payloadLength());
 
 	_inputFile.read((char*)h,8);
       h->print();
-	_inputFile.read((char*)(h+1),8*h->length());
+	_inputFile.read((char*)(h+1),8*h->payloadLength());
       }
       
       return true;
@@ -65,7 +65,7 @@ namespace Hgcal10gLinkReceiver {
 
     //bool read(RecordHeader *h) {
     //  _inputFile.read((char*)h,8);
-    //  _inputFIle.read((char*)(h+1),8*h->length());
+    //  _inputFIle.read((char*)(h+1),8*h->payloadLength());
     //}
     
   private:

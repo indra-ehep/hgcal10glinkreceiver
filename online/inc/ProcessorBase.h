@@ -99,7 +99,7 @@ namespace Hgcal10gLinkReceiver {
       // Connect to shared memory
       ShmSingleton<RunControlFsmShm> shmU;
       shmU.setup(theKey);
-      /*volatile*/ RunControlFsmShm* const ptrRunFileShm(shmU.payload());
+      /*volatile*/ ptrRunFileShm=shmU.payload();
 
       // Force to Initial on startup
       if(_printEnable) ptrRunFileShm->print();
@@ -664,6 +664,7 @@ namespace Hgcal10gLinkReceiver {
    
   protected:
     bool _printEnable;
+    RunControlFsmShm *ptrRunFileShm;
     unsigned _usSleep[RunControlFsmEnums::EndOfStaticEnum];
   };
 
