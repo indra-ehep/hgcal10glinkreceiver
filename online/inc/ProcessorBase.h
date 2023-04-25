@@ -5,10 +5,14 @@
 #include <iomanip>
 #include <cstdint>
 #include <cstring>
+#include <chrono>
+#include <thread>
 
 #include "RunControlFsmShm.h"
 #include "ShmSingleton.h"
 #include "ShmKeys.h"
+
+//using namespace std::chrono_literals;
 
 namespace Hgcal10gLinkReceiver {
 
@@ -95,7 +99,7 @@ namespace Hgcal10gLinkReceiver {
       // Connect to shared memory
       ShmSingleton<RunControlFsmShm> shmU;
       shmU.setup(theKey);
-      RunControlFsmShm* const ptrRunFileShm(shmU.payload());
+      /*volatile*/ RunControlFsmShm* const ptrRunFileShm(shmU.payload());
 
       // Force to Initial on startup
       if(_printEnable) ptrRunFileShm->print();
@@ -104,7 +108,7 @@ namespace Hgcal10gLinkReceiver {
       ptrRunFileShm->_handshakeState=RunControlFsmShm::StaticState;
       if(_printEnable) ptrRunFileShm->print();
 
-      while(!ptrRunFileShm->pong());
+      while(!ptrRunFileShm->pong()) usleep(1);
 
       /*
 	ptrRunFileShm->setCommand(RunControlFsmEnums::Initialize);
@@ -159,7 +163,7 @@ namespace Hgcal10gLinkReceiver {
 	  ptrRunFileShm->print();
 	}
 
-	while(ptrRunFileShm->isStaticState());
+	while(ptrRunFileShm->isStaticState()) usleep(1);
 
 	if(_printEnable) {
 	  std::cout << "Now a non-static handshake" << std::endl;
@@ -193,7 +197,7 @@ namespace Hgcal10gLinkReceiver {
 	    assert(ptrRunFileShm->rejected());
 	  }
 
-	  while(!ptrRunFileShm->isProceed());///////////////////////////////////////
+	  while(!ptrRunFileShm->isProceed()) usleep(1);///////////////////////////////////////
 
 	  bool change(ptrRunFileShm->isChange());
 			
@@ -240,7 +244,7 @@ namespace Hgcal10gLinkReceiver {
 	    
 	  assert(ptrRunFileShm->completed());
 
-	  while(!ptrRunFileShm->isStartStatic());///////////////////////////////////////
+	  while(!ptrRunFileShm->isStartStatic()) usleep(1);///////////////////////////////////////
 	    
 	  if(change) ptrRunFileShm->forceProcessState(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command()));
 

@@ -168,8 +168,9 @@ int main(int argc, char *argv[]) {
     //sleep(1);
     std::cout << std::endl;
     for(unsigned j(0);j<10;j++) {
-      if((k== 0 && j==0) ||
-	 (k>0 && k<11 && j>0 && j<9) ||
+      if((k==0 && j==9) ||
+	 (k== 1 && j==0) ||
+	 (k>1 && k<11 && j>0 && j<9) ||
 	 (k==11 && j==9)) {
       std::cout << std::endl << "Sending prepare" << std::endl;
       for(unsigned i(0);i<vShmSingleton.size();i++) {
