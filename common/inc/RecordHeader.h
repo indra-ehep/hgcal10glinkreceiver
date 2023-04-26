@@ -2,10 +2,13 @@
 #define Hgcal10gLinkReceiver_RecordHeader_h
 
 #include <iostream>
+#include <iomanip>
+#include <cstdint>
 
-#include <sys/types.h>
-#include <unistd.h>
+//#include <sys/types.h>
+//#include <unistd.h>
 
+#include "FsmState.h"
 #include "RunControlFsmEnums.h"
 
 namespace Hgcal10gLinkReceiver {
@@ -32,8 +35,8 @@ namespace Hgcal10gLinkReceiver {
       return (Identifier)(_header>>56);
     }
 
-    RunControlFsmEnums::State state() const {
-      return (RunControlFsmEnums::State)((_header>>48)&0xff);
+    FsmState::State state() const {
+      return (FsmState::State)((_header>>48)&0xff);
     }
   
     uint16_t payloadLength() const {
@@ -53,6 +56,10 @@ namespace Hgcal10gLinkReceiver {
       return ctime((time_t*)(&t));
     }
 
+    uint32_t sequenceCounter() const {
+      return _header&0xffffffff;
+    }
+    
     static const std::string identifierName(Identifier i) {
       if(i==StateData        ) return "StateData        ";
       if(i==ConfigurationData) return "ConfigurationData";
@@ -70,9 +77,10 @@ namespace Hgcal10gLinkReceiver {
       _header|=(uint64_t(i)<<56);
     }
 
-    void setState(RunControlFsmEnums::State t) {
+    void setState(FsmState::State s) {
       _header&=0xff00ffffffffffff;
-      _header|=(uint64_t(t)<<48);
+      _header|=(uint64_t(s)<<48);
+      setIdentifier(StateData);
     }
 
     void setPayloadLength(uint16_t l) {
@@ -85,16 +93,27 @@ namespace Hgcal10gLinkReceiver {
       _header&=0xffffffff00000000;
       _header|=t;
     }
+
+    void setSequenceCounter(uint32_t c) {
+      _header&=0xffffffff00000000;
+      _header|=c;
+    }
   
-    void print(std::ostream &o=std::cout, std::string s="") {
+    void print(std::ostream &o=std::cout, std::string s="") const {
       o << s << "RecordHeader::print()  Data = 0x"
 	<< std::hex << std::setfill('0')
 	<< std::setw(16) << _header
 	<< std::dec << std::setfill(' ') << std::endl;
       o << s << " Identifier = " << identifierName() << std::endl;
-      o << s << " State   = " << RunControlFsmEnums::stateName(state())
+      o << s << " State   = " << FsmState::stateName(state())
 	<< std::endl;
-      o << s << " UTC = " << std::setw(10) << utc() << " = " << utcDate(); // endl already in ctime
+      
+      if(FsmState::staticState(state())) {
+	o << s << " Sequencer counter = " << sequenceCounter() << std::endl;
+      } else {
+	o << s << " UTC = " << std::setw(10) << utc() << " = " << utcDate(); // endl already in ctime
+      }
+
       o << s << " Payload length = " << std::setw(5)
 	<< payloadLength() << " eight-byte words " << std::endl;
     }

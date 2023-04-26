@@ -16,12 +16,20 @@ namespace Hgcal10gLinkReceiver {
     void setPayloadLength() {
       RecordHeader::setPayloadLength(NumberOfPayloadWords);
     }
+
+    void setPayloadLength(uint16_t l) {
+      RecordHeader::setPayloadLength(l);
+    }
     
     uint64_t* payload() {
       return _payload;
     }
-   
-    void print(std::ostream &o=std::cout) {
+
+    void copy(const RecordHeader &h) {
+      std::memcpy(this,&h,8*h.totalLength());
+    }
+    
+    void print(std::ostream &o=std::cout) const {
       o << "Record::print()" << std::endl;
       RecordHeader::print(o," ");
       

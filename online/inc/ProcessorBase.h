@@ -8,9 +8,10 @@
 #include <chrono>
 #include <thread>
 
-#include "RunControlFsmShm.h"
+#include "FsmInterface.h"
 #include "ShmSingleton.h"
 #include "ShmKeys.h"
+#include "RecordConfiguringA.h"
 
 //using namespace std::chrono_literals;
 
@@ -20,7 +21,7 @@ namespace Hgcal10gLinkReceiver {
 
   public:
     ProcessorBase() {
-      for(unsigned i(0);i<RunControlFsmEnums::EndOfStaticEnum;i++) {
+      for(unsigned i(0);i<FsmState::EndOfStaticEnum;i++) {
 	_usSleep[i]=1000;
       }
     }
@@ -32,36 +33,49 @@ namespace Hgcal10gLinkReceiver {
       _printEnable=p;
     }
 
-    virtual void initializing() {
+    virtual bool initializing(FsmInterface::HandshakeState s) {
+      return true;
     }
     
-    virtual void configuringA() {
+    virtual bool configuringA(FsmInterface::HandshakeState s) {
+      RecordConfiguringA rca;
+      rca.copy(ptrFsmInterface->commandPacket().recordHeader());
+      rca.print();
+      return true;
     }
     
-    virtual void configuringB() {
+    virtual bool configuringB(FsmInterface::HandshakeState s) {
+      return true;
     }
     
-    virtual void starting() {
+    virtual bool starting(FsmInterface::HandshakeState s) {
       std::cout << "********************************************************** Starting a run" << std::endl;
+      return true;
     }
     
-    virtual void pausing() {
+    virtual bool pausing(FsmInterface::HandshakeState s) {
+      return true;
     }
     
-    virtual void resuming() {
+    virtual bool resuming(FsmInterface::HandshakeState s) {
+      return true;
     }
     
-    virtual void stopping() {
+    virtual bool stopping(FsmInterface::HandshakeState s) {
       std::cout << "********************************************************** Stopping a run" << std::endl;
+      return true;
     }
     
-    virtual void haltingB() {
+    virtual bool haltingB(FsmInterface::HandshakeState s) {
+      return true;
     }
     
-    virtual void haltingA() {
+    virtual bool haltingA(FsmInterface::HandshakeState s) {
+      return true;
     }
     
-    virtual void resetting() {
+    virtual bool resetting(FsmInterface::HandshakeState s) {
+      return true;
     }
 
     //////////////////////////////////////////////
@@ -79,14 +93,12 @@ namespace Hgcal10gLinkReceiver {
       assert(false);
     }
     
-    virtual void running(RunControlFsmShm* const p) {
+    virtual void running() {
       std::cout << "********************************************************** Doing a run" << std::endl;
       unsigned n(0);
-      while(p->isStaticState()) {
+      while(ptrFsmInterface->isIdle()) {
 	n++;
-	usleep(_usSleep[p->processState()]);      
-
-	p->pong();
+	usleep(_usSleep[ptrFsmInterface->processState()]);      
       }
       std::cout << "********************************************************** Done  a run " << n << std::endl;
     }
@@ -97,220 +109,224 @@ namespace Hgcal10gLinkReceiver {
     virtual void startFsm(uint32_t theKey) {
   
       // Connect to shared memory
-      ShmSingleton<RunControlFsmShm> shmU;
+      ShmSingleton<FsmInterface> shmU;
       shmU.setup(theKey);
-      /*volatile*/ ptrRunFileShm=shmU.payload();
+      /*volatile*/ ptrFsmInterface=shmU.payload();
 
       // Force to Initial on startup
-      if(_printEnable) ptrRunFileShm->print();
-      ptrRunFileShm->forceProcessState(RunControlFsmEnums::Initial);
-      ptrRunFileShm->forceProcessError(RunControlFsmEnums::Good);
-      ptrRunFileShm->_handshakeState=RunControlFsmShm::StaticState;
-      if(_printEnable) ptrRunFileShm->print();
+      /*
+      if(_printEnable) ptrFsmInterface->print();
+      ptrFsmInterface->forceProcessState(FsmState::Initial);
+      //ptrFsmInterface->forceProcessError(FsmState::Good);
+      ptrFsmInterface->setCommandHandshake(FsmInterface::Idle);
+      */
+      ptrFsmInterface->initialize();
+      if(_printEnable) ptrFsmInterface->print();
 
-      while(!ptrRunFileShm->pong()) usleep(1);
+      while(!ptrFsmInterface->pong()) usleep(1);
 
       /*
-	ptrRunFileShm->setCommand(RunControlFsmEnums::Initialize);
-	if(_printEnable) ptrRunFileShm->print();
+	ptrFsmInterface->setCommand(FsmState::Initialize);
+	if(_printEnable) ptrFsmInterface->print();
       */
 
       /*
 	bool ponged(false);
-	ponged=ptrRunFileShm->pon
+	ponged=ptrFsmInterface->pon
 	if(ponged) std::cout << "PONGED1" << std::endl;
       
-	while(ptrRunFileShm->isStaticState() && !ponged) {
-	//if(_printEnable) ptrRunFileShm->print();
-	ponged=ptrRunFileShm->pong();
+	while(ptrFsmInterface->isIdle() && !ponged) {
+	//if(_printEnable) ptrFsmInterface->print();
+	ponged=ptrFsmInterface->pong();
 	if(ponged) std::cout << "PONGED2" << std::endl;
 	}
 	sleep(1);
       */
 
-      //if(ptrRunFileShm->isStaticState()) {
+      //if(ptrFsmInterface->isIdle()) {
       if(_printEnable) {
 	std::cout << "Waiting for system match" << std::endl;
-	ptrRunFileShm->print();
+	ptrFsmInterface->print();
       }
 
-      //while(!ptrRunFileShm->matchingStates());
+      //while(!ptrFsmInterface->matchingStates());
 
       if(_printEnable) {
 	std::cout << "Got system match" << std::endl;
-	ptrRunFileShm->print();
+	ptrFsmInterface->print();
       }
       
       while(true) {
-	//if(ptrRunFileShm->isStaticState()) {
+	//if(ptrFsmInterface->isIdle()) {
 	if(_printEnable) {
 	  std::cout << "Start processing static state" << std::endl;
-	  ptrRunFileShm->print();
+	  ptrFsmInterface->print();
 	}
 
-	//assert(ptrRunFileShm->matchingStates());
+	//assert(ptrFsmInterface->matchingStates());
 
-	if(     ptrRunFileShm->processState()==RunControlFsmEnums::Initial    ) this->initial();
-	else if(ptrRunFileShm->processState()==RunControlFsmEnums::Halted     ) this->halted();
-	else if(ptrRunFileShm->processState()==RunControlFsmEnums::ConfiguredA) this->configuredA();
-	else if(ptrRunFileShm->processState()==RunControlFsmEnums::ConfiguredB) this->configuredB();
-	else if(ptrRunFileShm->processState()==RunControlFsmEnums::Running    ) this->running(ptrRunFileShm);
-	else if(ptrRunFileShm->processState()==RunControlFsmEnums::Paused     ) this->paused();
+	if(     ptrFsmInterface->processState()==FsmState::Initial    ) this->initial();
+	else if(ptrFsmInterface->processState()==FsmState::Halted     ) this->halted();
+	else if(ptrFsmInterface->processState()==FsmState::ConfiguredA) this->configuredA();
+	else if(ptrFsmInterface->processState()==FsmState::ConfiguredB) this->configuredB();
+	else if(ptrFsmInterface->processState()==FsmState::Running    ) this->running();
+	else if(ptrFsmInterface->processState()==FsmState::Paused     ) this->paused();
 	else assert(false);
 	  
 	if(_printEnable) {
 	  std::cout << "Done processing static state" << std::endl;
-	  ptrRunFileShm->print();
+	  ptrFsmInterface->print();
 	}
 
-	while(ptrRunFileShm->isStaticState()) usleep(1);
+	while(ptrFsmInterface->isIdle()) usleep(1);
 
 	if(_printEnable) {
 	  std::cout << "Now a non-static handshake" << std::endl;
-	  ptrRunFileShm->print();
+	  ptrFsmInterface->print();
 	}
 
 	//} else {
-	if(ptrRunFileShm->pong()) {
+	if(ptrFsmInterface->pong()) {
 	  if(_printEnable) {
 	    std::cout << "Did pong" << std::endl;
-	    ptrRunFileShm->print();
+	    ptrFsmInterface->print();
 	  }
 
 	} else {
-	  assert(ptrRunFileShm->_handshakeState==RunControlFsmShm::Prepare);
+	  ptrFsmInterface->setCommandHandshake(FsmInterface::Propose);
 	  if(_printEnable) {
 	    std::cout << "Entering new command" << std::endl;
-	    ptrRunFileShm->print();
+	    ptrFsmInterface->print();
 	  }
 
-	  assert(ptrRunFileShm->matchingStates());
+	  assert(ptrFsmInterface->matchingStates());
 
 	  // PREPARING
 
-	  assert(ptrRunFileShm->matchingStates());
+	  assert(ptrFsmInterface->matchingStates());
 
-	  //while(!ptrRunFileShm->prepared(true));
-	  if(ptrRunFileShm->systemState()!=RunControlFsmEnums::ConfiguringB) {
-	    assert(ptrRunFileShm->accepted());
-	  } else {
-	    assert(ptrRunFileShm->rejected());
-	  }
+	  //while(!ptrFsmInterface->prepared(true));
+	  //if(ptrFsmInterface->systemState()!=FsmState::ConfiguringB) {
+	    assert(ptrFsmInterface->accepted());
+	    //} else {
+	    //assert(ptrFsmInterface->rejected());
+	    //}
 
-	  while(!ptrRunFileShm->isProceed()) usleep(1);///////////////////////////////////////
+	  while(!ptrFsmInterface->isProceed()) usleep(1);///////////////////////////////////////
 
-	  bool change(ptrRunFileShm->isChange());
+	  bool change(ptrFsmInterface->isChange());
 			
-	  if(ptrRunFileShm->isChange()) {
-	    ptrRunFileShm->forceProcessState(RunControlFsmEnums::transitionStateForCommand(ptrRunFileShm->command()));
+	  if(ptrFsmInterface->isChange()) {
+	    //ptrFsmInterface->forceProcessState(FsmCommand::transitionStateForCommand(ptrFsmInterface->commandPacket().command()));
+	    ptrFsmInterface->changeProcessState();
 	    if(_printEnable) {
 	      std::cout << "Entered transient state" << std::endl;
-	      ptrRunFileShm->print();
+	      ptrFsmInterface->print();
 	    }
 	    
-	    assert(ptrRunFileShm->matchingStates());
+	    //assert(ptrFsmInterface->matchingStates());
 
-	    if(     ptrRunFileShm->processState()==RunControlFsmEnums::Initializing) this->initializing();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::ConfiguringA) this->configuringA();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::ConfiguringB) this->configuringB();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Starting    ) this->starting();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Pausing     ) this->pausing();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Resuming    ) this->resuming();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Stopping    ) this->stopping();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::HaltingB    ) this->haltingB();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::HaltingA    ) this->haltingA();
-	    else if(ptrRunFileShm->processState()==RunControlFsmEnums::Resetting   ) this->resetting();
+	    if(     ptrFsmInterface->processState()==FsmState::Initializing) this->initializing(ptrFsmInterface->commandHandshake());
+	    else if(ptrFsmInterface->processState()==FsmState::ConfiguringA) this->configuringA(ptrFsmInterface->commandHandshake());
+	    else if(ptrFsmInterface->processState()==FsmState::ConfiguringB) this->configuringB(ptrFsmInterface->commandHandshake());
+	    else if(ptrFsmInterface->processState()==FsmState::Starting    ) this->starting(ptrFsmInterface->commandHandshake());
+	    else if(ptrFsmInterface->processState()==FsmState::Pausing     ) this->pausing(ptrFsmInterface->commandHandshake());
+	    else if(ptrFsmInterface->processState()==FsmState::Resuming    ) this->resuming(ptrFsmInterface->commandHandshake());
+	    else if(ptrFsmInterface->processState()==FsmState::Stopping    ) this->stopping(ptrFsmInterface->commandHandshake());
+	    else if(ptrFsmInterface->processState()==FsmState::HaltingB    ) this->haltingB(ptrFsmInterface->commandHandshake());
+	    else if(ptrFsmInterface->processState()==FsmState::HaltingA    ) this->haltingA(ptrFsmInterface->commandHandshake());
+	    else if(ptrFsmInterface->processState()==FsmState::Resetting   ) this->resetting(ptrFsmInterface->commandHandshake());
 	    else assert(false);
 	      
-	    assert(ptrRunFileShm->matchingStates());
+	    //assert(ptrFsmInterface->matchingStates());
 	      
 	    if(_printEnable) {
 	      std::cout << "Done transient state" << std::endl;
-	      ptrRunFileShm->print();
+	      ptrFsmInterface->print();
 	    }
 	      
-	  } else if(ptrRunFileShm->isRepair()) {
+	  } else if(ptrFsmInterface->isRepair()) {
 	    if(_printEnable) {
 	      std::cout << "Doing repair" << std::endl;
-	      ptrRunFileShm->print();
+	      ptrFsmInterface->print();
 	    }
 
-	    assert(ptrRunFileShm->matchingStates());
+	    assert(ptrFsmInterface->matchingStates());
 
 	    // REPAIRING
 	      
-	    assert(ptrRunFileShm->matchingStates());	      
+	    assert(ptrFsmInterface->matchingStates());	      
 	  }
 	    
-	  assert(ptrRunFileShm->completed());
+	  assert(ptrFsmInterface->completed());
 
-	  while(!ptrRunFileShm->isStartStatic()) usleep(1);///////////////////////////////////////
+	  while(!ptrFsmInterface->isStartStatic()) usleep(1);///////////////////////////////////////
 	    
-	  if(change) ptrRunFileShm->forceProcessState(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command()));
+	  if(change) ptrFsmInterface->forceProcessState(FsmCommand::staticStateAfterCommand(ptrFsmInterface->commandPacket().command()));
 
-	  assert(ptrRunFileShm->matchingStates());
+	  assert(ptrFsmInterface->matchingStates());
 
 	  if(_printEnable) {
 	    std::cout << "Entering static state" << std::endl;
-	    ptrRunFileShm->print();
+	    ptrFsmInterface->print();
 	  }
 	  
-	  assert(ptrRunFileShm->matchingStates());
+	  assert(ptrFsmInterface->matchingStates());
 
-	  assert(ptrRunFileShm->ended());
+	  assert(ptrFsmInterface->ended());
 	}
 	//}
       }
       
       return;
-      
+#ifdef JUNK      
       while(true) {
-	std::cout << "HERE0 ";ptrRunFileShm->print();
+	std::cout << "HERE0 ";ptrFsmInterface->print();
 	sleep(1);
-	if(!ptrRunFileShm->rcLock()) {
+	if(!ptrFsmInterface->rcLock()) {
 
 	  // In transition
-	  std::cout << "HERE1 ";ptrRunFileShm->print();
+	  std::cout << "HERE1 ";ptrFsmInterface->print();
 	  sleep(1);
 
-	  switch(ptrRunFileShm->processState()) {
+	  switch(ptrFsmInterface->processState()) {
 
 	    // Static states   /////////////////////
 
 	    // INITIAL //
       
-	  case RunControlFsmEnums::Initial: {
+	  case FsmState::Initial: {
 
-	    if(ptrRunFileShm->command()==RunControlFsmEnums::Initialize) {
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateBeforeCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	    if(ptrFsmInterface->commandPacket().command()==FsmState::Initialize) {
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateBeforeCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 	
 	      // Initializing; set to transitional state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Initializing,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
+	      ptrFsmInterface->setProcess(FsmState::Initializing);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
 	
 	      initializing();
       
 	      // Set to Halted static state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Halted,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	      ptrFsmInterface->setProcess(FsmState::Halted);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 
 	      halted();
 	      
-	    } else if(ptrRunFileShm->command()==RunControlFsmEnums::Reset) {
-	      if(_printEnable) ptrRunFileShm->print();
+	    } else if(ptrFsmInterface->commandPacket().command()==FsmState::Reset) {
+	      if(_printEnable) ptrFsmInterface->print();
 
 	      // Resetting; set to transitional state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Initializing,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
+	      ptrFsmInterface->setProcess(FsmState::Initializing);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
 	
 	      resetting();
       
 	      // Set to Initial static state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Initial,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	      ptrFsmInterface->setProcess(FsmState::Initial);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 
 	    } else {
 	      assert(false);
@@ -320,34 +336,34 @@ namespace Hgcal10gLinkReceiver {
 
 	    // HALTED //
       
-	  case RunControlFsmEnums::Halted: {
+	  case FsmState::Halted: {
 
-	    if(ptrRunFileShm->command()==RunControlFsmEnums::ConfigureA) {
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateBeforeCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	    if(ptrFsmInterface->commandPacket().command()==FsmState::ConfigureA) {
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateBeforeCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 
 	      // ConfiguringA; set to transitional state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::ConfiguringA,RunControlFsmEnums::Good);
+	      ptrFsmInterface->setProcess(FsmState::ConfiguringA);//,FsmState::Good);
 
 	      configuringA();
       
 	      // Set to ConfiguredA static state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::ConfiguredA,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	      ptrFsmInterface->setProcess(FsmState::ConfiguredA);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 
 
-	    } else if(ptrRunFileShm->command()==RunControlFsmEnums::Reset) {
+	    } else if(ptrFsmInterface->commandPacket().command()==FsmState::Reset) {
 
 	      // Resetting; set to transitional state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Resetting,RunControlFsmEnums::Good);
+	      ptrFsmInterface->setProcess(FsmState::Resetting);//,FsmState::Good);
 
 	      resetting();
       
 	      // Set to Initial static state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Initial,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	      ptrFsmInterface->setProcess(FsmState::Initial);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 
 	    } else {
 	      assert(false);
@@ -357,34 +373,34 @@ namespace Hgcal10gLinkReceiver {
 
 	    // CONFIGUREDA //
 
-	  case RunControlFsmEnums::ConfiguredA: {
+	  case FsmState::ConfiguredA: {
 
-	    if(ptrRunFileShm->command()==RunControlFsmEnums::ConfigureB) {
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateBeforeCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	    if(ptrFsmInterface->commandPacket().command()==FsmCommand::ConfigureB) {
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateBeforeCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
       
 	      // ConfiguringB; set to transitional state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::ConfiguringB,RunControlFsmEnums::Good);
+	      ptrFsmInterface->setProcess(FsmState::ConfiguringB);//,FsmState::Good);
 
 	      //configuringB();
       
 	      // Set to ConfiguredB static state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::ConfiguredB,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	      ptrFsmInterface->setProcess(FsmState::ConfiguredB);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 
 	
-	    } else if(ptrRunFileShm->command()==RunControlFsmEnums::HaltA) {
+	    } else if(ptrFsmInterface->commandPacket().command()==FsmCommand::HaltA) {
       
 	      // HaltingB; set to transitional state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::HaltingB,RunControlFsmEnums::Good);
+	      ptrFsmInterface->setProcess(FsmState::HaltingB);//,FsmState::Good);
 
 	      haltingB();
             
 	      // Set to Halted static state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Halted,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	      ptrFsmInterface->setProcess(FsmState::Halted);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 
 	    } else {
 	      assert(false);
@@ -394,34 +410,34 @@ namespace Hgcal10gLinkReceiver {
 
 	    // CONFIGUREDB
       
-	  case RunControlFsmEnums::ConfiguredB: {
+	  case FsmState::ConfiguredB: {
 
-	    if(ptrRunFileShm->command()==RunControlFsmEnums::Start) {
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateBeforeCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	    if(ptrFsmInterface->commandPacket().command()==FsmCommand::Start) {
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateBeforeCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
       
 	      // Starting; set to transitional state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Starting,RunControlFsmEnums::Good);
+	      ptrFsmInterface->setProcess(FsmState::Starting);//,FsmState::Good);
 
 	      starting();
       
 	      // Set to Running static state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Running,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	      ptrFsmInterface->setProcess(FsmState::Running);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmState::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 
 	
-	    } else if(ptrRunFileShm->command()==RunControlFsmEnums::HaltB) {
+	    } else if(ptrFsmInterface->commandPacket().command()==FsmCommand::HaltB) {
       
 	      // HaltingB; set to transitional state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::HaltingB,RunControlFsmEnums::Good);
+	      ptrFsmInterface->setProcess(FsmState::HaltingB);//,FsmState::Good);
 
 	      haltingB();
       
 	      // Set to ConfiguredA static state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::ConfiguredA,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	      ptrFsmInterface->setProcess(FsmState::ConfiguredA);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmState::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 
 	    } else {
 	      assert(false);
@@ -431,34 +447,34 @@ namespace Hgcal10gLinkReceiver {
 
 	    // RUNNING //
       
-	  case RunControlFsmEnums::Running: {
+	  case FsmState::Running: {
 
-	    if(ptrRunFileShm->command()==RunControlFsmEnums::Pause) {
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateBeforeCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	    if(ptrFsmInterface->commandPacket().command()==FsmCommand::Pause) {
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateBeforeCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 
 	      // Pausing; set to transitional state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Pausing,RunControlFsmEnums::Good);
+	      ptrFsmInterface->setProcess(FsmState::Pausing);//,FsmState::Good);
 
 	      pausing();
 
 	      // Set to Paused static state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Paused,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	      ptrFsmInterface->setProcess(FsmState::Paused);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmState::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 
 	
-	    } else if(ptrRunFileShm->command()==RunControlFsmEnums::Stop) {
+	    } else if(ptrFsmInterface->commandPacket().command()==FsmCommand::Stop) {
       
 	      // Stopping; set to transitional state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Stopping,RunControlFsmEnums::Good);
+	      ptrFsmInterface->setProcess(FsmState::Stopping);//,FsmState::Good);
 
 	      stopping();
       
 	      // Set to ConfiguredB static state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::ConfiguredB,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	      ptrFsmInterface->setProcess(FsmState::ConfiguredB);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmState::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 
 	    } else {
 	      assert(false);
@@ -468,21 +484,21 @@ namespace Hgcal10gLinkReceiver {
 
 	    // PAUSED //
       
-	  case RunControlFsmEnums::Paused: {
+	  case FsmState::Paused: {
 
-	    if(ptrRunFileShm->command()==RunControlFsmEnums::Resume) {
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateBeforeCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	    if(ptrFsmInterface->commandPacket().command()==FsmCommand::Resume) {
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateBeforeCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 
 	      // Starting; set to transitional state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Starting,RunControlFsmEnums::Good);
+	      ptrFsmInterface->setProcess(FsmState::Starting);//,FsmState::Good);
 
 	      starting();
 	
 	      // Set to static state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Running,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	      ptrFsmInterface->setProcess(FsmState::Running);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmState::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 
 	    } else {
 	      assert(false);
@@ -491,21 +507,21 @@ namespace Hgcal10gLinkReceiver {
 	  }
 	    // NULL = Initial //
       
-	  case RunControlFsmEnums::EndOfStateEnum: {
+	  case FsmState::EndOfStateEnum: {
 
-	    if(ptrRunFileShm->command()==RunControlFsmEnums::Initialize) {
-	      if(_printEnable) ptrRunFileShm->print();
+	    if(ptrFsmInterface->commandPacket().command()==FsmCommand::Initialize) {
+	      if(_printEnable) ptrFsmInterface->print();
 
 	      // Initializing; set to transitional state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Initializing,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
+	      ptrFsmInterface->setProcess(FsmState::Initializing);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
 
 	      initializing();
       
 	      // Set to Halted static state
-	      ptrRunFileShm->setProcess(RunControlFsmEnums::Halted,RunControlFsmEnums::Good);
-	      if(_printEnable) ptrRunFileShm->print();
-	      assert(RunControlFsmEnums::staticStateAfterCommand(ptrRunFileShm->command())==ptrRunFileShm->processState());
+	      ptrFsmInterface->setProcess(FsmState::Halted);//,FsmState::Good);
+	      if(_printEnable) ptrFsmInterface->print();
+	      assert(FsmState::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
 	    }
 	    break;
 	  }
@@ -514,89 +530,89 @@ namespace Hgcal10gLinkReceiver {
 	    // Transitional states: should never happen   /////////////////////
 
 
-	  case RunControlFsmEnums::Initializing: {
-	    if(_printEnable) ptrRunFileShm->print();
+	  case FsmState::Initializing: {
+	    if(_printEnable) ptrFsmInterface->print();
     
 	    // Set to Halted static state
-	    ptrRunFileShm->setProcess(RunControlFsmEnums::Halted,RunControlFsmEnums::Warning);
-	    if(_printEnable) ptrRunFileShm->print();
+	    ptrFsmInterface->setProcess(FsmState::Halted,FsmState::Warning);
+	    if(_printEnable) ptrFsmInterface->print();
 	    break;
 	  }
     
-	  case RunControlFsmEnums::ConfiguringA: {
-	    if(_printEnable) ptrRunFileShm->print();
+	  case FsmState::ConfiguringA: {
+	    if(_printEnable) ptrFsmInterface->print();
     
 	    // Set to ConfiguredA static state
-	    ptrRunFileShm->setProcess(RunControlFsmEnums::ConfiguredA,RunControlFsmEnums::Warning);
-	    if(_printEnable) ptrRunFileShm->print();
+	    ptrFsmInterface->setProcess(FsmState::ConfiguredA,FsmState::Warning);
+	    if(_printEnable) ptrFsmInterface->print();
 	    break;
 	  }
     
-	  case RunControlFsmEnums::HaltingB: {
-	    if(_printEnable) ptrRunFileShm->print();
+	  case FsmState::HaltingB: {
+	    if(_printEnable) ptrFsmInterface->print();
     
 	    // Set to Halted static state
-	    ptrRunFileShm->setProcess(RunControlFsmEnums::Halted,RunControlFsmEnums::Warning);
-	    if(_printEnable) ptrRunFileShm->print();
+	    ptrFsmInterface->setProcess(FsmState::Halted,FsmState::Warning);
+	    if(_printEnable) ptrFsmInterface->print();
 	    break;
 	  }
 
-	  case RunControlFsmEnums::ConfiguringB: {
-	    if(_printEnable) ptrRunFileShm->print();
+	  case FsmState::ConfiguringB: {
+	    if(_printEnable) ptrFsmInterface->print();
     
 	    // Set to ConfiguredB static state
-	    ptrRunFileShm->setProcess(RunControlFsmEnums::ConfiguredB,RunControlFsmEnums::Warning);
-	    if(_printEnable) ptrRunFileShm->print();
+	    ptrFsmInterface->setProcess(FsmState::ConfiguredB,FsmState::Warning);
+	    if(_printEnable) ptrFsmInterface->print();
 	    break;
 	  }
 
-	  case RunControlFsmEnums::HaltingA: {
-	    if(_printEnable) ptrRunFileShm->print();
+	  case FsmState::HaltingA: {
+	    if(_printEnable) ptrFsmInterface->print();
     
 	    // Set to static state
-	    ptrRunFileShm->setProcess(RunControlFsmEnums::ConfiguredA,RunControlFsmEnums::Warning);
-	    if(_printEnable) ptrRunFileShm->print();
+	    ptrFsmInterface->setProcess(FsmState::ConfiguredA,FsmState::Warning);
+	    if(_printEnable) ptrFsmInterface->print();
 	    break;
 	  }
 
-	  case RunControlFsmEnums::Starting: {
-	    if(_printEnable) ptrRunFileShm->print();
+	  case FsmState::Starting: {
+	    if(_printEnable) ptrFsmInterface->print();
     
 	    // Set to Running static state
-	    ptrRunFileShm->setProcess(RunControlFsmEnums::Running,RunControlFsmEnums::Warning);
-	    if(_printEnable) ptrRunFileShm->print();
+	    ptrFsmInterface->setProcess(FsmState::Running,FsmState::Warning);
+	    if(_printEnable) ptrFsmInterface->print();
 	    break;
 	  }
 
-	  case RunControlFsmEnums::Stopping: {
-	    if(_printEnable) ptrRunFileShm->print();
+	  case FsmState::Stopping: {
+	    if(_printEnable) ptrFsmInterface->print();
     
 	    // Set to ConfiguredB static state
-	    ptrRunFileShm->setProcess(RunControlFsmEnums::ConfiguredB,RunControlFsmEnums::Warning);
-	    if(_printEnable) ptrRunFileShm->print();
+	    ptrFsmInterface->setProcess(FsmState::ConfiguredB,FsmState::Warning);
+	    if(_printEnable) ptrFsmInterface->print();
 	    break;
 	  }
 
-	  case RunControlFsmEnums::Pausing: {
-	    if(_printEnable) ptrRunFileShm->print();
+	  case FsmState::Pausing: {
+	    if(_printEnable) ptrFsmInterface->print();
     
 	    // Set to Paused static state
-	    ptrRunFileShm->setProcess(RunControlFsmEnums::Paused,RunControlFsmEnums::Warning);
-	    if(_printEnable) ptrRunFileShm->print();
+	    ptrFsmInterface->setProcess(FsmState::Paused,FsmState::Warning);
+	    if(_printEnable) ptrFsmInterface->print();
 	    break;
 	  }
 
-	  case RunControlFsmEnums::Resuming: {
-	    if(_printEnable) ptrRunFileShm->print();
+	  case FsmState::Resuming: {
+	    if(_printEnable) ptrFsmInterface->print();
     
 	    // Set to Running static state
-	    ptrRunFileShm->setProcess(RunControlFsmEnums::Running,RunControlFsmEnums::Warning);
-	    if(_printEnable) ptrRunFileShm->print();
+	    ptrFsmInterface->setProcess(FsmState::Running,FsmState::Warning);
+	    if(_printEnable) ptrFsmInterface->print();
 	    break;
 	  }
 
 	  default: {
-	    if(_printEnable) ptrRunFileShm->print();
+	    if(_printEnable) ptrFsmInterface->print();
 	    assert(false);
 	    break;
 	  }
@@ -604,68 +620,70 @@ namespace Hgcal10gLinkReceiver {
 
 	  //////////////////////////////////////////////////////////////////
 	  
-	} else if(ptrRunFileShm->matchingStates()) {
-	  std::cout << "HERE2 ";ptrRunFileShm->print();
+	} else if(ptrFsmInterface->matchingStates()) {
+	  std::cout << "HERE2 ";ptrFsmInterface->print();
 	  sleep(1);
 
 	  // In static state
 
-	  switch(ptrRunFileShm->processState()) {
+	  switch(ptrFsmInterface->processState()) {
 
-	  case RunControlFsmEnums::Initial: {
+	  case FsmState::Initial: {
 	    initial();
 	    break;
 	  }
 	    
-	  case RunControlFsmEnums::Halted: {
+	  case FsmState::Halted: {
 	    halted();
 	    break;
 	  }
 
-	  case RunControlFsmEnums::ConfiguredA: {
+	  case FsmState::ConfiguredA: {
 	    configuredA();
 	    break;
 	  }
 
-	  case RunControlFsmEnums::ConfiguredB: {
+	  case FsmState::ConfiguredB: {
 	    configuredB();
 	    break;
 	  }
 
-	  case RunControlFsmEnums::Running: {
+	  case FsmState::Running: {
 	    
-	    running(ptrRunFileShm);
+	    running(ptrFsmInterface);
 	    break;
 	  }
 
-	  case RunControlFsmEnums::Paused: {
+	  case FsmState::Paused: {
 	    paused();
 	    break;
 	  }
 	    
 	  default: {
-	    if(_printEnable) ptrRunFileShm->print();
+	    if(_printEnable) ptrFsmInterface->print();
 	    assert(false);
 	    break;
 	  }
 	  }
 
-	  //while(!ptrRunFileShm->matchingStates()) {
-	  while(!ptrRunFileShm->rcLock()) {
-	    usleep(_usSleep[ptrRunFileShm->processState()]);
+	  //while(!ptrFsmInterface->matchingStates()) {
+	  while(!ptrFsmInterface->rcLock()) {
+	    usleep(_usSleep[ptrFsmInterface->processState()]);
 	  }
 	} else {
-	  std::cout << "HERE3 ";ptrRunFileShm->print();
+	  std::cout << "HERE3 ";ptrFsmInterface->print();
 	  sleep(1);
 	}
 
       }
+#endif
+
     }
    
   protected:
     bool _printEnable;
-    RunControlFsmShm *ptrRunFileShm;
-    unsigned _usSleep[RunControlFsmEnums::EndOfStaticEnum];
+    FsmInterface *ptrFsmInterface;
+    unsigned _usSleep[FsmState::EndOfStaticEnum];
   };
 
 }

@@ -5,12 +5,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "RunControlFsmShm.h"
+#include "FsmInterface.h"
 #include "ShmKeys.h"
 #include "ShmSingleton.h"
+#include "RunControlEngine.h"
+#include "RecordConfiguringA.h"
 
 using namespace Hgcal10gLinkReceiver;
-
+/*
 void request(RunControlFsmShm *p, RunControlFsmEnums::Command fr, uint32_t s=0) {
   std::cout << "WAIT" << std::endl;
   while(!p->rcLock());
@@ -21,11 +23,13 @@ void request(RunControlFsmShm *p, RunControlFsmEnums::Command fr, uint32_t s=0) 
   std::cout << "SLEEP" << std::endl;
   sleep(2);
 }
-
+*/
 
 
 
 int main(int argc, char *argv[]) {
+
+#ifdef JUNK
   uint16_t bits(1);
   unsigned nBits(1);
   bool isBit[8]={true,false,false,false,false,false,false,false};
@@ -53,8 +57,8 @@ int main(int argc, char *argv[]) {
   }
   
   //std::vector< ShmSingleton<RunControlFsmShm> > vShmSingleton(nBits);
-  std::vector< ShmSingleton<RunControlFsmShm> > vShmSingleton(6);
-  std::vector<RunControlFsmShm*> vPtr;
+  std::vector< ShmSingleton<FsmInterface> > vShmSingleton(6);
+  std::vector<FsmInterface*> vPtr;
   /*
     unsigned j(0);
     for(unsigned i(0);i<8;i++) {
@@ -71,6 +75,9 @@ int main(int argc, char *argv[]) {
     }
     assert(j==nBits);
   */
+#endif
+  std::vector< ShmSingleton<FsmInterface> > vShmSingleton(6);
+  std::vector<FsmInterface*> vPtr;
   
   vShmSingleton[0].setup(RunControlTestingShmKey);
   vShmSingleton[1].setup(RunControlFastControlShmKey);
@@ -79,10 +86,30 @@ int main(int argc, char *argv[]) {
   vShmSingleton[4].setup(RunControlDaqLink1ShmKey);
   vShmSingleton[5].setup(RunControlDaqLink2ShmKey);
 
+  RunControlEngine engine;
   for(unsigned i(0);i<vShmSingleton.size();i++) {
     vPtr.push_back(vShmSingleton[i].payload());
+    engine.add(vShmSingleton[i].payload());
   }
 
+  FsmCommandPacket fcp;
+  fcp.setCommand(FsmCommand::Initialize);
+  fcp.print();
+
+  engine.coldStart();
+  engine.command(fcp);
+
+  RecordConfiguringA rca;
+  rca.setHeader();
+  rca.print();
+
+  fcp.setRecord(rca);
+  fcp.setCommand(FsmCommand::ConfigureA);
+  fcp.print();
+  engine.command(fcp);
+
+  
+#ifdef JUNK
   std::cout << std::endl << "Checking for responding processors" << std::endl;
   bool active[100];
   for(unsigned i(0);i<vShmSingleton.size();i++) {
@@ -308,5 +335,6 @@ int main(int argc, char *argv[]) {
 	  vPtr[i]->setCommand(c);
 	}
       }
+#endif
       return 0;
-    }
+}

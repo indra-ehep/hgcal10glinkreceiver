@@ -18,44 +18,57 @@ namespace Hgcal10gLinkReceiver {
     ProcessorDummy() {
     }
 
-    void initializing() {
+    bool initializing(FsmInterface::HandshakeState s) {
       sleep(1);
+      return true;
     }
     
-    void configuringA() {
+    bool configuringA(FsmInterface::HandshakeState s) {
+      RecordConfiguringA rca;
+      rca.copy(ptrFsmInterface->commandPacket().recordHeader());
+      rca.print();
       sleep(1);
+      return true;
     }
     
-    void configuringB() {
+    bool configuringB(FsmInterface::HandshakeState s) {
       sleep(1);
+      return true;
     }
     
-    void starting() {
+    bool starting(FsmInterface::HandshakeState s) {
       sleep(1);
+      return true;
     }
     
-    void pausing() {
+    bool pausing(FsmInterface::HandshakeState s) {
       sleep(1);
+      return true;
     }
     
-    void resuming() {
+    bool resuming(FsmInterface::HandshakeState s) {
       sleep(1);
+      return true;
     }
     
-    void stopping() {
+    bool stopping(FsmInterface::HandshakeState s) {
       sleep(1);
+      return true;
     }
     
-    void haltingB() {
+    bool haltingB(FsmInterface::HandshakeState s) {
       sleep(1);
+      return true;
     }
     
-    void haltingA() {
+    bool haltingA(FsmInterface::HandshakeState s) {
       sleep(1);
+      return true;
     }
     
-    void resetting() {
+    bool resetting(FsmInterface::HandshakeState s) {
       sleep(1);
+      return true;
     }
 
     //////////////////////////////////////////////
@@ -76,7 +89,7 @@ namespace Hgcal10gLinkReceiver {
       sleep(1);
     }
     
-    void running(RunControlFsmShm* const p) {
+    void running() {
       sleep(1);
     }
     
