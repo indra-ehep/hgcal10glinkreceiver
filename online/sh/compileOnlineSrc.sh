@@ -5,3 +5,5 @@ g++ -Wall -std=c++11 -Icommon/inc -Ionline/inc -Ijunk/inc online/src/RunControlS
 g++ -Wall -std=c++11 -Icommon/inc -Ioffline/inc -Ijunk/inc offline/src/BasicRunFileCheck.cpp -o bin/BasicRunFileCheck.exe
 g++ -std=c++11 online/src/FsmInterfaceZmqRx.cpp -I../rshukla/zmq_test -Icommon/inc -Ionline/inc -Ijunk/inc -lzmq -o bin/FsmInterfaceZmqRx.exe
 g++ -std=c++11 online/src/DataFifoZmqRx.cpp -I../rshukla/zmq_test -Icommon/inc -Ionline/inc -Ijunk/inc -lzmq -o bin/DataFifoZmqRx.exe
+g++ -std=c++11 online/src/DataFifoZmqTx.cpp -I../rshukla/zmq_test -Icommon/inc -Ionline/inc -Ijunk/inc -lzmq -o bin/DataFifoZmqTx.exe
+g++ -std=c++11 online/src/FsmInterfaceZmqTx.cpp -I../rshukla/zmq_test -Icommon/inc -Ionline/inc -Ijunk/inc -lzmq -o bin/FsmInterfaceZmqTx.exe

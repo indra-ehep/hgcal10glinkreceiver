@@ -33,6 +33,10 @@ public:
     return true;
   }
 
+  bool readable() {
+    return _writePtr>_readPtr;
+  }
+
   uint16_t read(uint64_t *p) {
     if(_writePtr==_readPtr) return 0;
     RecordHeader *h((RecordHeader*)_buffer[_readPtr&BufferDepthMask]);
