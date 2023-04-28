@@ -417,6 +417,11 @@ namespace Hgcal10gLinkReceiver {
       return handshakeName(_requestHandshake);
     }
     
+    static const std::string& handshakeName(HandshakeState h) {
+      if(h<EndOfHandshakeStateEnum) return _handshakeName[h];
+      return _unknown;
+    }
+
     // Used for displaying results
     void print(std::ostream &o=std::cout) const {
       o << "FsmInterface::print()" << std::endl;
@@ -446,11 +451,6 @@ namespace Hgcal10gLinkReceiver {
     static const std::string _unknown;
 
     static const std::string _handshakeName[EndOfHandshakeStateEnum];
-
-    static const std::string& handshakeName(HandshakeState h) {
-      if(h<EndOfHandshakeStateEnum) return _handshakeName[h];
-      return _unknown;
-    }
   };
 
   const std::string FsmInterface::_unknown="Unknown";

@@ -74,8 +74,8 @@ int main(int argc, char *argv[]) {
   ProcessorFastControl pb;
   //ProcessorBase pb;
   pb.setPrintEnable(printEnable);
-  //pb.setUpAll(RunControlFastControlShmKey,ProcessorFastControlDataShmKey);
-  pb.setUpAll(RunControlFastControlShmKey,ProcessorFastControlDataShmKey,
-	      ProcessorDaqLink0FifoShmKey,ProcessorDaqLink1FifoShmKey);
+  pb.setUpAll(RunControlFastControlShmKey,ProcessorFastControlDataShmKey);
+  //pb.setUpAll(RunControlFastControlShmKey,ProcessorFastControlDataShmKey,
+  //	      ProcessorDaqLink0FifoShmKey,ProcessorDaqLink1FifoShmKey);
   return 0;
 }

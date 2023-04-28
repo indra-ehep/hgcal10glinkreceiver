@@ -1,5 +1,5 @@
-#ifndef Hgcal10gLinkReceiver_RecordConfiguringA_h
-#define Hgcal10gLinkReceiver_RecordConfiguringA_h
+#ifndef Hgcal10gLinkReceiver_RecordConfiguringB_h
+#define Hgcal10gLinkReceiver_RecordConfiguringB_h
 
 #include <iostream>
 #include <iomanip>
@@ -9,14 +9,14 @@
 
 namespace Hgcal10gLinkReceiver {
 
-  class RecordConfiguringA : public RecordT<7> {
+  class RecordConfiguringB : public RecordT<8> {
   
   public:
-    RecordConfiguringA() {
+    RecordConfiguringB() {
     }
     
     void setHeader(uint32_t t=time(0)) {
-      setState(FsmState::ConfiguringA);
+      setState(FsmState::ConfiguringB);
       setPayloadLength(1);
       setUtc(t);
     }
@@ -25,8 +25,12 @@ namespace Hgcal10gLinkReceiver {
       return _payload[0]&0xffffffff;
     }
 
-    uint32_t maxNumberOfConfigurations() const {
+    uint32_t configurationCounter() const {
       return _payload[0]>>32;
+    }
+
+    uint32_t maxNumberOfRuns() const {
+      return _payload[1]&0xffffffff;
     }
 
     uint32_t processorKey(uint32_t id) const {
@@ -36,14 +40,19 @@ namespace Hgcal10gLinkReceiver {
       return 0;
     }
 
-    void setSuperRunNumber(uint32_t t=time(0)) {
+    void setSuperRunNumber(uint32_t n) {
       _payload[0]&=0xffffffff00000000;
-      _payload[0]|=t;
+      _payload[0]|=n;
     }
    
-    void setMaxNumberOfConfigurations(uint32_t n=1) {
+    void setConfigurationCounter(uint32_t c) {
       _payload[0]&=0x00000000ffffffff;
-      _payload[0]|=uint64_t(n)<<32;
+      _payload[0]|=uint64_t(c)<<32;
+    }
+   
+    void setMaxNumberOfRuns(uint32_t n) {
+      _payload[1]&=0xffffffff00000000;
+      _payload[1]|=n;
     }
    
     void setProcessKey(uint32_t id, uint32_t key) {
@@ -53,20 +62,22 @@ namespace Hgcal10gLinkReceiver {
     }
    
     void print(std::ostream &o=std::cout, std::string s="") {
-      o << s << "RecordConfiguringA::print()" << std::endl;
+      o << s << "RecordConfiguringB::print()" << std::endl;
       RecordHeader::print(o,s+" ");
       
       for(unsigned i(0);i<payloadLength();i++) {
-	o << s << "  Payload word " << std::setw(5) << " = 0x"
+	o << s << "   Payload word " << std::setw(5) << " = 0x"
 	  << std::hex << std::setfill('0')
 	  << std::setw(16) << _payload[i]
 	  << std::dec << std::setfill(' ') << std::endl;
       }
-      
-      o << s << "  SuperRun number                  = "
+
+      o << s << "  SuperRun number        = "
 	<< std::setw(10) << superRunNumber() << std::endl;
-      o << s << "  Maximum number of configurations = "
-	<< std::setw(10) << maxNumberOfConfigurations() << std::endl;
+      o << s << "  Configuration counter  = "
+	<< std::setw(10) << configurationCounter() << std::endl;
+      o << s << "  Maximum number of runs = "
+	<< std::setw(10) << maxNumberOfRuns() << std::endl;
 
       for(unsigned i(1);i<payloadLength();i++) {
 	o << s << "  Process id = 0x"
@@ -77,6 +88,7 @@ namespace Hgcal10gLinkReceiver {
 	  << std::endl;
       }
     }
+	
   private:
   };
 

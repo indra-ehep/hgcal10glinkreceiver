@@ -6,13 +6,37 @@
 #include "RecordHeader.h"
 
 namespace Hgcal10gLinkReceiver {
-
-  template<unsigned NumberOfPayloadWords> class Record : public RecordHeader {
-  
+  class Record : public RecordHeader {
   public:
     Record() {
     }
+    
+    void incrementPayloadLength(uint16_t l=1) {
+      RecordHeader::setPayloadLength(payloadLength()+l);
+    }
+    
+    void deepCopy(const Record &r) {
+      std::memcpy(this,&r,8*r.totalLength());
+    }
 
+    void deepCopy(const Record *r) {
+      deepCopy(*r);
+    }
+  };
+  
+  template<unsigned NumberOfPayloadWords> class RecordT : public Record {
+  
+  public:
+    RecordT() {
+      for(unsigned i(0);i<NumberOfPayloadWords;i++) {
+	_payload[i]=0xdeadbeefdeadbeef;
+      }
+    }
+
+    unsigned maxNumberOfPayloadWords() const {
+      return NumberOfPayloadWords;
+    }
+    
     void setPayloadLength() {
       RecordHeader::setPayloadLength(NumberOfPayloadWords);
     }
@@ -21,14 +45,14 @@ namespace Hgcal10gLinkReceiver {
       RecordHeader::setPayloadLength(l);
     }
     
+    const uint64_t* constPayload() {
+      return _payload;
+    }
+
     uint64_t* payload() {
       return _payload;
     }
 
-    void copy(const RecordHeader &h) {
-      std::memcpy(this,&h,8*h.totalLength());
-    }
-    
     void print(std::ostream &o=std::cout) const {
       o << "Record::print()" << std::endl;
       RecordHeader::print(o," ");

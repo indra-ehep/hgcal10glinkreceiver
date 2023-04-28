@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <sys/types.h>
+#include <signal.h>
 #include <unistd.h>
 
 #include "FsmInterface.h"
@@ -10,10 +11,25 @@
 #include "ShmSingleton.h"
 #include "RunControlEngine.h"
 #include "RecordConfiguringA.h"
+#include "RecordConfiguringB.h"
+#include "RecordStarting.h"
+#include "RecordResetting.h"
+#include "RecordInitializing.h"
 
 using namespace Hgcal10gLinkReceiver;
+
+bool continueSuperRun;
+
+void RunControlSignalHandler(int signal) {
+  std::cerr << "Process " << getpid() << " received signal " 
+	    << signal << std::endl;
+  continueSuperRun=false;
+}
+
+
+
 /*
-void request(RunControlFsmShm *p, RunControlFsmEnums::Command fr, uint32_t s=0) {
+  void request(RunControlFsmShm *p, RunControlFsmEnums::Command fr, uint32_t s=0) {
   std::cout << "WAIT" << std::endl;
   while(!p->rcLock());
   
@@ -22,7 +38,7 @@ void request(RunControlFsmShm *p, RunControlFsmEnums::Command fr, uint32_t s=0) 
   p->setCommand(fr);
   std::cout << "SLEEP" << std::endl;
   sleep(2);
-}
+  }
 */
 
 
@@ -99,15 +115,160 @@ int main(int argc, char *argv[]) {
   engine.coldStart();
   engine.command(fcp);
 
-  RecordConfiguringA rca;
-  rca.setHeader();
-  rca.print();
+  bool continueLoop(true);
 
-  fcp.setRecord(rca);
-  fcp.setCommand(FsmCommand::ConfigureA);
-  fcp.print();
-  engine.command(fcp);
+  signal(SIGINT,RunControlSignalHandler);
 
+  while(continueLoop) {
+    char x('z');
+    while(x!='r' && x!='s' && x!='q') {
+      std::cout << "s = Start SuperRun, r = Reset & Initialize, q = Quit"
+		<< std::endl;
+      std::cin >> x;
+    }
+
+    if(x=='q') {
+      continueLoop=false;
+      
+    } else if(x=='r') {
+      RecordResetting rr;
+      rr.setHeader();
+      fcp.setCommand(FsmCommand::Reset);
+      fcp.setRecord(rr);
+      fcp.print();
+      engine.command(fcp);
+
+      RecordInitializing ri;
+      ri.setHeader();
+      fcp.setCommand(FsmCommand::Initialize);
+      fcp.setRecord(ri);
+      fcp.print();
+      engine.command(fcp);
+      
+    } else {
+
+      continueSuperRun=true;
+
+      unsigned nc(0);
+      unsigned nr(0);
+
+      RecordConfiguringA rca;
+      rca.setHeader();
+      rca.setSuperRunNumber();
+      rca.setMaxNumberOfConfigurations(2);
+      rca.setProcessKey(0xce000000,123);
+
+      fcp.setCommand(FsmCommand::ConfigureA);
+      fcp.setRecord(rca);
+      std::cout  << std::endl << "HEREA!" << std::endl << std::endl;
+      rca.print();
+      fcp.print();
+      engine.command(fcp);
+
+      for(nc=0;nc<rca.maxNumberOfConfigurations() && continueSuperRun;nc++) {
+	RecordConfiguringB rcb;
+	rcb.setHeader();
+	rcb.setProcessKey(0xce000000,456);
+	rcb.setSuperRunNumber(rca.superRunNumber());
+	rcb.setConfigurationCounter(nc+1);
+	rcb.setMaxNumberOfRuns(4);
+    
+	fcp.setCommand(FsmCommand::ConfigureB);
+	fcp.setRecord(rcb);
+	std::cout  << std::endl << "HEREB!" << std::endl << std::endl;
+	rcb.print();
+	fcp.print();
+	engine.command(fcp);
+
+	for(nr=0;nr<rcb.maxNumberOfRuns() && continueSuperRun;nr++) {
+	  RecordStarting rsa;
+	  rsa.setHeader();
+	  rsa.setRunNumber();
+	  rsa.setMaxEvents(1000);
+	  rsa.setMaxSeconds(100);
+	  rsa.setMaxSpills(0);
+      
+	  fcp.setCommand(FsmCommand::Start);
+	  fcp.setRecord(rsa);
+	  std::cout  << std::endl << "HERES!" << std::endl << std::endl;
+	  rsa.print();
+	  fcp.print();
+	  engine.command(fcp);
+
+	  unsigned np(0);
+	  uint32_t dt(time(0)-rsa.utc());
+	  while(dt<rsa.maxSeconds() && continueSuperRun) {
+	    usleep(1000);
+	    dt=time(0)-rsa.utc();
+
+	    if((dt==4 && np==0) ||
+	       (dt==7 && np==1)) {
+
+	      RecordPausing rp;
+	      rp.setHeader();
+	      fcp.setCommand(FsmCommand::Pause);
+	      fcp.setRecord(rsa);
+	      std::cout  << std::endl << "HEREP!" << std::endl << std::endl;
+	      rp.print();
+	      fcp.print();
+	      engine.command(fcp);
+
+	      RecordResuming rr;
+	      rr.setHeader();
+	      fcp.setCommand(FsmCommand::Resume);
+	      fcp.setRecord(rsa);
+	      std::cout  << std::endl << "HEREP!" << std::endl << std::endl;
+	      rr.print();
+	      fcp.print();
+	      engine.command(fcp);	  
+
+	      np++;
+	    }
+	  }
+
+	  RecordStopping rsb;
+	  rsb.setHeader();
+	  rsb.setRunNumber(rsa.runNumber());
+	  rsb.setNumberOfEvents(0xffffffff); //???
+	  rsb.setNumberOfSeconds(rsb.utc()-rsa.utc());
+	  rsb.setNumberOfSpills(0);
+	  rsb.setNumberOfPauses(np);
+      
+	  fcp.setCommand(FsmCommand::Stop);
+	  fcp.setRecord(rsb);
+	  std::cout  << std::endl << "HERES!" << std::endl << std::endl;
+	  rsb.print();
+	  fcp.print();
+	  engine.command(fcp);
+	}
+    
+	RecordHaltingB rhb;
+	rhb.setHeader();
+	rhb.setSuperRunNumber(rca.superRunNumber());
+	rhb.setConfigurationCounter(nc+1);
+	rhb.setNumberOfRuns(nr);
+    
+	fcp.setCommand(FsmCommand::HaltB);
+	fcp.setRecord(rhb);
+	std::cout  << std::endl << "HEREB!" << std::endl << std::endl;
+	rhb.print();
+	fcp.print();
+	engine.command(fcp);    
+      }
+    
+      RecordHaltingA rha;
+      rha.setHeader();
+      rha.setSuperRunNumber(rca.superRunNumber());
+      rha.setNumberOfConfigurations(nc);
+  
+      fcp.setCommand(FsmCommand::HaltA);
+      fcp.setRecord(rha);
+      std::cout  << std::endl << "HEREA!" << std::endl << std::endl;
+      rha.print();
+      fcp.print();
+      engine.command(fcp);    
+    }
+  }
   
 #ifdef JUNK
   std::cout << std::endl << "Checking for responding processors" << std::endl;
@@ -124,14 +285,14 @@ int main(int argc, char *argv[]) {
   }
 
   std::cout << "SLEEP" << std::endl;
-      vPtr[0]->print();
+  vPtr[0]->print();
   sleep(5); // Assume all will have responded by now
-      vPtr[0]->print();
+  vPtr[0]->print();
   std::cout << "AWAKE" << std::endl;
   
   for(unsigned i(0);i<vShmSingleton.size();i++) {
     if(active[i]) {
-	vPtr[i]->print();
+      vPtr[i]->print();
       if(!vPtr[i]->isStaticState()) {
 	std::cout << "SHM " << i << " did not respond to Ping" << std::endl;
 	vPtr[i]->print();
@@ -200,141 +361,141 @@ int main(int argc, char *argv[]) {
 	 (k== 1 && j==0) ||
 	 (k>1 && k<11 && j>0 && j<9) ||
 	 (k==11 && j==9)) {
-      std::cout << std::endl << "Sending prepare" << std::endl;
-      for(unsigned i(0);i<vShmSingleton.size();i++) {
-	if(active[i]) {
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	std::cout << std::endl << "Sending prepare" << std::endl;
+	for(unsigned i(0);i<vShmSingleton.size();i++) {
+	  if(active[i]) {
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
 
-	  vPtr[i]->setCommand((RunControlFsmEnums::Command)((j+1)%10));
-	  if(vPtr[i]->command()==RunControlFsmEnums::ConfigureA) {
-	    uint64_t srn(time(0));
-	    vPtr[i]->setCommandData(1,&srn);
-	  }
-	  if(vPtr[i]->command()==RunControlFsmEnums::Start) {
-	    uint64_t rn(time(0));
-	    vPtr[i]->setCommandData(1,&rn);
-	  }
+	    vPtr[i]->setCommand((RunControlFsmEnums::Command)((j+1)%10));
+	    if(vPtr[i]->command()==RunControlFsmEnums::ConfigureA) {
+	      uint64_t srn(time(0));
+	      vPtr[i]->setCommandData(1,&srn);
+	    }
+	    if(vPtr[i]->command()==RunControlFsmEnums::Start) {
+	      uint64_t rn(time(0));
+	      vPtr[i]->setCommandData(1,&rn);
+	    }
 	  
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
-	  assert(vPtr[i]->prepare());
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	    assert(vPtr[i]->prepare());
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	  }
 	}
-      }
-      std::cout << std::endl << "Waiting for ready" << std::endl;
-      for(unsigned i(0);i<vShmSingleton.size();i++) {
-	if(active[i]) {
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
-	  while(!vPtr[i]->isReady());
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	std::cout << std::endl << "Waiting for ready" << std::endl;
+	for(unsigned i(0);i<vShmSingleton.size();i++) {
+	  if(active[i]) {
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	    while(!vPtr[i]->isReady());
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	  }
 	}
-      }
-      std::cout << std::endl << "Sending proceed" << std::endl;
-      for(unsigned i(0);i<vShmSingleton.size();i++) {
-	if(active[i]) {
-	  //std::cout << "Proc" << i << ": ";vPtr[i]->print();
-	  //vPtr[i]->changeSystemState();
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
-	  assert(vPtr[i]->proceed());
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	std::cout << std::endl << "Sending proceed" << std::endl;
+	for(unsigned i(0);i<vShmSingleton.size();i++) {
+	  if(active[i]) {
+	    //std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	    //vPtr[i]->changeSystemState();
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	    assert(vPtr[i]->proceed());
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	  }
 	}
-      }
-      std::cout << std::endl << "Waiting for completion" << std::endl;
-      for(unsigned i(0);i<vShmSingleton.size();i++) {
-	if(active[i]) {
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
-	  while(!vPtr[i]->isCompleted());
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	std::cout << std::endl << "Waiting for completion" << std::endl;
+	for(unsigned i(0);i<vShmSingleton.size();i++) {
+	  if(active[i]) {
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	    while(!vPtr[i]->isCompleted());
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	  }
 	}
-      }
-      std::cout << std::endl << "Checking transients" << std::endl;
-      for(unsigned i(0);i<vShmSingleton.size();i++) {
-	if(active[i]) {
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
-	  //while(!vPtr[i]->matchingStates());
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	std::cout << std::endl << "Checking transients" << std::endl;
+	for(unsigned i(0);i<vShmSingleton.size();i++) {
+	  if(active[i]) {
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	    //while(!vPtr[i]->matchingStates());
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	  }
 	}
-      }
-      std::cout << std::endl << "Going back to static" << std::endl;
-      for(unsigned i(0);i<vShmSingleton.size();i++) {
-	if(active[i]) {
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
-	  assert(vPtr[i]->startStatic());
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	std::cout << std::endl << "Going back to static" << std::endl;
+	for(unsigned i(0);i<vShmSingleton.size();i++) {
+	  if(active[i]) {
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	    assert(vPtr[i]->startStatic());
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	  }
 	}
-      }
-      std::cout << std::endl << "Waiting for statics" << std::endl;
-      for(unsigned i(0);i<vShmSingleton.size();i++) {
-	if(active[i]) {
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
-	  while(!vPtr[i]->isStaticState());
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	std::cout << std::endl << "Waiting for statics" << std::endl;
+	for(unsigned i(0);i<vShmSingleton.size();i++) {
+	  if(active[i]) {
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	    while(!vPtr[i]->isStaticState());
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	  }
 	}
-      }
-      std::cout << std::endl << "Checking statics" << std::endl;
-      for(unsigned i(0);i<vShmSingleton.size();i++) {
-	if(active[i]) {
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
-	  while(!vPtr[i]->matchingStates());
-	  std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	std::cout << std::endl << "Checking statics" << std::endl;
+	for(unsigned i(0);i<vShmSingleton.size();i++) {
+	  if(active[i]) {
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	    while(!vPtr[i]->matchingStates());
+	    std::cout << "Proc" << i << ": ";vPtr[i]->print();
+	  }
 	}
       }
     }
-  }
   }  
   std::cout << "Exiting..." << std::endl;
   return 0;
 
       
-      unsigned cx;
+  unsigned cx;
 
-      vPtr[0]->print();
+  vPtr[0]->print();
   
-      RunControlFsmEnums::Command c(RunControlFsmEnums::EndOfCommandEnum);
+  RunControlFsmEnums::Command c(RunControlFsmEnums::EndOfCommandEnum);
   
-      while(true) {
-	vPtr[0]->print();
+  while(true) {
+    vPtr[0]->print();
 
-	std::cout << "WAIT" << std::endl;
+    std::cout << "WAIT" << std::endl;
 
-	//RunControlFsmEnums::Command req(RunControlFsmEnums::EndOfCommandEnum);
+    //RunControlFsmEnums::Command req(RunControlFsmEnums::EndOfCommandEnum);
 
-	for(unsigned i(0);i<vShmSingleton.size();i++) {
-	  while(!vPtr[i]->rcLock());
-	  std::cout << "Processor " << i << " ready" << std::endl;
-	  vPtr[i]->print();
-	  /*
+    for(unsigned i(0);i<vShmSingleton.size();i++) {
+      while(!vPtr[i]->rcLock());
+      std::cout << "Processor " << i << " ready" << std::endl;
+      vPtr[i]->print();
+      /*
       
-	    if(req==RunControlFsmEnums::EndOfCommandEnum) {
-	    if(vPtr[i]->request()!=RunControlFsmEnums::EndOfCommandEnum) {
-	    req=vPtr[i]->request();
-	    }
-	    }
-	  */
+	if(req==RunControlFsmEnums::EndOfCommandEnum) {
+	if(vPtr[i]->request()!=RunControlFsmEnums::EndOfCommandEnum) {
+	req=vPtr[i]->request();
+	}
+	}
+      */
 
-	}
+    }
 
-	for(unsigned i(0);i<vShmSingleton.size();i++) {
-	  vPtr[i]->setSystemState();
-	  vPtr[i]->print();
-	}
+    for(unsigned i(0);i<vShmSingleton.size();i++) {
+      vPtr[i]->setSystemState();
+      vPtr[i]->print();
+    }
   
   
-	std::cout << std::endl;
-	for(unsigned i(0);i<RunControlFsmEnums::EndOfCommandEnum;i++) {
-	  std::cout << "Command " << i << " = " << RunControlFsmEnums::commandName((RunControlFsmEnums::Command)i) << std::endl;
-	}
+    std::cout << std::endl;
+    for(unsigned i(0);i<RunControlFsmEnums::EndOfCommandEnum;i++) {
+      std::cout << "Command " << i << " = " << RunControlFsmEnums::commandName((RunControlFsmEnums::Command)i) << std::endl;
+    }
 
-	std::cout << std::endl << "Enter next command number:" << std::endl;
-	std::cin >> cx;
+    std::cout << std::endl << "Enter next command number:" << std::endl;
+    std::cin >> cx;
   
-	c=(RunControlFsmEnums::Command)cx;
+    c=(RunControlFsmEnums::Command)cx;
   
-	std::cout << "Command " << cx << " = " << RunControlFsmEnums::commandName(c) << std::endl;
+    std::cout << "Command " << cx << " = " << RunControlFsmEnums::commandName(c) << std::endl;
   
-	for(unsigned i(0);i<vShmSingleton.size();i++) {
-	  vPtr[i]->setCommand(c);
-	}
-      }
+    for(unsigned i(0);i<vShmSingleton.size();i++) {
+      vPtr[i]->setCommand(c);
+    }
+  }
 #endif
-      return 0;
+  return 0;
 }

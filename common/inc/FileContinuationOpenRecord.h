@@ -7,7 +7,7 @@
 
 namespace Hgcal10gLinkReceiver {
 
-  class FileContinuationOpenRecord : public Record<1> {
+  class FileContinuationOpenRecord : public RecordT<1> {
   
   public:
     FileContinuationOpenRecord() {
@@ -15,8 +15,8 @@ namespace Hgcal10gLinkReceiver {
     
     void setHeader(uint32_t t=time(0)) {
       setIdentifier(Hgcal10gLinkReceiver::RecordHeader::StateData);
-      setState(RunControlFsmEnums::ConfiguringA);
-      setPayloadLength();
+      setState(FsmState::ConfiguringA);
+      setPayloadLength(1);
       setUtc(t);
     }
 

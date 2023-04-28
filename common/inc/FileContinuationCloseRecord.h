@@ -7,7 +7,7 @@
 
 namespace Hgcal10gLinkReceiver {
 
-  class FileContinuationCloseRecord : public Record<1> {
+  class FileContinuationCloseRecord : public RecordT<1> {
   
   public:
     FileContinuationCloseRecord() {
@@ -15,8 +15,8 @@ namespace Hgcal10gLinkReceiver {
     
     void setHeader(uint32_t t=time(0)) {
       setIdentifier(Hgcal10gLinkReceiver::RecordHeader::FileContinuationEof);
-      setState(RunControlFsmEnums::EndOfStateEnum);
-      setPayloadLength();
+      setState(FsmState::EndOfStateEnum);
+      setPayloadLength(1);
       setUtc(t);
     }
 

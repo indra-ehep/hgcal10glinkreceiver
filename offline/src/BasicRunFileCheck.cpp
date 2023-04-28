@@ -14,7 +14,19 @@
 #include <getopt.h>
 
 #include "FileReader.h"
+#include "RecordConfiguringA.h"
+#include "RecordConfiguringB.h"
+#include "RecordConfiguredB.h"
+#include "RecordHaltingA.h"
+#include "RecordHaltingB.h"
 #include "RecordHeader.h"
+#include "RecordInitializing.h"
+#include "RecordPausing.h"
+#include "RecordResetting.h"
+#include "RecordResuming.h"
+#include "RecordRunning.h"
+#include "RecordStarting.h"
+#include "RecordStopping.h"
 
 using namespace Hgcal10gLinkReceiver;
 
@@ -23,15 +35,16 @@ int main(int argc, char** argv) {
     std::cerr << argv[0] << ": no run number specified" << std::endl;
     return 1;
   }
-  
   unsigned runNumber(0);
   unsigned linkNumber(0);
+  /*  
   unsigned fileNumber(0);
   unsigned packetNumber(0);
   unsigned i(0),j(0);
   
   uint64_t initialLF(0);
   const uint64_t maskLF(0xff00ffffffffffff);
+  */
   
   // Handle run number
   std::istringstream issRun(argv[1]);
@@ -39,13 +52,55 @@ int main(int argc, char** argv) {
   std::istringstream issLink(argv[2]);
   issLink >> linkNumber;
 
+
   FileReader _fileReader;
-  RecordHeader *h;
+  RecordT<1024> h;
   _fileReader.open(runNumber,linkNumber,true);
-  while(_fileReader.read(h)) {
-    h->print();
+  while(_fileReader.read(&h)) {
+    if(       h.state()==FsmState::Initializing) {
+      ((RecordInitializing*)(&h))->print(); 
+    } else if(h.state()==FsmState::ConfiguringA) {
+      ((RecordConfiguringA*)(&h))->print(); 
+    } else if(h.state()==FsmState::ConfiguringB) {
+      ((RecordConfiguringB*)(&h))->print(); 
+    } else if(h.state()==FsmState::Starting) {
+      ((RecordStarting*    )(&h))->print(); 
+    } else if(h.state()==FsmState::Pausing) {
+      ((RecordPausing*     )(&h))->print(); 
+    } else if(h.state()==FsmState::Resuming) {
+      ((RecordResuming*    )(&h))->print(); 
+    } else if(h.state()==FsmState::Stopping) {
+      ((RecordStopping*    )(&h))->print(); 
+    } else if(h.state()==FsmState::HaltingB) {
+      ((RecordHaltingB*    )(&h))->print(); 
+    } else if(h.state()==FsmState::HaltingA) {
+      ((RecordHaltingA*    )(&h))->print(); 
+    } else if(h.state()==FsmState::Resetting) {
+      ((RecordResetting*   )(&h))->print(); 
+
+    } else if(h.state()==FsmState::Initial) {
+      h.print();
+    } else if(h.state()==FsmState::Halted) {
+      //((RecordHalted*      )(&h))->print(); 
+      h.print();
+    } else if(h.state()==FsmState::ConfiguredA) {
+      //((RecordConfiguredA* )(&h))->print(); 
+      h.print();
+    } else if(h.state()==FsmState::ConfiguredB) {
+      ((RecordConfiguredB* )(&h))->print(); 
+    } else if(h.state()==FsmState::Running) {
+      ((RecordRunning*     )(&h))->print(); 
+    } else if(h.state()==FsmState::Paused) {
+      //((RecordPaused*      )(&h))->print(); 
+      h.print();
+
+    } else {
+      std::cout << "UNKNOWN" << std::endl;
+      h.print();
+    }
   }
-  return 0;
+
+#ifdef JUNK
   /*
   
   std::ostringstream ossRun;
@@ -60,6 +115,7 @@ int main(int argc, char** argv) {
 
   bool doPrint(false);
   */
+
   uint64_t p64[512*16];
 
   uint64_t predictedPH(0);
@@ -244,5 +300,6 @@ int main(int argc, char** argv) {
 
   std::cout << "Directly read " << j << " words" << std::endl;
   */
+#endif
   return 0;
 }

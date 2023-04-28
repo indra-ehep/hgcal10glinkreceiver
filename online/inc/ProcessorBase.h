@@ -38,9 +38,9 @@ namespace Hgcal10gLinkReceiver {
     }
     
     virtual bool configuringA(FsmInterface::HandshakeState s) {
-      RecordConfiguringA rca;
-      rca.copy(ptrFsmInterface->commandPacket().recordHeader());
-      rca.print();
+      //RecordConfiguringA rca;
+      //rca.deepCopy(_ptrFsmInterface->commandPacket().record());
+      //rca.print();
       return true;
     }
     
@@ -49,7 +49,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     virtual bool starting(FsmInterface::HandshakeState s) {
-      std::cout << "********************************************************** Starting a run" << std::endl;
+      //std::cout << "********************************************************** Starting a run" << std::endl;
       return true;
     }
     
@@ -62,7 +62,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     virtual bool stopping(FsmInterface::HandshakeState s) {
-      std::cout << "********************************************************** Stopping a run" << std::endl;
+      //std::cout << "********************************************************** Stopping a run" << std::endl;
       return true;
     }
     
@@ -90,17 +90,18 @@ namespace Hgcal10gLinkReceiver {
     }
     
     virtual void configuredB() {
-      assert(false);
     }
     
     virtual void running() {
+      /*
       std::cout << "********************************************************** Doing a run" << std::endl;
       unsigned n(0);
-      while(ptrFsmInterface->isIdle()) {
+      while(_ptrFsmInterface->isIdle()) {
 	n++;
-	usleep(_usSleep[ptrFsmInterface->processState()]);      
+	usleep(_usSleep[_ptrFsmInterface->processState()]);      
       }
       std::cout << "********************************************************** Done  a run " << n << std::endl;
+      */
     }
     
     virtual void paused() {
@@ -111,169 +112,169 @@ namespace Hgcal10gLinkReceiver {
       // Connect to shared memory
       ShmSingleton<FsmInterface> shmU;
       shmU.setup(theKey);
-      /*volatile*/ ptrFsmInterface=shmU.payload();
+      /*volatile*/ _ptrFsmInterface=shmU.payload();
 
       // Force to Initial on startup
       /*
-      if(_printEnable) ptrFsmInterface->print();
-      ptrFsmInterface->forceProcessState(FsmState::Initial);
-      //ptrFsmInterface->forceProcessError(FsmState::Good);
-      ptrFsmInterface->setCommandHandshake(FsmInterface::Idle);
+      if(_printEnable) _ptrFsmInterface->print();
+      _ptrFsmInterface->forceProcessState(FsmState::Initial);
+      //_ptrFsmInterface->forceProcessError(FsmState::Good);
+      _ptrFsmInterface->setCommandHandshake(FsmInterface::Idle);
       */
-      ptrFsmInterface->initialize();
-      if(_printEnable) ptrFsmInterface->print();
+      _ptrFsmInterface->initialize();
+      if(_printEnable) _ptrFsmInterface->print();
 
-      while(!ptrFsmInterface->pong()) usleep(1);
+      while(!_ptrFsmInterface->pong()) usleep(10);
 
       /*
-	ptrFsmInterface->setCommand(FsmState::Initialize);
-	if(_printEnable) ptrFsmInterface->print();
+	_ptrFsmInterface->setCommand(FsmState::Initialize);
+	if(_printEnable) _ptrFsmInterface->print();
       */
 
       /*
 	bool ponged(false);
-	ponged=ptrFsmInterface->pon
+	ponged=_ptrFsmInterface->pon
 	if(ponged) std::cout << "PONGED1" << std::endl;
       
-	while(ptrFsmInterface->isIdle() && !ponged) {
-	//if(_printEnable) ptrFsmInterface->print();
-	ponged=ptrFsmInterface->pong();
+	while(_ptrFsmInterface->isIdle() && !ponged) {
+	//if(_printEnable) _ptrFsmInterface->print();
+	ponged=_ptrFsmInterface->pong();
 	if(ponged) std::cout << "PONGED2" << std::endl;
 	}
-	sleep(1);
+	//sleep(1);
       */
 
-      //if(ptrFsmInterface->isIdle()) {
+      //if(_ptrFsmInterface->isIdle()) {
       if(_printEnable) {
 	std::cout << "Waiting for system match" << std::endl;
-	ptrFsmInterface->print();
+	_ptrFsmInterface->print();
       }
 
-      //while(!ptrFsmInterface->matchingStates());
+      //while(!_ptrFsmInterface->matchingStates());
 
       if(_printEnable) {
 	std::cout << "Got system match" << std::endl;
-	ptrFsmInterface->print();
+	_ptrFsmInterface->print();
       }
       
       while(true) {
-	//if(ptrFsmInterface->isIdle()) {
+	//if(_ptrFsmInterface->isIdle()) {
 	if(_printEnable) {
 	  std::cout << "Start processing static state" << std::endl;
-	  ptrFsmInterface->print();
+	  _ptrFsmInterface->print();
 	}
 
-	//assert(ptrFsmInterface->matchingStates());
+	//assert(_ptrFsmInterface->matchingStates());
 
-	if(     ptrFsmInterface->processState()==FsmState::Initial    ) this->initial();
-	else if(ptrFsmInterface->processState()==FsmState::Halted     ) this->halted();
-	else if(ptrFsmInterface->processState()==FsmState::ConfiguredA) this->configuredA();
-	else if(ptrFsmInterface->processState()==FsmState::ConfiguredB) this->configuredB();
-	else if(ptrFsmInterface->processState()==FsmState::Running    ) this->running();
-	else if(ptrFsmInterface->processState()==FsmState::Paused     ) this->paused();
+	if(     _ptrFsmInterface->processState()==FsmState::Initial    ) this->initial();
+	else if(_ptrFsmInterface->processState()==FsmState::Halted     ) this->halted();
+	else if(_ptrFsmInterface->processState()==FsmState::ConfiguredA) this->configuredA();
+	else if(_ptrFsmInterface->processState()==FsmState::ConfiguredB) this->configuredB();
+	else if(_ptrFsmInterface->processState()==FsmState::Running    ) this->running();
+	else if(_ptrFsmInterface->processState()==FsmState::Paused     ) this->paused();
 	else assert(false);
 	  
 	if(_printEnable) {
 	  std::cout << "Done processing static state" << std::endl;
-	  ptrFsmInterface->print();
+	  _ptrFsmInterface->print();
 	}
 
-	while(ptrFsmInterface->isIdle()) usleep(1);
+	while(_ptrFsmInterface->isIdle()) usleep(10);
 
 	if(_printEnable) {
 	  std::cout << "Now a non-static handshake" << std::endl;
-	  ptrFsmInterface->print();
+	  _ptrFsmInterface->print();
 	}
 
 	//} else {
-	if(ptrFsmInterface->pong()) {
+	if(_ptrFsmInterface->pong()) {
 	  if(_printEnable) {
 	    std::cout << "Did pong" << std::endl;
-	    ptrFsmInterface->print();
+	    _ptrFsmInterface->print();
 	  }
 
 	} else {
-	  ptrFsmInterface->setCommandHandshake(FsmInterface::Propose);
+	  _ptrFsmInterface->setCommandHandshake(FsmInterface::Propose);
 	  if(_printEnable) {
 	    std::cout << "Entering new command" << std::endl;
-	    ptrFsmInterface->print();
+	    _ptrFsmInterface->print();
 	  }
 
-	  assert(ptrFsmInterface->matchingStates());
+	  assert(_ptrFsmInterface->matchingStates());
 
 	  // PREPARING
 
-	  assert(ptrFsmInterface->matchingStates());
+	  assert(_ptrFsmInterface->matchingStates());
 
-	  //while(!ptrFsmInterface->prepared(true));
-	  //if(ptrFsmInterface->systemState()!=FsmState::ConfiguringB) {
-	    assert(ptrFsmInterface->accepted());
+	  //while(!_ptrFsmInterface->prepared(true));
+	  //if(_ptrFsmInterface->systemState()!=FsmState::ConfiguringB) {
+	    assert(_ptrFsmInterface->accepted());
 	    //} else {
-	    //assert(ptrFsmInterface->rejected());
+	    //assert(_ptrFsmInterface->rejected());
 	    //}
 
-	  while(!ptrFsmInterface->isProceed()) usleep(1);///////////////////////////////////////
+	  while(!_ptrFsmInterface->isProceed()) usleep(10);///////////////////////////////////////
 
-	  bool change(ptrFsmInterface->isChange());
+	  bool change(_ptrFsmInterface->isChange());
 			
-	  if(ptrFsmInterface->isChange()) {
-	    //ptrFsmInterface->forceProcessState(FsmCommand::transitionStateForCommand(ptrFsmInterface->commandPacket().command()));
-	    ptrFsmInterface->changeProcessState();
+	  if(_ptrFsmInterface->isChange()) {
+	    //_ptrFsmInterface->forceProcessState(FsmCommand::transitionStateForCommand(_ptrFsmInterface->commandPacket().command()));
+	    _ptrFsmInterface->changeProcessState();
 	    if(_printEnable) {
 	      std::cout << "Entered transient state" << std::endl;
-	      ptrFsmInterface->print();
+	      _ptrFsmInterface->print();
 	    }
 	    
-	    //assert(ptrFsmInterface->matchingStates());
+	    //assert(_ptrFsmInterface->matchingStates());
 
-	    if(     ptrFsmInterface->processState()==FsmState::Initializing) this->initializing(ptrFsmInterface->commandHandshake());
-	    else if(ptrFsmInterface->processState()==FsmState::ConfiguringA) this->configuringA(ptrFsmInterface->commandHandshake());
-	    else if(ptrFsmInterface->processState()==FsmState::ConfiguringB) this->configuringB(ptrFsmInterface->commandHandshake());
-	    else if(ptrFsmInterface->processState()==FsmState::Starting    ) this->starting(ptrFsmInterface->commandHandshake());
-	    else if(ptrFsmInterface->processState()==FsmState::Pausing     ) this->pausing(ptrFsmInterface->commandHandshake());
-	    else if(ptrFsmInterface->processState()==FsmState::Resuming    ) this->resuming(ptrFsmInterface->commandHandshake());
-	    else if(ptrFsmInterface->processState()==FsmState::Stopping    ) this->stopping(ptrFsmInterface->commandHandshake());
-	    else if(ptrFsmInterface->processState()==FsmState::HaltingB    ) this->haltingB(ptrFsmInterface->commandHandshake());
-	    else if(ptrFsmInterface->processState()==FsmState::HaltingA    ) this->haltingA(ptrFsmInterface->commandHandshake());
-	    else if(ptrFsmInterface->processState()==FsmState::Resetting   ) this->resetting(ptrFsmInterface->commandHandshake());
+	    if(     _ptrFsmInterface->processState()==FsmState::Initializing) this->initializing(_ptrFsmInterface->commandHandshake());
+	    else if(_ptrFsmInterface->processState()==FsmState::ConfiguringA) this->configuringA(_ptrFsmInterface->commandHandshake());
+	    else if(_ptrFsmInterface->processState()==FsmState::ConfiguringB) this->configuringB(_ptrFsmInterface->commandHandshake());
+	    else if(_ptrFsmInterface->processState()==FsmState::Starting    ) this->starting(_ptrFsmInterface->commandHandshake());
+	    else if(_ptrFsmInterface->processState()==FsmState::Pausing     ) this->pausing(_ptrFsmInterface->commandHandshake());
+	    else if(_ptrFsmInterface->processState()==FsmState::Resuming    ) this->resuming(_ptrFsmInterface->commandHandshake());
+	    else if(_ptrFsmInterface->processState()==FsmState::Stopping    ) this->stopping(_ptrFsmInterface->commandHandshake());
+	    else if(_ptrFsmInterface->processState()==FsmState::HaltingB    ) this->haltingB(_ptrFsmInterface->commandHandshake());
+	    else if(_ptrFsmInterface->processState()==FsmState::HaltingA    ) this->haltingA(_ptrFsmInterface->commandHandshake());
+	    else if(_ptrFsmInterface->processState()==FsmState::Resetting   ) this->resetting(_ptrFsmInterface->commandHandshake());
 	    else assert(false);
 	      
-	    //assert(ptrFsmInterface->matchingStates());
+	    //assert(_ptrFsmInterface->matchingStates());
 	      
 	    if(_printEnable) {
 	      std::cout << "Done transient state" << std::endl;
-	      ptrFsmInterface->print();
+	      _ptrFsmInterface->print();
 	    }
 	      
-	  } else if(ptrFsmInterface->isRepair()) {
+	  } else if(_ptrFsmInterface->isRepair()) {
 	    if(_printEnable) {
 	      std::cout << "Doing repair" << std::endl;
-	      ptrFsmInterface->print();
+	      _ptrFsmInterface->print();
 	    }
 
-	    assert(ptrFsmInterface->matchingStates());
+	    assert(_ptrFsmInterface->matchingStates());
 
 	    // REPAIRING
 	      
-	    assert(ptrFsmInterface->matchingStates());	      
+	    assert(_ptrFsmInterface->matchingStates());	      
 	  }
 	    
-	  assert(ptrFsmInterface->completed());
+	  assert(_ptrFsmInterface->completed());
 
-	  while(!ptrFsmInterface->isStartStatic()) usleep(1);///////////////////////////////////////
+	  while(!_ptrFsmInterface->isStartStatic()) usleep(10);///////////////////////////////////////
 	    
-	  if(change) ptrFsmInterface->forceProcessState(FsmCommand::staticStateAfterCommand(ptrFsmInterface->commandPacket().command()));
+	  if(change) _ptrFsmInterface->forceProcessState(FsmCommand::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command()));
 
-	  assert(ptrFsmInterface->matchingStates());
+	  assert(_ptrFsmInterface->matchingStates());
 
 	  if(_printEnable) {
 	    std::cout << "Entering static state" << std::endl;
-	    ptrFsmInterface->print();
+	    _ptrFsmInterface->print();
 	  }
 	  
-	  assert(ptrFsmInterface->matchingStates());
+	  assert(_ptrFsmInterface->matchingStates());
 
-	  assert(ptrFsmInterface->ended());
+	  assert(_ptrFsmInterface->ended());
 	}
 	//}
       }
@@ -281,15 +282,15 @@ namespace Hgcal10gLinkReceiver {
       return;
 #ifdef JUNK      
       while(true) {
-	std::cout << "HERE0 ";ptrFsmInterface->print();
-	sleep(1);
-	if(!ptrFsmInterface->rcLock()) {
+	std::cout << "HERE0 ";_ptrFsmInterface->print();
+	//sleep(1);
+	if(!_ptrFsmInterface->rcLock()) {
 
 	  // In transition
-	  std::cout << "HERE1 ";ptrFsmInterface->print();
-	  sleep(1);
+	  std::cout << "HERE1 ";_ptrFsmInterface->print();
+	  //sleep(1);
 
-	  switch(ptrFsmInterface->processState()) {
+	  switch(_ptrFsmInterface->processState()) {
 
 	    // Static states   /////////////////////
 
@@ -297,36 +298,36 @@ namespace Hgcal10gLinkReceiver {
       
 	  case FsmState::Initial: {
 
-	    if(ptrFsmInterface->commandPacket().command()==FsmState::Initialize) {
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmCommand::staticStateBeforeCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	    if(_ptrFsmInterface->commandPacket().command()==FsmState::Initialize) {
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateBeforeCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 	
 	      // Initializing; set to transitional state
-	      ptrFsmInterface->setProcess(FsmState::Initializing);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
+	      _ptrFsmInterface->setProcess(FsmState::Initializing);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
 	
 	      initializing();
       
 	      // Set to Halted static state
-	      ptrFsmInterface->setProcess(FsmState::Halted);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmCommand::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	      _ptrFsmInterface->setProcess(FsmState::Halted);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 
 	      halted();
 	      
-	    } else if(ptrFsmInterface->commandPacket().command()==FsmState::Reset) {
-	      if(_printEnable) ptrFsmInterface->print();
+	    } else if(_ptrFsmInterface->commandPacket().command()==FsmState::Reset) {
+	      if(_printEnable) _ptrFsmInterface->print();
 
 	      // Resetting; set to transitional state
-	      ptrFsmInterface->setProcess(FsmState::Initializing);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
+	      _ptrFsmInterface->setProcess(FsmState::Initializing);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
 	
 	      resetting();
       
 	      // Set to Initial static state
-	      ptrFsmInterface->setProcess(FsmState::Initial);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmCommand::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	      _ptrFsmInterface->setProcess(FsmState::Initial);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 
 	    } else {
 	      assert(false);
@@ -338,32 +339,32 @@ namespace Hgcal10gLinkReceiver {
       
 	  case FsmState::Halted: {
 
-	    if(ptrFsmInterface->commandPacket().command()==FsmState::ConfigureA) {
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmCommand::staticStateBeforeCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	    if(_ptrFsmInterface->commandPacket().command()==FsmState::ConfigureA) {
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateBeforeCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 
 	      // ConfiguringA; set to transitional state
-	      ptrFsmInterface->setProcess(FsmState::ConfiguringA);//,FsmState::Good);
+	      _ptrFsmInterface->setProcess(FsmState::ConfiguringA);//,FsmState::Good);
 
 	      configuringA();
       
 	      // Set to ConfiguredA static state
-	      ptrFsmInterface->setProcess(FsmState::ConfiguredA);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmCommand::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	      _ptrFsmInterface->setProcess(FsmState::ConfiguredA);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 
 
-	    } else if(ptrFsmInterface->commandPacket().command()==FsmState::Reset) {
+	    } else if(_ptrFsmInterface->commandPacket().command()==FsmState::Reset) {
 
 	      // Resetting; set to transitional state
-	      ptrFsmInterface->setProcess(FsmState::Resetting);//,FsmState::Good);
+	      _ptrFsmInterface->setProcess(FsmState::Resetting);//,FsmState::Good);
 
 	      resetting();
       
 	      // Set to Initial static state
-	      ptrFsmInterface->setProcess(FsmState::Initial);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmCommand::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	      _ptrFsmInterface->setProcess(FsmState::Initial);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 
 	    } else {
 	      assert(false);
@@ -375,32 +376,32 @@ namespace Hgcal10gLinkReceiver {
 
 	  case FsmState::ConfiguredA: {
 
-	    if(ptrFsmInterface->commandPacket().command()==FsmCommand::ConfigureB) {
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmCommand::staticStateBeforeCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	    if(_ptrFsmInterface->commandPacket().command()==FsmCommand::ConfigureB) {
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateBeforeCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
       
 	      // ConfiguringB; set to transitional state
-	      ptrFsmInterface->setProcess(FsmState::ConfiguringB);//,FsmState::Good);
+	      _ptrFsmInterface->setProcess(FsmState::ConfiguringB);//,FsmState::Good);
 
 	      //configuringB();
       
 	      // Set to ConfiguredB static state
-	      ptrFsmInterface->setProcess(FsmState::ConfiguredB);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmCommand::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	      _ptrFsmInterface->setProcess(FsmState::ConfiguredB);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 
 	
-	    } else if(ptrFsmInterface->commandPacket().command()==FsmCommand::HaltA) {
+	    } else if(_ptrFsmInterface->commandPacket().command()==FsmCommand::HaltA) {
       
 	      // HaltingB; set to transitional state
-	      ptrFsmInterface->setProcess(FsmState::HaltingB);//,FsmState::Good);
+	      _ptrFsmInterface->setProcess(FsmState::HaltingB);//,FsmState::Good);
 
 	      haltingB();
             
 	      // Set to Halted static state
-	      ptrFsmInterface->setProcess(FsmState::Halted);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmCommand::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	      _ptrFsmInterface->setProcess(FsmState::Halted);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 
 	    } else {
 	      assert(false);
@@ -412,32 +413,32 @@ namespace Hgcal10gLinkReceiver {
       
 	  case FsmState::ConfiguredB: {
 
-	    if(ptrFsmInterface->commandPacket().command()==FsmCommand::Start) {
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmCommand::staticStateBeforeCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	    if(_ptrFsmInterface->commandPacket().command()==FsmCommand::Start) {
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateBeforeCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
       
 	      // Starting; set to transitional state
-	      ptrFsmInterface->setProcess(FsmState::Starting);//,FsmState::Good);
+	      _ptrFsmInterface->setProcess(FsmState::Starting);//,FsmState::Good);
 
 	      starting();
       
 	      // Set to Running static state
-	      ptrFsmInterface->setProcess(FsmState::Running);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmState::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	      _ptrFsmInterface->setProcess(FsmState::Running);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmState::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 
 	
-	    } else if(ptrFsmInterface->commandPacket().command()==FsmCommand::HaltB) {
+	    } else if(_ptrFsmInterface->commandPacket().command()==FsmCommand::HaltB) {
       
 	      // HaltingB; set to transitional state
-	      ptrFsmInterface->setProcess(FsmState::HaltingB);//,FsmState::Good);
+	      _ptrFsmInterface->setProcess(FsmState::HaltingB);//,FsmState::Good);
 
 	      haltingB();
       
 	      // Set to ConfiguredA static state
-	      ptrFsmInterface->setProcess(FsmState::ConfiguredA);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmState::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	      _ptrFsmInterface->setProcess(FsmState::ConfiguredA);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmState::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 
 	    } else {
 	      assert(false);
@@ -449,32 +450,32 @@ namespace Hgcal10gLinkReceiver {
       
 	  case FsmState::Running: {
 
-	    if(ptrFsmInterface->commandPacket().command()==FsmCommand::Pause) {
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmCommand::staticStateBeforeCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	    if(_ptrFsmInterface->commandPacket().command()==FsmCommand::Pause) {
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateBeforeCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 
 	      // Pausing; set to transitional state
-	      ptrFsmInterface->setProcess(FsmState::Pausing);//,FsmState::Good);
+	      _ptrFsmInterface->setProcess(FsmState::Pausing);//,FsmState::Good);
 
 	      pausing();
 
 	      // Set to Paused static state
-	      ptrFsmInterface->setProcess(FsmState::Paused);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmState::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	      _ptrFsmInterface->setProcess(FsmState::Paused);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmState::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 
 	
-	    } else if(ptrFsmInterface->commandPacket().command()==FsmCommand::Stop) {
+	    } else if(_ptrFsmInterface->commandPacket().command()==FsmCommand::Stop) {
       
 	      // Stopping; set to transitional state
-	      ptrFsmInterface->setProcess(FsmState::Stopping);//,FsmState::Good);
+	      _ptrFsmInterface->setProcess(FsmState::Stopping);//,FsmState::Good);
 
 	      stopping();
       
 	      // Set to ConfiguredB static state
-	      ptrFsmInterface->setProcess(FsmState::ConfiguredB);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmState::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	      _ptrFsmInterface->setProcess(FsmState::ConfiguredB);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmState::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 
 	    } else {
 	      assert(false);
@@ -486,19 +487,19 @@ namespace Hgcal10gLinkReceiver {
       
 	  case FsmState::Paused: {
 
-	    if(ptrFsmInterface->commandPacket().command()==FsmCommand::Resume) {
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmCommand::staticStateBeforeCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	    if(_ptrFsmInterface->commandPacket().command()==FsmCommand::Resume) {
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmCommand::staticStateBeforeCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 
 	      // Starting; set to transitional state
-	      ptrFsmInterface->setProcess(FsmState::Starting);//,FsmState::Good);
+	      _ptrFsmInterface->setProcess(FsmState::Starting);//,FsmState::Good);
 
 	      starting();
 	
 	      // Set to static state
-	      ptrFsmInterface->setProcess(FsmState::Running);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmState::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	      _ptrFsmInterface->setProcess(FsmState::Running);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmState::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 
 	    } else {
 	      assert(false);
@@ -509,19 +510,19 @@ namespace Hgcal10gLinkReceiver {
       
 	  case FsmState::EndOfStateEnum: {
 
-	    if(ptrFsmInterface->commandPacket().command()==FsmCommand::Initialize) {
-	      if(_printEnable) ptrFsmInterface->print();
+	    if(_ptrFsmInterface->commandPacket().command()==FsmCommand::Initialize) {
+	      if(_printEnable) _ptrFsmInterface->print();
 
 	      // Initializing; set to transitional state
-	      ptrFsmInterface->setProcess(FsmState::Initializing);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
+	      _ptrFsmInterface->setProcess(FsmState::Initializing);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
 
 	      initializing();
       
 	      // Set to Halted static state
-	      ptrFsmInterface->setProcess(FsmState::Halted);//,FsmState::Good);
-	      if(_printEnable) ptrFsmInterface->print();
-	      assert(FsmState::staticStateAfterCommand(ptrFsmInterface->commandPacket().command())==ptrFsmInterface->processState());
+	      _ptrFsmInterface->setProcess(FsmState::Halted);//,FsmState::Good);
+	      if(_printEnable) _ptrFsmInterface->print();
+	      assert(FsmState::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command())==_ptrFsmInterface->processState());
 	    }
 	    break;
 	  }
@@ -531,88 +532,88 @@ namespace Hgcal10gLinkReceiver {
 
 
 	  case FsmState::Initializing: {
-	    if(_printEnable) ptrFsmInterface->print();
+	    if(_printEnable) _ptrFsmInterface->print();
     
 	    // Set to Halted static state
-	    ptrFsmInterface->setProcess(FsmState::Halted,FsmState::Warning);
-	    if(_printEnable) ptrFsmInterface->print();
+	    _ptrFsmInterface->setProcess(FsmState::Halted,FsmState::Warning);
+	    if(_printEnable) _ptrFsmInterface->print();
 	    break;
 	  }
     
 	  case FsmState::ConfiguringA: {
-	    if(_printEnable) ptrFsmInterface->print();
+	    if(_printEnable) _ptrFsmInterface->print();
     
 	    // Set to ConfiguredA static state
-	    ptrFsmInterface->setProcess(FsmState::ConfiguredA,FsmState::Warning);
-	    if(_printEnable) ptrFsmInterface->print();
+	    _ptrFsmInterface->setProcess(FsmState::ConfiguredA,FsmState::Warning);
+	    if(_printEnable) _ptrFsmInterface->print();
 	    break;
 	  }
     
 	  case FsmState::HaltingB: {
-	    if(_printEnable) ptrFsmInterface->print();
+	    if(_printEnable) _ptrFsmInterface->print();
     
 	    // Set to Halted static state
-	    ptrFsmInterface->setProcess(FsmState::Halted,FsmState::Warning);
-	    if(_printEnable) ptrFsmInterface->print();
+	    _ptrFsmInterface->setProcess(FsmState::Halted,FsmState::Warning);
+	    if(_printEnable) _ptrFsmInterface->print();
 	    break;
 	  }
 
 	  case FsmState::ConfiguringB: {
-	    if(_printEnable) ptrFsmInterface->print();
+	    if(_printEnable) _ptrFsmInterface->print();
     
 	    // Set to ConfiguredB static state
-	    ptrFsmInterface->setProcess(FsmState::ConfiguredB,FsmState::Warning);
-	    if(_printEnable) ptrFsmInterface->print();
+	    _ptrFsmInterface->setProcess(FsmState::ConfiguredB,FsmState::Warning);
+	    if(_printEnable) _ptrFsmInterface->print();
 	    break;
 	  }
 
 	  case FsmState::HaltingA: {
-	    if(_printEnable) ptrFsmInterface->print();
+	    if(_printEnable) _ptrFsmInterface->print();
     
 	    // Set to static state
-	    ptrFsmInterface->setProcess(FsmState::ConfiguredA,FsmState::Warning);
-	    if(_printEnable) ptrFsmInterface->print();
+	    _ptrFsmInterface->setProcess(FsmState::ConfiguredA,FsmState::Warning);
+	    if(_printEnable) _ptrFsmInterface->print();
 	    break;
 	  }
 
 	  case FsmState::Starting: {
-	    if(_printEnable) ptrFsmInterface->print();
+	    if(_printEnable) _ptrFsmInterface->print();
     
 	    // Set to Running static state
-	    ptrFsmInterface->setProcess(FsmState::Running,FsmState::Warning);
-	    if(_printEnable) ptrFsmInterface->print();
+	    _ptrFsmInterface->setProcess(FsmState::Running,FsmState::Warning);
+	    if(_printEnable) _ptrFsmInterface->print();
 	    break;
 	  }
 
 	  case FsmState::Stopping: {
-	    if(_printEnable) ptrFsmInterface->print();
+	    if(_printEnable) _ptrFsmInterface->print();
     
 	    // Set to ConfiguredB static state
-	    ptrFsmInterface->setProcess(FsmState::ConfiguredB,FsmState::Warning);
-	    if(_printEnable) ptrFsmInterface->print();
+	    _ptrFsmInterface->setProcess(FsmState::ConfiguredB,FsmState::Warning);
+	    if(_printEnable) _ptrFsmInterface->print();
 	    break;
 	  }
 
 	  case FsmState::Pausing: {
-	    if(_printEnable) ptrFsmInterface->print();
+	    if(_printEnable) _ptrFsmInterface->print();
     
 	    // Set to Paused static state
-	    ptrFsmInterface->setProcess(FsmState::Paused,FsmState::Warning);
-	    if(_printEnable) ptrFsmInterface->print();
+	    _ptrFsmInterface->setProcess(FsmState::Paused,FsmState::Warning);
+	    if(_printEnable) _ptrFsmInterface->print();
 	    break;
 	  }
 
 	  case FsmState::Resuming: {
-	    if(_printEnable) ptrFsmInterface->print();
+	    if(_printEnable) _ptrFsmInterface->print();
     
 	    // Set to Running static state
-	    ptrFsmInterface->setProcess(FsmState::Running,FsmState::Warning);
-	    if(_printEnable) ptrFsmInterface->print();
+	    _ptrFsmInterface->setProcess(FsmState::Running,FsmState::Warning);
+	    if(_printEnable) _ptrFsmInterface->print();
 	    break;
 	  }
 
 	  default: {
-	    if(_printEnable) ptrFsmInterface->print();
+	    if(_printEnable) _ptrFsmInterface->print();
 	    assert(false);
 	    break;
 	  }
@@ -620,13 +621,13 @@ namespace Hgcal10gLinkReceiver {
 
 	  //////////////////////////////////////////////////////////////////
 	  
-	} else if(ptrFsmInterface->matchingStates()) {
-	  std::cout << "HERE2 ";ptrFsmInterface->print();
-	  sleep(1);
+	} else if(_ptrFsmInterface->matchingStates()) {
+	  std::cout << "HERE2 ";_ptrFsmInterface->print();
+	  //sleep(1);
 
 	  // In static state
 
-	  switch(ptrFsmInterface->processState()) {
+	  switch(_ptrFsmInterface->processState()) {
 
 	  case FsmState::Initial: {
 	    initial();
@@ -650,7 +651,7 @@ namespace Hgcal10gLinkReceiver {
 
 	  case FsmState::Running: {
 	    
-	    running(ptrFsmInterface);
+	    running(_ptrFsmInterface);
 	    break;
 	  }
 
@@ -660,19 +661,19 @@ namespace Hgcal10gLinkReceiver {
 	  }
 	    
 	  default: {
-	    if(_printEnable) ptrFsmInterface->print();
+	    if(_printEnable) _ptrFsmInterface->print();
 	    assert(false);
 	    break;
 	  }
 	  }
 
-	  //while(!ptrFsmInterface->matchingStates()) {
-	  while(!ptrFsmInterface->rcLock()) {
-	    usleep(_usSleep[ptrFsmInterface->processState()]);
+	  //while(!_ptrFsmInterface->matchingStates()) {
+	  while(!_ptrFsmInterface->rcLock()) {
+	    usleep(_usSleep[_ptrFsmInterface->processState()]);
 	  }
 	} else {
-	  std::cout << "HERE3 ";ptrFsmInterface->print();
-	  sleep(1);
+	  std::cout << "HERE3 ";_ptrFsmInterface->print();
+	  //sleep(1);
 	}
 
       }
@@ -682,7 +683,7 @@ namespace Hgcal10gLinkReceiver {
    
   protected:
     bool _printEnable;
-    FsmInterface *ptrFsmInterface;
+    FsmInterface *_ptrFsmInterface;
     unsigned _usSleep[FsmState::EndOfStaticEnum];
   };
 

@@ -14,7 +14,7 @@ namespace Hgcal10gLinkReceiver {
     void setRunFileName() {
       std::ostringstream sRunFileName;
       sRunFileName << std::setfill('0')
-		   << "RunDatFiles/" << (_superRun?"Super":"")
+		   << "dat/" << (_superRun?"Super":"")
 		   << "Run" << std::setw(10) << _runNumber
 		   << "_Link" << _linkNumber
 		   << "_File" << std::setw(10) << _fileNumber

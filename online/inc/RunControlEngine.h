@@ -7,6 +7,15 @@
 #include "FsmCommandPacket.h"
 #include "ShmSingleton.h"
 
+#include "RecordConfiguringA.h"
+#include "RecordConfiguringB.h"
+#include "RecordStarting.h"
+#include "RecordPausing.h"
+#include "RecordResuming.h"
+#include "RecordStopping.h"
+#include "RecordHaltingB.h"
+#include "RecordHaltingA.h"
+
 namespace Hgcal10gLinkReceiver {
 
   class RunControlEngine {
@@ -103,7 +112,7 @@ namespace Hgcal10gLinkReceiver {
 	      !_goodFsmInterface[i]->isRejected() &&
 	      timeout<_timeoutLimit) {
 	  timeout++;
-	  usleep(1);
+	  usleep(10);
 	}
 
 	accepted[i]=_goodFsmInterface[i]->isAccepted();
@@ -155,7 +164,7 @@ namespace Hgcal10gLinkReceiver {
 	  while(!_goodFsmInterface[i]->isIdle() &&
 		timeout<_timeoutLimit) {
 	    timeout++;
-	    usleep(1);
+	    usleep(10);
 	  }
 	
 	  if(timeout>=_timeoutLimit) {
@@ -198,7 +207,7 @@ namespace Hgcal10gLinkReceiver {
 	  while(!_goodFsmInterface[i]->isChanged() &&
 		timeout<1000000) {
 	    timeout++;
-	    usleep(1);
+	    usleep(10);
 	  }
 
 	  if(timeout>=_timeoutLimit) {
@@ -241,7 +250,7 @@ namespace Hgcal10gLinkReceiver {
 	  while(!_goodFsmInterface[i]->isIdle() &&
 		timeout<_timeoutLimit) {
 	    timeout++;
-	    usleep(1);
+	    usleep(10);
 	  }
 	
 	  if(timeout>=_timeoutLimit) {

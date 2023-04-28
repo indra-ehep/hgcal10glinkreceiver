@@ -26,19 +26,19 @@ namespace Hgcal10gLinkReceiver {
       return _command;
     }
   
-    const RecordHeader& recordHeader() {
+    const Record& record() {
       return _record;
     }
 
     void setCommand(FsmCommand::Command c) {
       _command=c;
-      _record.setState(FsmCommand::staticStateBeforeCommand(c));
-      _record.setPayloadLength(0);
-      _record.setUtc();
+      //assert(_record.state()==FsmCommand::staticStateAfterCommand(c));
+      //_record.setPayloadLength(0);
+      //_record.setUtc();
     }
 
-    void setRecord(const RecordHeader &h) {
-      _record.copy(h);
+    void setRecord(const Record &h) {
+      _record.deepCopy(h);
     }
 
     void print(std::ostream &o=std::cout) const {
@@ -49,7 +49,7 @@ namespace Hgcal10gLinkReceiver {
 
   private:
     FsmCommand::Command _command;
-    Record<14> _record;
+    RecordT<14> _record;
   };
 
 }
