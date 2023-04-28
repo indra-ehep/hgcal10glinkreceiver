@@ -19,19 +19,25 @@ int main(int argc, char *argv[]) {
   LinkCheckShm lcs[2];
   lcs[1]=*p;
   
+  uint64_t t(time(0));
+  std::cout << ctime((time_t*)(&t)) << std::endl;
+  lcs[1].print();
+  
   while(true) {
-    uint64_t t(time(0));
-    std::cout << ctime((time_t*)(&t)) << std::endl;
     /*
     for(unsigned i(0);i<30;i++) {
       std::cout << "Value " << std::setw(2) << i << " = " << std::setw(20) << (*p)[i] << std::endl;
     }
     */
     lcs[i]=*p;
-    lcs[i].print();
 
     j=(i+1)%2;
+    if(lcs[i]._array[LinkCheckShm::NumberOfPacketSkips]!=lcs[j]._array[LinkCheckShm::NumberOfPacketSkips]) {
 
+    uint64_t t(time(0));
+    std::cout << ctime((time_t*)(&t)) << std::endl;
+       lcs[i].print();
+       
     std::cout << std::endl;
     std::cout << " Rates:" << std::endl;
     std::cout << "  Socket packet rate = " << std::setw(9) << std::setprecision(6)
@@ -93,6 +99,7 @@ int main(int argc, char *argv[]) {
     pOld[1]=pNew;
     bOld[1]=bNew;
     */
+    }
     sleep(1);    
   }
 

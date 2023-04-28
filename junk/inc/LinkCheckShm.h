@@ -74,7 +74,7 @@ class LinkCheckShm {
       << std::setw(20) << _array[NumberOfSocketPackets] << std::endl;
     o << "  Total bytes of socket packets                      = "
       << std::setw(20) << _array[BytesOfSocketPackets] << "  average = "
-      << double(_array[BytesOfSocketPackets])/_array[NumberOfSocketPackets]
+      << double(_array[BytesOfSocketPackets])/std::max(_array[NumberOfSocketPackets],1LU)
       << std::endl;
     o << "  Minimum bytes of socket packets                    = "
       << std::setw(20) << _array[MinBytesOfSocketPackets] << std::endl;
@@ -82,38 +82,38 @@ class LinkCheckShm {
       << std::setw(20) << _array[MaxBytesOfSocketPackets] << std::endl;
     o << "  Number of socket packets with zero bytes           = "
       << std::setw(20) << _array[NumberOfSocketSizeEq0k]  << "  fraction = "
-      << double(_array[NumberOfSocketSizeEq0k])/_array[NumberOfSocketPackets]
+      << double(_array[NumberOfSocketSizeEq0k])/std::max(_array[NumberOfSocketPackets],1LU)
       << std::endl;
     o << "  Number of socket packets with more than 4k bytes   = "
       << std::setw(20) << _array[NumberOfSocketSizeGt4k] << "  fraction = "
-      << double(_array[NumberOfSocketSizeGt4k])/_array[NumberOfSocketPackets]
+      << double(_array[NumberOfSocketSizeGt4k])/std::max(_array[NumberOfSocketPackets],1LU)
       << std::endl;
     o << std::endl;
     
     o << " Event checks:" << std::endl;
     o << "  Number of socket packets not multiples of 8 bytes  = "
       << std::setw(20) << _array[NumberOfSocketSizeMod8]  << "  fraction = "
-      << double(_array[NumberOfSocketSizeGt4k])/_array[NumberOfSocketPackets]
+      << double(_array[NumberOfSocketSizeGt4k])/std::max(_array[NumberOfSocketPackets],1LU)
       << std::endl;
     o << "  Number of socket packets larger than event size    = "
       << std::setw(20) << _array[NumberOfSocketSizeGtPacket]  << "  fraction = "
-      << double(_array[NumberOfSocketSizeGtPacket])/_array[NumberOfSocketPackets]
+      << double(_array[NumberOfSocketSizeGtPacket])/std::max(_array[NumberOfSocketPackets],1LU)
       << std::endl;
     o << "  Number of socket packets smaller than event size   = "
       << std::setw(20) << _array[NumberOfSocketSizeLtPacket]  << "  fraction = "
-      << double(_array[NumberOfSocketSizeLtPacket])/_array[NumberOfSocketPackets]
+      << double(_array[NumberOfSocketSizeLtPacket])/std::max(_array[NumberOfSocketPackets],1LU)
       << std::endl;
     o << "  Number of socket packets equal to event            = "
       << std::setw(20) << _array[NumberOfSocketSizeEqPacket]  << "  fraction = "
-      << double(_array[NumberOfSocketSizeEqPacket])/_array[NumberOfSocketPackets]
+      << double(_array[NumberOfSocketSizeEqPacket])/std::max(_array[NumberOfSocketPackets],1LU)
       << std::endl;
     o << "  Number of socket packets with more than one event  = "
       << std::setw(20) << _array[NumberOfSocketsGtOnePacket]  << "  fraction = "
-      << double(_array[NumberOfSocketsGtOnePacket])/_array[NumberOfSocketPackets]
+      << double(_array[NumberOfSocketsGtOnePacket])/std::max(_array[NumberOfSocketPackets],1LU)
       << std::endl;
     o << "  Number of socket packets with bad header (!= 0xac) = "
       << std::setw(20) << _array[NumberOfPacketBadHeaders]  << "  fraction = "
-      << double(_array[NumberOfPacketBadHeaders])/_array[NumberOfSocketPackets]
+      << double(_array[NumberOfPacketBadHeaders])/std::max(_array[NumberOfSocketPackets],1LU)
       << std::endl;
     o << std::endl;
 
@@ -126,31 +126,31 @@ class LinkCheckShm {
       << std::setw(20) << _array[NumberOfPacketSkipsGt0] << std::endl;
     o << "  Number of positive socket packet skips < 10        = "
       << std::setw(20) << _array[NumberOfPacketSkippedLtP10] << "  fraction = "
-      << double(_array[NumberOfPacketSkippedLtP10])/_array[NumberOfPacketSkipsGt0]
+      << double(_array[NumberOfPacketSkippedLtP10])/std::max(_array[NumberOfPacketSkipsGt0],1LU)
       << std::endl;
     o << "  Number of positive socket packet skips < 100       = "
       << std::setw(20) << _array[NumberOfPacketSkippedLtP100] << "  fraction = "
-      << double(_array[NumberOfPacketSkippedLtP100])/_array[NumberOfPacketSkipsGt0]
+      << double(_array[NumberOfPacketSkippedLtP100])/std::max(_array[NumberOfPacketSkipsGt0],1LU)
       << std::endl;
     o << "  Number of positive socket packet skips < 1000      = "
       << std::setw(20) << _array[NumberOfPacketSkippedLtP1000] << "  fraction = "
-      << double(_array[NumberOfPacketSkippedLtP1000])/_array[NumberOfPacketSkipsGt0]
+      << double(_array[NumberOfPacketSkippedLtP1000])/std::max(_array[NumberOfPacketSkipsGt0],1LU)
       << std::endl;
     o << "  Number of positive socket packet skips < 10000     = "
       << std::setw(20) << _array[NumberOfPacketSkippedLtP10000] << "  fraction = "
-      << double(_array[NumberOfPacketSkippedLtP10000])/_array[NumberOfPacketSkipsGt0]
+      << double(_array[NumberOfPacketSkippedLtP10000])/std::max(_array[NumberOfPacketSkipsGt0],1LU)
       << std::endl;
     o << "  Number of positive socket packet skips < 100000    = "
       << std::setw(20) << _array[NumberOfPacketSkippedLtP100000] << "  fraction = "
-      << double(_array[NumberOfPacketSkippedLtP100000])/_array[NumberOfPacketSkipsGt0]
+      << double(_array[NumberOfPacketSkippedLtP100000])/std::max(_array[NumberOfPacketSkipsGt0],1LU)
       << std::endl;
     o << "  Number of positive socket packet skips >= 100000   = "
       << std::setw(20) << _array[NumberOfPacketSkippedGeP100000] << "  fraction = "
-      << double(_array[NumberOfPacketSkippedGeP100000])/_array[NumberOfPacketSkipsGt0]
+      << double(_array[NumberOfPacketSkippedGeP100000])/std::max(_array[NumberOfPacketSkipsGt0],1LU)
       << std::endl;
     o << "  Total number of positive socket skipped packets    = "
       << std::setw(20) << _array[NumberOfTotalSkippedPacketsGt0] << "  fraction = "
-      << double(_array[NumberOfTotalSkippedPacketsGt0])/_array[NumberOfSocketPackets]
+      << double(_array[NumberOfTotalSkippedPacketsGt0])/std::max(_array[NumberOfSocketPackets],1LU)
       << std::endl;
     o << std::endl;
 
@@ -182,7 +182,7 @@ class LinkCheckShm {
       << std::endl;
     o << "  Total number of negative socket skipped packets    = "
       << std::setw(20) << _array[NumberOfTotalSkippedPacketsLt0] << "  fraction = "
-      << double(_array[NumberOfTotalSkippedPacketsLt0])/_array[NumberOfSocketPackets]
+      << double(_array[NumberOfTotalSkippedPacketsLt0])/std::max(_array[NumberOfSocketPackets],1LU)
       << std::endl;
   }
       
