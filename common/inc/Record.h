@@ -2,6 +2,7 @@
 #define Hgcal10gLinkReceiver_Record_h
 
 #include <iostream>
+#include <cstring>
 
 #include "RecordHeader.h"
 

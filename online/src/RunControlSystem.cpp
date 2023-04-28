@@ -102,6 +102,8 @@ int main(int argc, char *argv[]) {
   vShmSingleton[4].setup(RunControlDaqLink1ShmKey);
   vShmSingleton[5].setup(RunControlDaqLink2ShmKey);
 
+  std::cout << "HERE" << std::endl;
+
   RunControlEngine engine;
   for(unsigned i(0);i<vShmSingleton.size();i++) {
     vPtr.push_back(vShmSingleton[i].payload());
@@ -109,7 +111,11 @@ int main(int argc, char *argv[]) {
   }
 
   FsmCommandPacket fcp;
+  Record r;
+  r.setState(FsmState::Initializing);
+  r.setPayloadLength(0);
   fcp.setCommand(FsmCommand::Initialize);
+  fcp.setRecord(r);
   fcp.print();
 
   engine.coldStart();
