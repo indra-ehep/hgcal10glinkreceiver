@@ -3,10 +3,11 @@
 #include <thread>
 #include <iostream>
 #include <cstring>
+#include <unistd.h>
 
 #include <zmq.hpp>
 
-#include "RunControlFsmShm.h"
+#include "FsmInterface.h"
 #include "ShmKeys.h"
 #include "ShmSingleton.h"
 
@@ -26,15 +27,15 @@ int main()
     // prepare some static data for responses
     const std::string data{"World"};
 
-    RunControlFsmShm local;
+    FsmInterface local;
     
-    ShmSingleton<RunControlFsmShm> shmU;
-    shmU.setup(ProcessorDummyShmKey);
-    RunControlFsmShm *prcfs=shmU.payload();
+    ShmSingleton<FsmInterface> shmU;
+    shmU.setup(ProcessorDaqLink2ShmKey);
+    FsmInterface *prcfs=shmU.payload();
     prcfs->print();
 
-    RunControlFsmShm::HandshakeState hsOld(prcfs->_handshakeState);
-    RunControlFsmShm::HandshakeState hsNew(prcfs->_handshakeState);
+    FsmInterface::HandshakeState hsOld(prcfs->commandHandshake());
+    FsmInterface::HandshakeState hsNew(prcfs->commandHandshake());
 
     prcfs->print();
 
@@ -49,18 +50,19 @@ int main()
         //std::cout << "Received " << request.to_string() << std::endl;
 	//std::memcpy(prcfs,request.data(),sizeof(RunControlFsmShm));
 
-	std::memcpy(&local,request.data(),sizeof(RunControlFsmShm));
+	std::memcpy(&local,request.data(),sizeof(FsmInterface));
 	local.print();
 
-	hsOld=local._handshakeState;
-	assert(hsOld==RunControlFsmShm::Ping ||
-	       hsOld==RunControlFsmShm::Prepare ||
-	       hsOld==RunControlFsmShm::Change ||
-	       hsOld==RunControlFsmShm::Repair ||
-	       hsOld==RunControlFsmShm::StartStatic);
+	hsOld=local.commandHandshake();
+	assert(hsOld==FsmInterface::Ping ||
+	       hsOld==FsmInterface::Propose ||
+	       hsOld==FsmInterface::Change ||
+	       hsOld==FsmInterface::Repair ||
+	       hsOld==FsmInterface::StartStatic);
 
-	std::memcpy(prcfs,&local,sizeof(RunControlFsmShm));
-	/*
+	std::memcpy(prcfs,&local,sizeof(FsmInterface));
+	prcfs->print();
+    /*
 	if((hsOld==RunControlFsmShm::Ping        && prcfs->_handshakeState==RunControlFsmShm::StaticState) ||
 	   (hsOld==RunControlFsmShm::Prepare     && prcfs->_handshakeState==RunControlFsmShm::Accepted   ) ||
 	   (hsOld==RunControlFsmShm::Prepare     && prcfs->_handshakeState==RunControlFsmShm::Rejected   ) ||
@@ -68,14 +70,14 @@ int main()
 	   (hsOld==RunControlFsmShm::Repair      && prcfs->_handshakeState==RunControlFsmShm::Repaired   ) ||
 	   (hsOld==RunControlFsmShm::StartStatic && prcfs->_handshakeState==RunControlFsmShm::StaticState)) {
 	*/
-	while(hsOld==prcfs->_handshakeState);
+	while(hsOld==prcfs->commandHandshake()) usleep(10);
 
 	std::cout  << std::endl << "************ FOUND TRANS ******************" << std::endl << std::endl;
 	prcfs->print();
 
 	// send the reply to the client
         //socket.send(zmq::buffer(data), zmq::send_flags::none);
-        socket.send(zmq::buffer(prcfs,sizeof(RunControlFsmShm)), zmq::send_flags::none);
+        socket.send(zmq::buffer(prcfs,sizeof(FsmInterface)), zmq::send_flags::none);
     }
 
     return 0;

@@ -124,7 +124,14 @@ namespace Hgcal10gLinkReceiver {
       _ptrFsmInterface->initialize();
       if(_printEnable) _ptrFsmInterface->print();
 
-      while(!_ptrFsmInterface->pong()) usleep(10);
+      std::cout << "TRY PONG" << std::endl;
+      while(!_ptrFsmInterface->pong()) {
+	sleep(1);
+	if(_printEnable) _ptrFsmInterface->print();
+	//usleep(10);
+      }
+      std::cout << "PONGED" << std::endl;
+      if(_printEnable) _ptrFsmInterface->print();
 
       /*
 	_ptrFsmInterface->setCommand(FsmState::Initialize);

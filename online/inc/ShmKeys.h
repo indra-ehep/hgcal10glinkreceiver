@@ -32,6 +32,8 @@ namespace Hgcal10gLinkReceiver {
   const uint32_t ProcessorDaqLink0FifoShmKey(DataFifoDaqLink0ShmKey);
   const uint32_t ProcessorDaqLink1FifoShmKey(DataFifoDaqLink1ShmKey);
   const uint32_t ProcessorDaqLink2FifoShmKey(DataFifoDaqLink2ShmKey);
+
+  const uint32_t ProcessorDaqLink2FifoPort(0xcee0da2);
 }
 
 #endif
