@@ -1,5 +1,5 @@
-#ifndef Hgcal10gLinkReceiver_EventRecord_h
-#define Hgcal10gLinkReceiver_EventRecord_h
+#ifndef Hgcal10gLinkReceiver_ConfigurationRecord_h
+#define Hgcal10gLinkReceiver_ConfigurationRecord_h
 
 #include <iostream>
 
@@ -7,10 +7,10 @@
 
 namespace Hgcal10gLinkReceiver {
 
-  class EventRecord : public RecordHeader {
+  class ConfigurationRecord : public RecordHeader {
   
   public:
-    EventRecord() {
+    ConfigurationRecord() {
     }
     
     void setHeader(uint32_t t=time(0)) {
@@ -20,7 +20,7 @@ namespace Hgcal10gLinkReceiver {
     }
 
     void print(std::ostream &o=std::cout, std::string s="") {
-      o << s << "EventRecord::print()" << std::endl;
+      o << s << "ConfigurationRecord::print()" << std::endl;
       RecordHeader::print(o,s+" ");
       
       for(unsigned i(0);i<length();i++) {

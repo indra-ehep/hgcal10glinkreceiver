@@ -10,6 +10,7 @@
 #include <new>
 #include <cassert>
 #include <iostream>
+#include <iomanip>
 
 #include "ShmIdData.hh"
 
@@ -17,24 +18,40 @@ template <class Payload> class ShmSingleton {
 
  public:
 
-  ShmSingleton(int access = 0666) : thePayload(0) {//, theKey(123456789) {
+  ShmSingleton() : thePayload(0) {
+  }
+  /*
+ ShmSingleton(bool sup=false, int access = 0666) : thePayload(0) {
+    if(sup) {
+      theNewKey=theKey;
+      setup(theNewKey,access);
+    }
+  }
+  */
+  void setup(key_t theNewKey, int access = 0666) {
+    std::cout << "ShmSingleton<>::setup key = 0x"
+	      << std::hex << std::setfill('0')
+	      << std::setw(8) << theNewKey
+	      << std::dec << std::setfill(' ')
+	      << std::endl;
+
     bool created(false);
 
-    shmId = shmget(theKey, 1, access);
+    shmId = shmget(theNewKey, 1, access);
     if(shmId == -1) {
-      std::cerr << "ShmSingleton<>::ctor() shmget(" << theKey << ","
+      std::cerr << "ShmSingleton<>::ctor() shmget(" << theNewKey << ","
 		<< 1 << "," << std::oct << access
 		<< std::dec << ")" << std::endl;
       //perror(0);
     
       std::cerr << "shmget successful" << std::endl;
 
-      shmId = shmget(theKey, sizeof(Payload), IPC_CREAT | access);
-      //shmId = shmget(theKey, 1, IPC_CREAT | access);
+      shmId = shmget(theNewKey, sizeof(Payload), IPC_CREAT | access);
+      //shmId = shmget(theNewKey, 1, IPC_CREAT | access);
 
       if(shmId == -1) {
 	//      perror("ShmSingleton<>::ctor() shmget");
-	std::cerr << "ShmSingleton<>::ctor() shmget(" << theKey << ","
+	std::cerr << "ShmSingleton<>::ctor() shmget(" << theNewKey << ","
 		  << sizeof(Payload) << "," << std::oct << (IPC_CREAT | access) 
 	  		  << std::dec << ")" << std::endl;
 	perror(0);
@@ -100,10 +117,11 @@ template <class Payload> class ShmSingleton {
   }
 
   // Needs to be public
-  static const key_t theKey;
+  //static const key_t theKey;
 
  private:
   int shmId;
+  key_t theNewKey;
   Payload* thePayload;
 };
 

@@ -4,8 +4,10 @@
 #include <iostream>
 #include <iomanip>
 
-#include "online/inc/RunControlFsmShm.h"
+#include "RunControlFsmShm.h"
 #include "ShmSingleton.h"
+
+namespace Hgcal10gLinkReceiver {
 
 template<unsigned PowerOfTwo, unsigned Width> class RunFileShmT {
 public:
@@ -90,8 +92,8 @@ typedef RunFileShmT<8,256> RunFileShm0;
 typedef RunFileShmT<7,256> RunFileShm1;
 typedef RunFileShmT<4,1024> RunFileShm2;
 
-template<> const key_t ShmSingleton<RunFileShm0>::theKey=0xce2300;
-template<> const key_t ShmSingleton<RunFileShm1>::theKey=0xce2301;
-template<> const key_t ShmSingleton<RunFileShm2>::theKey=0xce23c0;
-
+//template<> const key_t ShmSingleton<RunFileShm0>::theKey=0xce2300;
+//template<> const key_t ShmSingleton<RunFileShm1>::theKey=0xce2301;
+//template<> const key_t ShmSingleton<RunFileShm2>::theKey=0xce23c0;
+}
 #endif
