@@ -3,7 +3,8 @@
 #include <vector>
 
 #include <sys/types.h>
-#include <signal.h>
+//#include <signal.h>
+#include <csignal>
 #include <unistd.h>
 
 #include "FsmInterface.h"
@@ -128,15 +129,12 @@ int main(int argc, char *argv[]) {
   while(continueLoop) {
     char x('z');
     while(x!='r' && x!='s' && x!='q') {
-      std::cout << "s = Start SuperRun, r = Reset & Initialize, q = Quit"
+      std::cout << "s = Start SuperRun, r = Reset & Initialize, q = Reset & Shutdown"
 		<< std::endl;
       std::cin >> x;
     }
 
-    if(x=='q') {
-      continueLoop=false;
-      
-    } else if(x=='r') {
+    if(x=='r' || x=='q') {
       RecordResetting rr;
       rr.setHeader();
       fcp.setCommand(FsmCommand::Reset);
@@ -144,12 +142,24 @@ int main(int argc, char *argv[]) {
       fcp.print();
       engine.command(fcp);
 
-      RecordInitializing ri;
-      ri.setHeader();
-      fcp.setCommand(FsmCommand::Initialize);
-      fcp.setRecord(ri);
-      fcp.print();
-      engine.command(fcp);
+      if(x=='r') {
+	RecordInitializing ri;
+	ri.setHeader();
+	fcp.setCommand(FsmCommand::Initialize);
+	fcp.setRecord(ri);
+	fcp.print();
+	engine.command(fcp);
+
+      } else {
+	RecordEnding re;
+	re.setHeader();
+	fcp.setCommand(FsmCommand::End);
+	fcp.setRecord(re);
+	fcp.print();
+	engine.command(fcp);
+	
+	continueLoop=false;
+      }
       
     } else {
 
@@ -161,8 +171,10 @@ int main(int argc, char *argv[]) {
       RecordConfiguringA rca;
       rca.setHeader();
       rca.setSuperRunNumber();
-      rca.setMaxNumberOfConfigurations(2);
+      rca.setMaxNumberOfConfigurations(1);
       rca.setProcessKey(0xce000000,123);
+
+      uint32_t srNumber(rca.superRunNumber());
 
       fcp.setCommand(FsmCommand::ConfigureA);
       fcp.setRecord(rca);
@@ -175,9 +187,9 @@ int main(int argc, char *argv[]) {
 	RecordConfiguringB rcb;
 	rcb.setHeader();
 	rcb.setProcessKey(0xce000000,456);
-	rcb.setSuperRunNumber(rca.superRunNumber());
+	rcb.setSuperRunNumber(srNumber);
 	rcb.setConfigurationCounter(nc+1);
-	rcb.setMaxNumberOfRuns(4);
+	rcb.setMaxNumberOfRuns(1);
     
 	fcp.setCommand(FsmCommand::ConfigureB);
 	fcp.setRecord(rcb);
@@ -191,7 +203,7 @@ int main(int argc, char *argv[]) {
 	  rsa.setHeader();
 	  rsa.setRunNumber();
 	  rsa.setMaxEvents(1000);
-	  rsa.setMaxSeconds(100);
+	  rsa.setMaxSeconds(600);
 	  rsa.setMaxSpills(0);
       
 	  fcp.setCommand(FsmCommand::Start);
@@ -213,7 +225,7 @@ int main(int argc, char *argv[]) {
 	      RecordPausing rp;
 	      rp.setHeader();
 	      fcp.setCommand(FsmCommand::Pause);
-	      fcp.setRecord(rsa);
+	      fcp.setRecord(rp);
 	      std::cout  << std::endl << "HEREP!" << std::endl << std::endl;
 	      rp.print();
 	      fcp.print();
@@ -222,7 +234,7 @@ int main(int argc, char *argv[]) {
 	      RecordResuming rr;
 	      rr.setHeader();
 	      fcp.setCommand(FsmCommand::Resume);
-	      fcp.setRecord(rsa);
+	      fcp.setRecord(rr);
 	      std::cout  << std::endl << "HEREP!" << std::endl << std::endl;
 	      rr.print();
 	      fcp.print();
@@ -250,7 +262,7 @@ int main(int argc, char *argv[]) {
     
 	RecordHaltingB rhb;
 	rhb.setHeader();
-	rhb.setSuperRunNumber(rca.superRunNumber());
+	rhb.setSuperRunNumber(srNumber);
 	rhb.setConfigurationCounter(nc+1);
 	rhb.setNumberOfRuns(nr);
     
@@ -264,7 +276,7 @@ int main(int argc, char *argv[]) {
     
       RecordHaltingA rha;
       rha.setHeader();
-      rha.setSuperRunNumber(rca.superRunNumber());
+      rha.setSuperRunNumber(srNumber);
       rha.setNumberOfConfigurations(nc);
   
       fcp.setCommand(FsmCommand::HaltA);

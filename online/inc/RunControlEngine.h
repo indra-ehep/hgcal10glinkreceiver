@@ -6,15 +6,7 @@
 
 #include "FsmCommandPacket.h"
 #include "ShmSingleton.h"
-
-#include "RecordConfiguringA.h"
-#include "RecordConfiguringB.h"
-#include "RecordStarting.h"
-#include "RecordPausing.h"
-#include "RecordResuming.h"
-#include "RecordStopping.h"
-#include "RecordHaltingB.h"
-#include "RecordHaltingA.h"
+#include "RecordPrinter.h"
 
 namespace Hgcal10gLinkReceiver {
 

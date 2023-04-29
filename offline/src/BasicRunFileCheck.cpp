@@ -14,19 +14,7 @@
 #include <getopt.h>
 
 #include "FileReader.h"
-#include "RecordConfiguringA.h"
-#include "RecordConfiguringB.h"
-#include "RecordConfiguredB.h"
-#include "RecordHaltingA.h"
-#include "RecordHaltingB.h"
-#include "RecordHeader.h"
-#include "RecordInitializing.h"
-#include "RecordPausing.h"
-#include "RecordResetting.h"
-#include "RecordResuming.h"
-#include "RecordRunning.h"
-#include "RecordStarting.h"
-#include "RecordStopping.h"
+#include "RecordPrinter.h"
 
 using namespace Hgcal10gLinkReceiver;
 
@@ -35,6 +23,9 @@ int main(int argc, char** argv) {
     std::cerr << argv[0] << ": no run number specified" << std::endl;
     return 1;
   }
+
+  bool doSrun(false);
+
   unsigned runNumber(0);
   unsigned linkNumber(0);
   /*  
@@ -52,11 +43,18 @@ int main(int argc, char** argv) {
   std::istringstream issLink(argv[2]);
   issLink >> linkNumber;
 
-
+  FsmState::State state(doSrun?FsmState::Halted:FsmState::ConfiguredB);
+  
   FileReader _fileReader;
   RecordT<1024> h;
-  _fileReader.open(runNumber,linkNumber,true);
+  _fileReader.open(runNumber,linkNumber,doSrun);
   while(_fileReader.read(&h)) {
+    std::cout << std::endl << "***** Previous state = "
+	      << FsmState::stateName(state)
+	      << " *****" << std::endl;
+    RecordPrinter(&h);
+
+      /*
     if(       h.state()==FsmState::Initializing) {
       ((RecordInitializing*)(&h))->print(); 
     } else if(h.state()==FsmState::ConfiguringA) {
@@ -97,6 +95,17 @@ int main(int argc, char** argv) {
     } else {
       std::cout << "UNKNOWN" << std::endl;
       h.print();
+    }
+    */
+  
+    if(FsmState::staticState(state)) {
+      if(state!=h.state()) {
+	assert(state==FsmState::staticStateBeforeTransient(h.state()));
+	state=FsmState::staticStateAfterTransient(h.state());
+      }
+    } else {
+      assert(h.state()==FsmState::staticStateBeforeTransient(state));
+      state=h.state();      
     }
   }
 

@@ -21,7 +21,7 @@ namespace Hgcal10gLinkReceiver {
       setUtc(t);
     }
 
-    void print(std::ostream &o=std::cout, std::string s="") {
+    void print(std::ostream &o=std::cout, std::string s="") const {
       o << s << "RecordInitializing::print()" << std::endl;
       RecordHeader::print(o,s+" ");
     }

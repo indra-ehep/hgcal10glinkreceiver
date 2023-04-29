@@ -20,6 +20,7 @@ namespace Hgcal10gLinkReceiver {
       HaltB,
       HaltA,
       Reset,
+      End,
       EndOfCommandEnum
     };
 
@@ -73,16 +74,17 @@ namespace Hgcal10gLinkReceiver {
       if(c==Reset) return true;
 
       return
+	(s==FsmState::Initial     && c==End       ) ||
 	(s==FsmState::Initial     && c==Initialize) ||
 	(s==FsmState::Halted      && c==ConfigureA) ||
-	(s==FsmState::Halted      && c==Reset) ||
+	(s==FsmState::Halted      && c==Reset     ) ||
 	(s==FsmState::ConfiguredA && c==ConfigureB) ||
-	(s==FsmState::ConfiguredA && c==HaltA) ||
-	(s==FsmState::ConfiguredB && c==Start) ||
-	(s==FsmState::ConfiguredB && c==HaltB) ||
-	(s==FsmState::Running     && c==Pause) ||
-	(s==FsmState::Running     && c==Stop) ||
-	(s==FsmState::Paused      && c==Resume);
+	(s==FsmState::ConfiguredA && c==HaltA     ) ||
+	(s==FsmState::ConfiguredB && c==Start     ) ||
+	(s==FsmState::ConfiguredB && c==HaltB     ) ||
+	(s==FsmState::Running     && c==Pause     ) ||
+	(s==FsmState::Running     && c==Stop      ) ||
+	(s==FsmState::Paused      && c==Resume    );
     }
 
     static FsmState::State staticStateBeforeCommand(Command c) {
@@ -92,6 +94,7 @@ namespace Hgcal10gLinkReceiver {
       if(c==Start     ) return FsmState::ConfiguredB;
       if(c==Pause     ) return FsmState::Running;
 
+      if(c==End       ) return FsmState::Initial;
       if(c==Reset     ) return FsmState::Halted;
       if(c==HaltA     ) return FsmState::ConfiguredA;
       if(c==HaltB     ) return FsmState::ConfiguredB;
@@ -108,6 +111,7 @@ namespace Hgcal10gLinkReceiver {
       if(c==Start     ) return FsmState::Running;
       if(c==Pause     ) return FsmState::Paused;
 
+      if(c==End       ) return FsmState::Shutdown;
       if(c==Reset     ) return FsmState::Initial;
       if(c==HaltA     ) return FsmState::Halted;
       if(c==HaltB     ) return FsmState::ConfiguredA;
@@ -124,6 +128,7 @@ namespace Hgcal10gLinkReceiver {
       if(c==Start     ) return FsmState::Starting;
       if(c==Pause     ) return FsmState::Pausing;
 
+      if(c==End       ) return FsmState::Ending;
       if(c==Reset     ) return FsmState::Resetting;
       if(c==HaltA     ) return FsmState::HaltingA;
       if(c==HaltB     ) return FsmState::HaltingB;
@@ -153,7 +158,8 @@ namespace Hgcal10gLinkReceiver {
     "Stop      ",
     "HaltB     ",
     "HaltA     ",
-    "Reset     "
+    "Reset     ",
+    "End       "
   };
 
 }

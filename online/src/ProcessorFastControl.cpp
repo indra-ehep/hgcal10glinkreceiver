@@ -30,8 +30,8 @@ int main(int argc, char *argv[]) {
 
   char c='A';
   std::cout << "A = " << c << " = " << unsigned(c) << std::endl;
-  c='\0';
-  std::cout << "\0 = " << c << " = " << unsigned(c) << std::endl;
+  //c='\0';
+  //std::cout << "\0 = " << c << " = " << unsigned(c) << std::endl;
 
   c='A';
   std::string s("123456");
@@ -72,10 +72,10 @@ int main(int argc, char *argv[]) {
   std::cout << "String length = " << s.size() << " = " << s << std::endl;
 
   ProcessorFastControl pb;
-  //ProcessorBase pb;
   pb.setPrintEnable(printEnable);
-  pb.setUpAll(RunControlFastControlShmKey,ProcessorFastControlDataShmKey);
-  //pb.setUpAll(RunControlFastControlShmKey,ProcessorFastControlDataShmKey,
-  //	      ProcessorDaqLink0FifoShmKey,ProcessorDaqLink1FifoShmKey);
+  
+  //pb.setUpAll(RunControlFastControlShmKey,ProcessorFastControlDataShmKey);
+  pb.setUpAll(RunControlFastControlShmKey,ProcessorFastControlDataShmKey,
+  	      ProcessorDaqLink0FifoShmKey,ProcessorDaqLink1FifoShmKey);
   return 0;
 }

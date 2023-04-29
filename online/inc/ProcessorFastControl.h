@@ -10,19 +10,7 @@
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
-#include "RecordHeader.h"
-#include "RecordInitializing.h"
-#include "RecordConfiguringA.h"
-#include "RecordConfiguringB.h"
-#include "RecordConfiguredB.h"
-#include "RecordStarting.h"
-#include "RecordPausing.h"
-#include "RecordResuming.h"
-#include "RecordStopping.h"
-#include "RecordHaltingB.h"
-#include "RecordHaltingA.h"
-#include "RecordResetting.h"
-#include "RecordRunning.h"
+#include "RecordPrinter.h"
 #include "ShmKeys.h"
 #include "SlinkBoe.h"
 #include "SlinkEoe.h"
@@ -48,15 +36,14 @@ namespace Hgcal10gLinkReceiver {
 
     void setUpAll(uint32_t rcKey, uint32_t fifoKey2,
 		  uint32_t fifoKey0, uint32_t fifoKey1) {
-      _CB=0;
-      
       ShmSingleton< DataFifoT<6,1024> > shm0;
       shm0.setup(fifoKey0);
       ptrFifoShm0=shm0.payload();
-      ShmSingleton< DataFifoT<6,1024> > shm1;
-      shm1.setup(fifoKey1);
-      ptrFifoShm1=shm1.payload();
-
+      //ShmSingleton< DataFifoT<6,1024> > shm1;
+      //shm1.setup(fifoKey1);
+      //ptrFifoShm1=shm1.payload();
+      ptrFifoShm1=0;
+      
       setUpAll(rcKey,fifoKey2);
     }
     
@@ -65,7 +52,7 @@ namespace Hgcal10gLinkReceiver {
       shm2.setup(fifoKey);
       ptrFifoShm2=shm2.payload();
 
-      ptrFifoShm0=0;
+      //ptrFifoShm0=0;
       ptrFifoShm1=0;
 
       startFsm(rcKey);
@@ -139,6 +126,8 @@ namespace Hgcal10gLinkReceiver {
 
     bool configuringA(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
+	assert(_ptrFsmInterface->commandPacket().record().state()==FsmState::ConfiguringA);
+
 	_cfgSeqCounter=1;
 	_evtSeqCounter=1;
 
@@ -266,12 +255,14 @@ void configuredA() {
     */    
 
     virtual void configuredB() {
+      std::cout << "configuredB() super run = " << _superRunNumber << std::endl;
+
       char c='1';
       for(uint8_t i(0);i<3;i++) {
 	RecordConfiguredB h;
 	h.setHeader(_cfgSeqCounter++);
-	h.setState(FsmState::ConfiguredB);
-	h.setPayloadLength(1);
+	//h.setState(FsmState::ConfiguredB);
+	//h.setPayloadLength(1);
 	h.setSuperRunNumber(_superRunNumber);
 	h.setConfigurationCounter(_cfgSeqCounter++);
 	
@@ -284,6 +275,11 @@ void configuredA() {
 	
 	assert(ptrFifoShm2->write(h.totalLength(),(uint64_t*)(&h)));
       }
+      
+      RecordContinuing rc;
+      rc.setHeader();
+      rc.print();
+      assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
     }
 
     void running() {
@@ -296,14 +292,25 @@ void configuredA() {
 	rr.setPayloadLength(4);
 	rr.setUtc(_evtSeqCounter++);
 
-	SlinkBoe *boe(rr.slinkBoe());
+	SlinkBoe *boe(rr.getSlinkBoe());
 	*boe=SlinkBoe();
 	boe->setSourceId(RunControlDaqLink0ShmKey);
 
-	SlinkEoe *eoe(rr.slinkEoe());
+	SlinkEoe *eoe(rr.getSlinkEoe());
 	*eoe=SlinkEoe();
+
 	eoe->setEventLength(2);
 	eoe->setCrc(0xdead);
+	boe->setL1aSubType(rand()%256);
+	boe->setL1aType(rand()%64);
+	boe->setEventId(_eventNumber);
+	
+	eoe->setBxId((rand()%3564)+1);
+	eoe->setOrbitId(rand());
+	
+	if(_evtSeqCounter<10) {
+	  rr.print();
+	}	
 
 	if(_evtSeqCounter<10) {
 	std::cout << "HERE" << std::endl;
@@ -312,25 +319,12 @@ void configuredA() {
 	
 	if(ptrFifoShm0!=0) {
 	  ptrFifoShm0->print();
-	  assert(ptrFifoShm0->write(rr.totalLength(),(uint64_t*)(&rr)));
-	}
-      
-	  _eventNumber++;
-
-	  boe->setL1aSubType(rand()%256);
-	  boe->setL1aType(rand()%64);
-	  boe->setEventId(_eventNumber);
-
-	  eoe->setBxId((rand()%3564)+1);
-	  eoe->setOrbitId(rand());
-
-	if(_evtSeqCounter<10) {
-	  rr.print();
-	}	
-
-	  if(ptrFifoShm0!=0) {
-	    assert(ptrFifoShm0->write(rr.totalLength(),(uint64_t*)(&rr)));
+	  //assert(ptrFifoShm0->write(rr.totalLength(),(uint64_t*)(&rr)));
+	  if(!ptrFifoShm0->write(rr.totalLength(),(uint64_t*)(&rr))) {
+	    std::cerr << "Failed to write event" << std::endl;
 	  }
+	}
+
 #ifdef ProcessorFastControlHardware
 	  std::ifstream fin("/home/cmx/pdauncey/data/rx_summary.txt");
 	  if(!fin) {
@@ -446,15 +440,16 @@ void configuredA() {
 	    for(unsigned j(0);j<v.size();j++) v[j].setPhase();
 	    }
 	  */
-      
 
-	  boe->setSourceId(RunControlDaqLink0ShmKey+1);
-	  if(ptrFifoShm0!=0) {
+	  boe->setSourceId(RunControlDaqLink1ShmKey);
+	  
+	  if(ptrFifoShm1!=0) {
 	    assert(ptrFifoShm1->write(rr.totalLength(),(uint64_t*)(&rr)));
 	  }
-	if(_evtSeqCounter<10) {
-	  rr.print();
-	}	
+	  
+	_eventNumber++;
+
+	usleep(1000);
       }
     }
 
@@ -468,7 +463,7 @@ void configuredA() {
     DataFifoT<6,1024> *ptrFifoShm2;
     DataFifoT<6,1024> *ptrFifoShm0;
     DataFifoT<6,1024> *ptrFifoShm1;
-    unsigned _CB;
+
     uint32_t _cfgSeqCounter;
     uint32_t _evtSeqCounter;
     uint32_t _pauseCounter;

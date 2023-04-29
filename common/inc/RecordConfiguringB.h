@@ -61,7 +61,7 @@ namespace Hgcal10gLinkReceiver {
       incrementPayloadLength(1);
     }
    
-    void print(std::ostream &o=std::cout, std::string s="") {
+    void print(std::ostream &o=std::cout, std::string s="") const {
       o << s << "RecordConfiguringB::print()" << std::endl;
       RecordHeader::print(o,s+" ");
       

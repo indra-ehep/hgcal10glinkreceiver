@@ -56,7 +56,7 @@ namespace Hgcal10gLinkReceiver {
       _payload[1]|=uint64_t(s)<<32;
     }
    
-    void print(std::ostream &o=std::cout, std::string s="") {
+    void print(std::ostream &o=std::cout, std::string s="") const {
       o << s << "RecordStarting::print()" << std::endl;
       RecordHeader::print(o,s+" ");
       

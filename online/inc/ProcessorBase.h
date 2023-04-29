@@ -11,7 +11,7 @@
 #include "FsmInterface.h"
 #include "ShmSingleton.h"
 #include "ShmKeys.h"
-#include "RecordConfiguringA.h"
+#include "RecordPrinter.h"
 
 //using namespace std::chrono_literals;
 
@@ -75,6 +75,10 @@ namespace Hgcal10gLinkReceiver {
     }
     
     virtual bool resetting(FsmInterface::HandshakeState s) {
+      return true;
+    }
+
+    virtual bool ending(FsmInterface::HandshakeState s) {
       return true;
     }
 
@@ -163,8 +167,10 @@ namespace Hgcal10gLinkReceiver {
 	std::cout << "Got system match" << std::endl;
 	_ptrFsmInterface->print();
       }
+
+      bool continueLoop(true);
       
-      while(true) {
+      while(continueLoop) {
 	//if(_ptrFsmInterface->isIdle()) {
 	if(_printEnable) {
 	  std::cout << "Start processing static state" << std::endl;
@@ -244,6 +250,7 @@ namespace Hgcal10gLinkReceiver {
 	    else if(_ptrFsmInterface->processState()==FsmState::HaltingB    ) this->haltingB(_ptrFsmInterface->commandHandshake());
 	    else if(_ptrFsmInterface->processState()==FsmState::HaltingA    ) this->haltingA(_ptrFsmInterface->commandHandshake());
 	    else if(_ptrFsmInterface->processState()==FsmState::Resetting   ) this->resetting(_ptrFsmInterface->commandHandshake());
+	    else if(_ptrFsmInterface->processState()==FsmState::Ending      ) this->ending(_ptrFsmInterface->commandHandshake());
 	    else assert(false);
 	      
 	    //assert(_ptrFsmInterface->matchingStates());
@@ -283,7 +290,8 @@ namespace Hgcal10gLinkReceiver {
 
 	  assert(_ptrFsmInterface->ended());
 	}
-	//}
+
+	if(_ptrFsmInterface->processState()==FsmState::Shutdown) continueLoop=false;
       }
       
       return;

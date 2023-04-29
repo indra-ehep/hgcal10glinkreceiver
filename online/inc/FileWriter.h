@@ -32,6 +32,8 @@ namespace Hgcal10gLinkReceiver {
       _numberOfBytesInFile=0;
 
       if(_writeEnable) {
+	std::cout << "FileWrite::open() opening file "
+		  << _fileName.c_str() << std::endl;
 	_outputFile.open(_fileName.c_str(),std::ios::binary);
 	if(!_outputFile) return false;
       }
@@ -42,6 +44,7 @@ namespace Hgcal10gLinkReceiver {
     bool write(const RecordHeader* h) {
       if(_writeEnable) {
 	_outputFile.write((char*)h,8*h->totalLength());
+	_outputFile.flush();
       }
 
       _numberOfBytesInFile+=8*h->totalLength();
@@ -53,6 +56,8 @@ namespace Hgcal10gLinkReceiver {
 
 	if(_writeEnable) {
 	  _outputFile.write((char*)(&fccr),sizeof(FileContinuationCloseRecord));
+	  std::cout << "FileWrite::write() closing file "
+		    << _fileName.c_str() << std::endl;
 	  _outputFile.close();
 	  
 	  if(_protectFiles) {
@@ -68,8 +73,11 @@ namespace Hgcal10gLinkReceiver {
 	//fcor.setFileNumber(_fileNumber);
 
 	if(_writeEnable) {
+	std::cout << "FileWrite::write() opening file "
+		  << _fileName.c_str() << std::endl;
 	  _outputFile.open(_fileName.c_str(),std::ios::binary);
 	  _outputFile.write((char*)(&fcor),sizeof(FileContinuationOpenRecord));
+	_outputFile.flush();
 	}
 
 	_numberOfBytesInFile=sizeof(FileContinuationOpenRecord);
@@ -79,9 +87,13 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool close() {
-      _outputFile.close();
-      if(_protectFiles) {
-	if(system((std::string("chmod 444 ")+_fileName).c_str())!=0) return 1;
+      if(_outputFile.is_open()) {
+	std::cout << "FileWrite::close() closing file "
+		  << _fileName.c_str() << std::endl;
+	_outputFile.close();
+	if(_protectFiles) {
+	  if(system((std::string("chmod 444 ")+_fileName).c_str())!=0) return 1;
+	}
       }
       return true;
     }

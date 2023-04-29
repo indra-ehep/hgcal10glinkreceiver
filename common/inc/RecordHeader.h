@@ -47,6 +47,10 @@ namespace Hgcal10gLinkReceiver {
       return payloadLength()+1;
     }
 
+    uint32_t totalLengthInBytes() const {
+      return sizeof(uint64_t)*(payloadLength()+1);
+    }
+
     uint32_t utc() const {
       return _header&0xffffffff;
     }
@@ -114,8 +118,10 @@ namespace Hgcal10gLinkReceiver {
 	o << s << " UTC = " << std::setw(10) << utc() << " = " << utcDate(); // endl already in ctime
       }
 
-      o << s << " Payload length = " << std::setw(5)
+      o << s << " Payload length = " << std::setw(6)
 	<< payloadLength() << " eight-byte words " << std::endl;
+      o << s << " Total length   = " << std::setw(6)
+	<< totalLengthInBytes() << " bytes " << std::endl;
     }
   
   private:

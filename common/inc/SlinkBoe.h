@@ -74,13 +74,33 @@ class SlinkBoe {
     return boeHeader()==BoePattern && version()==0x03;
   }
 
-  void print(const std::string &s="") const {
-    std::cout << "SlinkBoe::print()  words = 0x"
-	      << std::hex << std::setfill('0')
-	      << std::setw(16) << _word[0] << ", 0x"
-	      << std::setw(16) << _word[1]
-	      << std::dec << std::setfill(' ')
-	      << std::endl;
+  void print(std::ostream &o=std::cout, const std::string &s="") const {
+    o << s << "SlinkBoe::print()  words = 0x"
+      << std::hex << std::setfill('0')
+      << std::setw(16) << _word[0] << ", 0x"
+      << std::setw(16) << _word[1]
+      << std::dec << std::setfill(' ')
+      << std::endl;
+    o << s << " BOE header = 0x"
+      << std::hex << std::setfill('0')
+      << std::setw(2) << unsigned(boeHeader())
+      << std::dec << std::setfill(' ')
+      << std::endl;
+    o << s << " Version = " << std::setw(2) << unsigned(version())
+      << std::endl;
+    o << s << " Event id = " << std::setw(14) << eventId()
+      << std::endl;
+    o << s << " Content id: L1A type = 0x"
+      << std::hex << std::setfill('0')
+      << std::setw(4) << l1aType() << ", sub-type = 0x"
+      << std::setw(2) << unsigned(l1aSubType())
+      << std::dec << std::setfill(' ')
+      << std::endl;
+    o << s << " Source id = 0x"
+      << std::hex << std::setfill('0')
+      << std::setw(8) << sourceId()
+      << std::dec << std::setfill(' ')
+      << std::endl;
   }
 
  private:

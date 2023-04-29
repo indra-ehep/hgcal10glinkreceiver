@@ -1,5 +1,5 @@
-#ifndef Hgcal10gLinkReceiver_RecordPausing_h
-#define Hgcal10gLinkReceiver_RecordPausing_h
+#ifndef Hgcal10gLinkReceiver_RecordEnding_h
+#define Hgcal10gLinkReceiver_RecordEnding_h
 
 #include <iostream>
 #include <iomanip>
@@ -9,20 +9,20 @@
 
 namespace Hgcal10gLinkReceiver {
 
-  class RecordPausing : public Record {
+  class RecordEnding : public Record {
   
   public:
-    RecordPausing() {
+    RecordEnding() {
     }
     
     void setHeader(uint32_t t=time(0)) {
-      setState(FsmState::Pausing);
+      setState(FsmState::Ending);
       setPayloadLength(0);
       setUtc(t);
     }
 
     void print(std::ostream &o=std::cout, std::string s="") const {
-      o << s << "RecordPausing::print()" << std::endl;
+      o << s << "RecordEnding::print()" << std::endl;
       RecordHeader::print(o,s+" ");
     }
     

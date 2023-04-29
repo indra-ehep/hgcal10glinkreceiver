@@ -22,19 +22,31 @@ namespace Hgcal10gLinkReceiver {
       setUtc(t);
     }
 
-    SlinkBoe* slinkBoe() {
+    const SlinkBoe* slinkBoe() const {
       return (SlinkBoe*)_payload;
     }
     
-    uint64_t* daqPayload() {
-      return (payloadLength()==0?0:_payload+2);
+    const uint64_t* daqPayload() const {
+      return (payloadLength()==0?nullptr:_payload+2);
     }
     
-    SlinkEoe* slinkEoe() {
+    const SlinkEoe* slinkEoe() const {
       return (SlinkEoe*)(_payload+payloadLength()-2);
     }
     
-    void print(std::ostream &o=std::cout, std::string s="") {
+    SlinkBoe* getSlinkBoe() {
+      return (SlinkBoe*)_payload;
+    }
+    
+    uint64_t* getDaqPayload() {
+      return (payloadLength()==0?nullptr:_payload+2);
+    }
+    
+    SlinkEoe* getSlinkEoe() {
+      return (SlinkEoe*)(_payload+payloadLength()-2);
+    }
+    
+    void print(std::ostream &o=std::cout, std::string s="") const {
       o << s << "RecordRunning::print()" << std::endl;
       RecordHeader::print(o,s+" ");
       
@@ -45,8 +57,8 @@ namespace Hgcal10gLinkReceiver {
 	  << std::dec << std::setfill(' ') << std::endl;
       }
       
-      slinkBoe()->print();
-      slinkEoe()->print();
+      slinkBoe()->print(o,s+" ");
+      slinkEoe()->print(o,s+" ");
     }
     
   private:
