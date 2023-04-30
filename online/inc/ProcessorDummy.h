@@ -24,9 +24,6 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool configuringA(FsmInterface::HandshakeState s) {
-      RecordConfiguringA rca;
-      rca.deepCopy(_ptrFsmInterface->commandPacket().record());
-      rca.print();
       sleep(1);
       return true;
     }

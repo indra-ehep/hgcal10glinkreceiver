@@ -31,7 +31,7 @@ namespace Hgcal10gLinkReceiver {
       Request,
       EndOfHandshakeStateEnum
     };
-
+   
     enum Identifier {
       Testing,
       Tcds2,

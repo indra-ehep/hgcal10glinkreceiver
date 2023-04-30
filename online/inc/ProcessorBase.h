@@ -20,7 +20,7 @@ namespace Hgcal10gLinkReceiver {
   class ProcessorBase {
 
   public:
-  ProcessorBase() : _checkEnable(true), _assertEnable(true) {
+  ProcessorBase() : _printEnable(false), _checkEnable(false), _assertEnable(false) {
       for(unsigned i(0);i<FsmState::EndOfStaticEnum;i++) {
 	_usSleep[i]=1000;
       }
@@ -161,7 +161,7 @@ namespace Hgcal10gLinkReceiver {
 	  if(!FsmState::staticState(_ptrFsmInterface->processState())) {
 	    std::cout << "Processor is not in a static state" << std::endl;
 	    _ptrFsmInterface->print();
-	  if(_assertEnable) assert(false);
+	    if(_assertEnable) assert(false);
 	  }
 
 	  if(!_ptrFsmInterface->matchingStates()) {
@@ -218,50 +218,89 @@ namespace Hgcal10gLinkReceiver {
 
 	} else {
 
-	  if(_printEnable) {
-	    std::cout << "Entering new command" << std::endl;
-	    _ptrFsmInterface->print();
-	  }
-
-	  _ptrFsmInterface->setCommandHandshake(FsmInterface::Propose); // ?????
-
+	  // Handle a transition
 	  if(_printEnable) {
 	    std::cout << "Entering transition sequence" << std::endl;
 	    _ptrFsmInterface->print();
 	  }
 
+	  if(_checkEnable) {
+	    if(_ptrFsmInterface->commandHandshake()!=FsmInterface::Propose) {
+	      std::cout << "Handshake is not Propose" << std::endl;
+	      _ptrFsmInterface->print();
+	      if(_assertEnable) assert(false);
+	    }
+	  }
+
 	  //assert(_ptrFsmInterface->matchingStates());
 
-	  // PREPARING
+	  // DECIDE ON ACCEPT OR REJECT
 	  
 	  //assert(_ptrFsmInterface->matchingStates());
 
 	  //while(!_ptrFsmInterface->prepared(true));
 	  //if(_ptrFsmInterface->systemState()!=FsmState::ConfiguringB) {
-	    assert(_ptrFsmInterface->accepted());
 
-	    if(_printEnable) {
-	      std::cout << "Accepted" << std::endl;
+
+	  if(_printEnable) {
+	    std::cout << "Will accept proposal" << std::endl;
+	    _ptrFsmInterface->print();
+	  }
+
+	  if(!_ptrFsmInterface->accepted()) {
+	    if(_checkEnable) {
+	      std::cout << "Accepted return false" << std::endl;
 	      _ptrFsmInterface->print();
+	      if(_assertEnable) assert(false);
 	    }
-	    //} else {
-	    //assert(_ptrFsmInterface->rejected());
-	    //}
+	  }
+	  
+	  if(_printEnable) {
+	    std::cout << "Waiting for handshake not to be Accept" << std::endl;
+	  }
 
 	  while(!_ptrFsmInterface->isProceed()) usleep(10);///////////////////////////////////////
+	  bool change(_ptrFsmInterface->isChange());
 
-	    if(_printEnable) {
-	      std::cout << "Proceed" << std::endl;
-	      _ptrFsmInterface->print();
+	  if(_printEnable) {
+	    std::cout << "Handshake not Accept: change = " << (change?"true":"false") << std::endl;
+	    _ptrFsmInterface->print();
+	  }
+			
+	  //if(_ptrFsmInterface->isChange()) {
+	  if(change) {
+	    if(_checkEnable) {
+	      if(_ptrFsmInterface->commandHandshake()!=FsmInterface::Change) {
+		std::cout << "Handshake is not Change" << std::endl;
+		_ptrFsmInterface->print();
+		if(_assertEnable) assert(false);
+	      }
 	    }
 
-	    bool change(_ptrFsmInterface->isChange());
-			
-	  if(_ptrFsmInterface->isChange()) {
-	    //_ptrFsmInterface->forceProcessState(FsmCommand::transitionStateForCommand(_ptrFsmInterface->commandPacket().command()));
 	    _ptrFsmInterface->changeProcessState();
+
+	    if(_checkEnable) {
+	      if(!FsmState::transientState(_ptrFsmInterface->systemState())) {
+		std::cout << "System is not in a transient state" << std::endl;
+		_ptrFsmInterface->print();
+		if(_assertEnable) assert(false);
+	      }
+
+	      if(!FsmState::transientState(_ptrFsmInterface->processState())) {
+		std::cout << "Processor is not in a transient state" << std::endl;
+		_ptrFsmInterface->print();
+		if(_assertEnable) assert(false);
+	      }
+
+	      if(!_ptrFsmInterface->matchingStates()) {
+		std::cout << "System and processor state do not match" << std::endl;
+		_ptrFsmInterface->print();
+		if(_assertEnable) assert(false);
+	      }
+	    }
+
 	    if(_printEnable) {
-	      std::cout << "Entered transient state" << std::endl;
+	      std::cout << "Starting processing transient state" << std::endl;
 	      _ptrFsmInterface->print();
 	    }
 	    
@@ -278,25 +317,54 @@ namespace Hgcal10gLinkReceiver {
 	    else if(_ptrFsmInterface->processState()==FsmState::HaltingA    ) this->haltingA(_ptrFsmInterface->commandHandshake());
 	    else if(_ptrFsmInterface->processState()==FsmState::Resetting   ) this->resetting(_ptrFsmInterface->commandHandshake());
 	    else if(_ptrFsmInterface->processState()==FsmState::Ending      ) this->ending(_ptrFsmInterface->commandHandshake());
-	else {
-	  if(_printEnable) {
-	    std::cout << "Unknown static state" << std::endl;
-	    _ptrFsmInterface->print();
-	  }
+	    else {
+	      if(_printEnable) {
+		std::cout << "Unknown transient state" << std::endl;
+		_ptrFsmInterface->print();
+	      }
 	  
-	  if(_assertEnable) assert(false);
-	}
+	      if(_assertEnable) assert(false);
+	    }
 	      
 	    //assert(_ptrFsmInterface->matchingStates());
 	      
 	    if(_printEnable) {
-	      std::cout << "Done transient state" << std::endl;
+	      std::cout << "Finished processing transient state" << std::endl;
 	      _ptrFsmInterface->print();
 	    }
 	      
-	  } else if(_ptrFsmInterface->isRepair()) {
+	  } else {//if(_ptrFsmInterface->isRepair()) {
+
+	    if(_checkEnable) {
+	      if(_ptrFsmInterface->commandHandshake()!=FsmInterface::Repair) {
+		std::cout << "Handshake is not Repair" << std::endl;
+		_ptrFsmInterface->print();
+		if(_assertEnable) assert(false);
+	      }
+	    }
+
+	    if(_checkEnable) {
+	      if(!FsmState::staticState(_ptrFsmInterface->systemState())) {
+		std::cout << "System is not in a static state" << std::endl;
+		_ptrFsmInterface->print();
+		if(_assertEnable) assert(false);
+	      }
+
+	      if(!FsmState::staticState(_ptrFsmInterface->processState())) {
+		std::cout << "Processor is not in a static state" << std::endl;
+		_ptrFsmInterface->print();
+		if(_assertEnable) assert(false);
+	      }
+
+	      if(!_ptrFsmInterface->matchingStates()) {
+		std::cout << "System and processor state do not match" << std::endl;
+		_ptrFsmInterface->print();
+		if(_assertEnable) assert(false);
+	      }
+	    }
+
 	    if(_printEnable) {
-	      std::cout << "Doing repair" << std::endl;
+	      std::cout << "Starting repairing static state" << std::endl;
 	      _ptrFsmInterface->print();
 	    }
 
@@ -305,18 +373,34 @@ namespace Hgcal10gLinkReceiver {
 	    // REPAIRING
 	      
 	    assert(_ptrFsmInterface->matchingStates());	      
-	  }
-	    
-	  assert(_ptrFsmInterface->completed());
+
 	    if(_printEnable) {
-	      std::cout << "Completed" << std::endl;
+	      std::cout << "Finished repairing static state" << std::endl;
 	      _ptrFsmInterface->print();
 	    }
+	  }
+
+	  if(!_ptrFsmInterface->completed()) {
+	    if(_checkEnable) {
+	      std::cout << "Completed return false" << std::endl;
+	      _ptrFsmInterface->print();
+	      if(_assertEnable) assert(false);
+	    }
+	  }
+	  
+	  if(_printEnable) {
+	    std::cout << "Waiting for handshake to be StartStatic" << std::endl;
+	  }
 
 	  while(!_ptrFsmInterface->isStartStatic()) usleep(10);///////////////////////////////////////
 	    
-	  if(change) _ptrFsmInterface->forceProcessState(FsmCommand::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command()));
-
+	  if(change) {
+	    //_ptrFsmInterface->print();
+	    //_ptrFsmInterface->forceProcessState(FsmCommand::staticStateAfterCommand(_ptrFsmInterface->commandPacket().command())); // ???????????????????
+	    _ptrFsmInterface->changeProcessState();
+	    //_ptrFsmInterface->print();
+	  }
+	  
 	  assert(_ptrFsmInterface->matchingStates());
 
 	  if(_printEnable) {
@@ -330,6 +414,11 @@ namespace Hgcal10gLinkReceiver {
 	}
 
 	if(_ptrFsmInterface->processState()==FsmState::Shutdown) continueLoop=false;
+
+	if(_printEnable) {
+	  std::cout << "At end of processing loop" << std::endl;
+	  _ptrFsmInterface->print();
+	}
       }
       
       return;
