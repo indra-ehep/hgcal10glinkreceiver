@@ -9,7 +9,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "ProcessorDaqLink2.h"
+#include "ProcessorDaqLink0.h"
 
 using namespace Hgcal10gLinkReceiver;
 
@@ -25,8 +25,8 @@ int main(int argc, char *argv[]) {
     printEnable=true;
   }
 
-  ProcessorDaqLink2 pb;
+  ProcessorDaqLink0 pb;
   pb.setPrintEnable(printEnable);
-  pb.setUpAll(ProcessorDaqLink2FsmShmKey,ProcessorDaqLink2FifoShmKey);
+  pb.setUpAll(ProcessorDaqLink0FsmShmKey,ProcessorDaqLink0FifoShmKey);
   return 0;
 }

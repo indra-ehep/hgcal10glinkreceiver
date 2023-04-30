@@ -27,19 +27,26 @@ namespace Hgcal10gLinkReceiver {
     virtual ~ProcessorDaqLink2() {
     }
 
-    void setUpAll(uint32_t rcKey,uint32_t fifoKey) {
+    void setUpAll(uint32_t rcKey, uint32_t fifoKey2,
+		  uint32_t fifoKey0, uint32_t fifoKey1) {
+      ShmSingleton< DataFifoT<6,1024> > shm0;
+      _ptrFifo0=shm0.setup(fifoKey0);
+      //ptrRunFileShm=shm0.payload();
 
-      _CB=124;
+      ShmSingleton< DataFifoT<6,1024> > shm1;
+      _ptrFifo1=shm1.setup(fifoKey1);
+      //ptrRunFileShm=shm1.payload();
 
-      ShmSingleton< DataFifoT<6,1024> > shmU;
-      shmU.setup(fifoKey);
-      ptrRunFileShm=shmU.payload();
+      ShmSingleton< DataFifoT<6,1024> > shm2;
+      shm2.setup(fifoKey2);
+      _ptrFifo2=shm2.payload();
+
       startFsm(rcKey);
     }
 
     bool initializing(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
-	ptrRunFileShm->ColdStart();
+	_ptrFifo2->ColdStart();
       }
       return true;
     }
@@ -50,9 +57,9 @@ namespace Hgcal10gLinkReceiver {
 
       if(s==FsmInterface::Change) {
 	RecordConfiguringA rca;
-	while(ptrRunFileShm->read((uint64_t*)(&rca))==0) usleep(10);
+	while(_ptrFifo2->read((uint64_t*)(&rca))==0) usleep(10);
 	rca.print();
-	_fileWriter.open(rca.superRunNumber(),2,true,true);
+	_fileWriter.open(rca.superRunNumber(),2,true);
 	_fileWriter.write(&rca);
       }
       
@@ -62,7 +69,7 @@ namespace Hgcal10gLinkReceiver {
     bool configuringB(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
 	RecordT<1024> r;
-	while(ptrRunFileShm->read((uint64_t*)(&r))==0) usleep(10);
+	while(_ptrFifo2->read((uint64_t*)(&r))==0) usleep(10);
 	_fileWriter.write(&r);
       }
       return true;
@@ -71,7 +78,7 @@ namespace Hgcal10gLinkReceiver {
     bool starting(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
 	RecordT<1024> r;
-	while(ptrRunFileShm->read((uint64_t*)(&r))==0) usleep(10);
+	while(_ptrFifo2->read((uint64_t*)(&r))==0) usleep(10);
 	_fileWriter.write(&r);
       }
       return true;
@@ -88,7 +95,7 @@ namespace Hgcal10gLinkReceiver {
     bool stopping(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
 	RecordT<1024> r;
-	while(ptrRunFileShm->read((uint64_t*)(&r))==0) usleep(10);
+	while(_ptrFifo2->read((uint64_t*)(&r))==0) usleep(10);
 	_fileWriter.write(&r);
       }
 	return true;
@@ -97,7 +104,7 @@ namespace Hgcal10gLinkReceiver {
     bool haltingB(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
 	RecordT<1024> r;
-	while(ptrRunFileShm->read((uint64_t*)(&r))==0) usleep(10);
+	while(_ptrFifo2->read((uint64_t*)(&r))==0) usleep(10);
 	RecordPrinter(&r);
 	_fileWriter.write(&r);
       }
@@ -107,7 +114,7 @@ namespace Hgcal10gLinkReceiver {
     bool haltingA(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
 	RecordHaltingA rha;
-	while(ptrRunFileShm->read((uint64_t*)(&rha))==0) usleep(10);
+	while(_ptrFifo2->read((uint64_t*)(&rha))==0) usleep(10);
 	rha.print();
 	_fileWriter.write(&rha);
 	_fileWriter.close();
@@ -154,7 +161,7 @@ namespace Hgcal10gLinkReceiver {
       RecordHeader *h((RecordHeader*)buffer);
       h->setState(FsmState::ConfiguredB);
       while(h->state()!=FsmState::Continuing) {
-	while(ptrRunFileShm->read(buffer)>0) {
+	while(_ptrFifo2->read(buffer)>0) {
 	  h->print();
 	  assert(h->state()==FsmState::Continuing ||
 		 h->state()==FsmState::ConfiguredB);
@@ -162,13 +169,44 @@ namespace Hgcal10gLinkReceiver {
 	}
       }
       //sleep(1);
-      //while(ptrRunFileShm->read(buffer)>0) {
+      //while(_ptrFifo2->read(buffer)>0) {
       //h->print();
       //_fileWriter.write(h);
       //}
     }
 
-    /*
+    virtual void running() {
+      uint32_t backPressureOn(16);
+      uint32_t backPressureOff(48);
+
+      while(_ptrFsmInterface->isIdle()) {	
+	if(_ptrFifo2->backPressure()) {
+	  if(_ptrFifo0->writeable()>=backPressureOff &&
+	     _ptrFifo1->writeable()>=backPressureOff) {
+	    _ptrFifo2->setBackPressure(false);
+
+	    if(_printEnable) {
+	      std::cout << "Backpressure turned off"
+			<< std::endl;
+	    }
+	    sleep(1);
+	  }
+
+	} else {
+	  if(_ptrFifo0->writeable()<backPressureOn ||
+	     _ptrFifo1->writeable()<backPressureOn) {
+	    _ptrFifo2->setBackPressure(true);
+
+	    if(_printEnable) {
+	      std::cout << "Backpressure turned on"
+			<< std::endl;
+	    }
+	    sleep(1);
+	  }
+	}
+      }
+    }
+   /*
       void running(RunControlFsmShm* const p) {
       RecordHeader h;
       h.setIdentifier(RecordHeader::EventData);
@@ -177,9 +215,9 @@ namespace Hgcal10gLinkReceiver {
       h.setUtc();
       h.print();
       
-      std::memcpy(ptrRunFileShm->_buffer[ptrRunFileShm->_writePtr%RunFileShm2::BufferDepth],
+      std::memcpy(_ptrFifo2->_buffer[_ptrFifo2->_writePtr%RunFileShm2::BufferDepth],
       &h,8*h.length());
-      ptrRunFileShm->_writePtr++;
+      _ptrFifo2->_writePtr++;
       //sleep(10);
       //p->setRequest(FsmState::Stopping);
       }
@@ -190,8 +228,9 @@ namespace Hgcal10gLinkReceiver {
     */
    
   private:
-    DataFifoT<6,1024> *ptrRunFileShm;
-    unsigned _CB;
+    const DataFifoT<6,1024> *_ptrFifo0;
+    const DataFifoT<6,1024> *_ptrFifo1;
+    DataFifoT<6,1024> *_ptrFifo2;
     FileWriter _fileWriter;
   };
 

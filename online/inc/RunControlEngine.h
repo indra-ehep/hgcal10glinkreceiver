@@ -26,7 +26,7 @@ namespace Hgcal10gLinkReceiver {
       unsigned n(0);
       std::cout << "Coldstarting " << n << std::endl;
       for(unsigned i(0);i<_allFsmInterface.size();i++) {
-	_allFsmInterface[i]->initialize();
+	//_allFsmInterface[i]->initialize(); // DONE BY DOWNSTREAM
 	_allFsmInterface[i]->print();
       
 	_allFsmInterface[i]->ping();
@@ -249,7 +249,7 @@ namespace Hgcal10gLinkReceiver {
 	    std::cerr << "Shm" << i << " timed out waiting for idle" << std::endl;
 	  } else {
 	    assert(_goodFsmInterface[i]->matchingStates());
-	    _goodFsmInterface[i]->commandPacket().initialize();
+	    //_goodFsmInterface[i]->commandPacket().initialize();
 	  }
       
 	  // MORE HERE

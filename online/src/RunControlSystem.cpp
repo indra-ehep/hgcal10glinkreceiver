@@ -96,12 +96,12 @@ int main(int argc, char *argv[]) {
   std::vector< ShmSingleton<FsmInterface> > vShmSingleton(6);
   std::vector<FsmInterface*> vPtr;
   
-  vShmSingleton[0].setup(RunControlTestingShmKey);
-  vShmSingleton[1].setup(RunControlFastControlShmKey);
-  vShmSingleton[2].setup(RunControlTcds2ShmKey);
-  vShmSingleton[3].setup(RunControlDaqLink0ShmKey);
-  vShmSingleton[4].setup(RunControlDaqLink1ShmKey);
-  vShmSingleton[5].setup(RunControlDaqLink2ShmKey);
+  vShmSingleton[0].setup(RunControlDummyFsmShmKey);
+  vShmSingleton[1].setup(RunControlFastControlFsmShmKey);
+  vShmSingleton[2].setup(RunControlTcds2FsmShmKey);
+  vShmSingleton[3].setup(RunControlDaqLink0FsmShmKey);
+  vShmSingleton[4].setup(RunControlDaqLink1FsmShmKey);
+  vShmSingleton[5].setup(RunControlDaqLink2FsmShmKey);
 
   std::cout << "HERE" << std::endl;
 
@@ -162,7 +162,20 @@ int main(int argc, char *argv[]) {
       }
       
     } else {
+      unsigned nx(0);
+      while(nx==0 || nx>1000) {
+	std::cout << "SuperRun number of runs"
+		<< std::endl;
+	std::cin >> nx;
+      }
 
+      x='z';
+      while(x!='y' && x!='n') {
+	std::cout << "Write to disk y/n"
+		  << std::endl;
+	std::cin >> x;
+      }
+      
       continueSuperRun=true;
 
       unsigned nc(0);
@@ -170,8 +183,9 @@ int main(int argc, char *argv[]) {
 
       RecordConfiguringA rca;
       rca.setHeader();
-      rca.setSuperRunNumber();
-      rca.setMaxNumberOfConfigurations(1);
+      if(x=='y') rca.setSuperRunNumber();
+      else rca.setSuperRunNumber(0xffffffff);
+      rca.setMaxNumberOfConfigurations(nx);
       rca.setProcessKey(0xce000000,123);
 
       uint32_t srNumber(rca.superRunNumber());
@@ -203,7 +217,7 @@ int main(int argc, char *argv[]) {
 	  rsa.setHeader();
 	  rsa.setRunNumber();
 	  rsa.setMaxEvents(1000);
-	  rsa.setMaxSeconds(600);
+	  rsa.setMaxSeconds(60);
 	  rsa.setMaxSpills(0);
       
 	  fcp.setCommand(FsmCommand::Start);

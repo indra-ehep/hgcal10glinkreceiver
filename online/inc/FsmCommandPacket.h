@@ -5,7 +5,7 @@
 #include <iomanip>
 
 #include "FsmCommand.h"
-#include "Record.h"
+#include "RecordPrinter.h"
 
 namespace Hgcal10gLinkReceiver {
 
@@ -13,13 +13,15 @@ namespace Hgcal10gLinkReceiver {
   public:
 
     FsmCommandPacket() {
+      coldStart();
     }
 
-    void initialize() {
+    void coldStart() {
       _command=FsmCommand::EndOfCommandEnum;
       _record.setState(FsmState::Initial);
       _record.setPayloadLength(0);
       _record.setUtc(0);
+      _record.reset();
     }
     
     FsmCommand::Command command() const {
@@ -44,7 +46,7 @@ namespace Hgcal10gLinkReceiver {
     void print(std::ostream &o=std::cout) const {
       o << "FsmCommandPacket::print()" << std::endl;
       o << " Command " << FsmCommand::commandName(_command) << std::endl;
-      _record.print(o);
+      RecordPrinter(&_record,o," ");
     }
 
   private:

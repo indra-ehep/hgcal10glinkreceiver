@@ -33,7 +33,7 @@ namespace Hgcal10gLinkReceiver {
 
     virtual ~ProcessorFastControl() {
     }
-
+    /*
     void setUpAll(uint32_t rcKey, uint32_t fifoKey2,
 		  uint32_t fifoKey0, uint32_t fifoKey1) {
       ShmSingleton< DataFifoT<6,1024> > shm0;
@@ -46,19 +46,16 @@ namespace Hgcal10gLinkReceiver {
       
       setUpAll(rcKey,fifoKey2);
     }
+    */
     
     void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
       ShmSingleton< DataFifoT<6,1024> > shm2;
       shm2.setup(fifoKey);
       ptrFifoShm2=shm2.payload();
-
-      //ptrFifoShm0=0;
-      ptrFifoShm1=0;
-
       startFsm(rcKey);
     }
 
-    bool initializing(FsmInterface::HandshakeState s) {
+    virtual bool initializing(FsmInterface::HandshakeState s) {
 #ifdef ProcessorFastControlHardware
       system("/home/cmx/pdauncey/source setFC.sh");
 
@@ -117,9 +114,10 @@ namespace Hgcal10gLinkReceiver {
       }
 #else
       if(s==FsmInterface::Change) {
-	RecordInitializing ri;
+	RecordInitializing ri;	
 	ri.print();
       }
+
 #endif
       return true;
     }
@@ -238,6 +236,15 @@ namespace Hgcal10gLinkReceiver {
       }
       return true;
     }
+
+    bool ending(FsmInterface::HandshakeState s) {
+      if(s==FsmInterface::Change) {
+	std::cout << "Ending" << std::endl;
+	ptrFifoShm2->end();
+	ptrFifoShm2->print();
+      }
+      return true;
+    }
     /*
 //////////////////////////////////////////////
     
@@ -282,6 +289,7 @@ void configuredA() {
       assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
     }
 
+#ifdef NOW_IN_PLUS_DAQ
     void running() {
       while(_ptrFsmInterface->isIdle()) {
 	RecordT<128> buffer;
@@ -452,6 +460,7 @@ void configuredA() {
 	usleep(1000);
       }
     }
+#endif
 
     
   void paused() {
@@ -459,10 +468,10 @@ void configuredA() {
   }
 
    
-  private:
+  protected:
     DataFifoT<6,1024> *ptrFifoShm2;
-    DataFifoT<6,1024> *ptrFifoShm0;
-    DataFifoT<6,1024> *ptrFifoShm1;
+    //DataFifoT<6,1024> *ptrFifoShm0;
+    //DataFifoT<6,1024> *ptrFifoShm1;
 
     uint32_t _cfgSeqCounter;
     uint32_t _evtSeqCounter;

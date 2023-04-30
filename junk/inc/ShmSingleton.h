@@ -28,7 +28,7 @@ template <class Payload> class ShmSingleton {
     }
   }
   */
-  void setup(key_t theNewKey, int access = 0666) {
+   Payload* setup(key_t theNewKey, int access = 0666) {
     std::cout << "ShmSingleton<>::setup key = 0x"
 	      << std::hex << std::setfill('0')
 	      << std::setw(8) << theNewKey
@@ -39,8 +39,8 @@ template <class Payload> class ShmSingleton {
 
     shmId = shmget(theNewKey, 1, access);
     if(shmId == -1) {
-      std::cerr << "ShmSingleton<>::ctor() shmget(" << theNewKey << ","
-		<< 1 << "," << std::oct << access
+      std::cerr << "ShmSingleton<>::ctor() shmget(" << unsigned(theNewKey)
+		<< "," << 1 << "," << std::oct << access
 		<< std::dec << ")" << std::endl;
       //perror(0);
     
@@ -55,7 +55,7 @@ template <class Payload> class ShmSingleton {
 		  << sizeof(Payload) << "," << std::oct << (IPC_CREAT | access) 
 	  		  << std::dec << ")" << std::endl;
 	perror(0);
-	return;
+	return nullptr;
       }
       std::cerr << "Created successfully" << std::endl;
       created = true;
@@ -67,7 +67,7 @@ template <class Payload> class ShmSingleton {
     thePayload=(Payload*)shmat(shmId, 0, 0);
     if(thePayload == 0) {
       perror("ShmSingleton<>::ctor() shmat");
-      return;
+      return nullptr;
     }
 
     if(created) {
@@ -82,7 +82,8 @@ template <class Payload> class ShmSingleton {
     shmctl(shmId, IPC_STAT, &ds);
     std::cout << "Number attached = " << theShmIdData->numberAttached() << std::endl;
     */
-  }
+    return thePayload;
+   }
 
   ~ShmSingleton() {
     if(thePayload != 0) {

@@ -27,6 +27,6 @@ int main(int argc, char *argv[]) {
 
   ProcessorDummy pb;
   pb.setPrintEnable(printEnable);
-  pb.startFsm(ProcessorDummyShmKey);
+  pb.startFsm(ProcessorDummyFsmShmKey);
   return 0;
 }

@@ -45,16 +45,16 @@ namespace Hgcal10gLinkReceiver {
     };
 
     FsmInterface() {
-      initialize();
+      coldStart();
     }
 
-    void initialize() {
+    void coldStart() {
       _systemState=FsmState::Initial;
-      _commandPacket.initialize();
+      _commandPacket.coldStart();
       _commandHandshake=Idle;
 
       _processState=FsmState::Initial;
-      _requestPacket.initialize();
+      _requestPacket.coldStart();
       _requestHandshake=Idle;
     }
 
@@ -465,10 +465,10 @@ namespace Hgcal10gLinkReceiver {
     "Repair",
     "Changed",
     "Repaired",
-    "Request",
-    "StartStatic"
+    "StartStatic",
+    "Request"
   };
-
+	
   const uint32_t FsmInterface::identifier[EndOfIdentifierEnum]={
     0xce0000, // Testing
     0xce1cd5, // TCDS2

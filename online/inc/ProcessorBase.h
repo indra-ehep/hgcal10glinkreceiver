@@ -20,7 +20,7 @@ namespace Hgcal10gLinkReceiver {
   class ProcessorBase {
 
   public:
-    ProcessorBase() {
+  ProcessorBase() : _checkEnable(true), _assertEnable(true) {
       for(unsigned i(0);i<FsmState::EndOfStaticEnum;i++) {
 	_usSleep[i]=1000;
       }
@@ -33,14 +33,19 @@ namespace Hgcal10gLinkReceiver {
       _printEnable=p;
     }
 
+    virtual void setCheckEnable(bool c) {
+      _checkEnable=c;
+    }
+
+    virtual void setAssertEnable(bool a) {
+      _checkEnable=a;
+    }
+
     virtual bool initializing(FsmInterface::HandshakeState s) {
       return true;
     }
     
     virtual bool configuringA(FsmInterface::HandshakeState s) {
-      //RecordConfiguringA rca;
-      //rca.deepCopy(_ptrFsmInterface->commandPacket().record());
-      //rca.print();
       return true;
     }
     
@@ -49,7 +54,6 @@ namespace Hgcal10gLinkReceiver {
     }
     
     virtual bool starting(FsmInterface::HandshakeState s) {
-      //std::cout << "********************************************************** Starting a run" << std::endl;
       return true;
     }
     
@@ -62,7 +66,6 @@ namespace Hgcal10gLinkReceiver {
     }
     
     virtual bool stopping(FsmInterface::HandshakeState s) {
-      //std::cout << "********************************************************** Stopping a run" << std::endl;
       return true;
     }
     
@@ -97,15 +100,6 @@ namespace Hgcal10gLinkReceiver {
     }
     
     virtual void running() {
-      /*
-      std::cout << "********************************************************** Doing a run" << std::endl;
-      unsigned n(0);
-      while(_ptrFsmInterface->isIdle()) {
-	n++;
-	usleep(_usSleep[_ptrFsmInterface->processState()]);      
-      }
-      std::cout << "********************************************************** Done  a run " << n << std::endl;
-      */
     }
     
     virtual void paused() {
@@ -115,120 +109,153 @@ namespace Hgcal10gLinkReceiver {
   
       // Connect to shared memory
       ShmSingleton<FsmInterface> shmU;
-      shmU.setup(theKey);
-      /*volatile*/ _ptrFsmInterface=shmU.payload();
+      _ptrFsmInterface=shmU.setup(theKey);
+      // /*volatile*/ _ptrFsmInterface=shmU.payload();
 
-      // Force to Initial on startup
-      /*
-      if(_printEnable) _ptrFsmInterface->print();
-      _ptrFsmInterface->forceProcessState(FsmState::Initial);
-      //_ptrFsmInterface->forceProcessError(FsmState::Good);
-      _ptrFsmInterface->setCommandHandshake(FsmInterface::Idle);
-      */
-      _ptrFsmInterface->initialize();
-      if(_printEnable) _ptrFsmInterface->print();
-
-      std::cout << "TRY PONG" << std::endl;
-      while(!_ptrFsmInterface->pong()) {
-	sleep(1);
-	if(_printEnable) _ptrFsmInterface->print();
-	//usleep(10);
-      }
-      std::cout << "PONGED" << std::endl;
-      if(_printEnable) _ptrFsmInterface->print();
-
-      /*
-	_ptrFsmInterface->setCommand(FsmState::Initialize);
-	if(_printEnable) _ptrFsmInterface->print();
-      */
-
-      /*
-	bool ponged(false);
-	ponged=_ptrFsmInterface->pon
-	if(ponged) std::cout << "PONGED1" << std::endl;
-      
-	while(_ptrFsmInterface->isIdle() && !ponged) {
-	//if(_printEnable) _ptrFsmInterface->print();
-	ponged=_ptrFsmInterface->pong();
-	if(ponged) std::cout << "PONGED2" << std::endl;
-	}
-	//sleep(1);
-      */
-
-      //if(_ptrFsmInterface->isIdle()) {
+      // Put interface into a good state
       if(_printEnable) {
-	std::cout << "Waiting for system match" << std::endl;
+	std::cout << "Sending coldStart to FsmInterface" << std::endl;
+      }
+
+      _ptrFsmInterface->coldStart();
+
+      if(_printEnable) {
 	_ptrFsmInterface->print();
       }
+      
+      // Wait for Ping from Run Control
+      if(_printEnable) {
+	std::cout << "Waiting for initial Ping" << std::endl;
+      }
 
-      //while(!_ptrFsmInterface->matchingStates());
+      unsigned counter(0);
+      while(!_ptrFsmInterface->pong()) {
+	sleep(1);
+	if(_printEnable) {
+	  std::cout << "Initial Ping not seen after " << ++counter
+		    << " seconds, sleeping" << std::endl;
+	  _ptrFsmInterface->print();
+	}
+      }
 
       if(_printEnable) {
-	std::cout << "Got system match" << std::endl;
+	std::cout << "Handled initial Ping" << std::endl;
 	_ptrFsmInterface->print();
       }
 
       bool continueLoop(true);
       
       while(continueLoop) {
-	//if(_ptrFsmInterface->isIdle()) {
 	if(_printEnable) {
-	  std::cout << "Start processing static state" << std::endl;
+	  std::cout << "At top of processing loop" << std::endl;
 	  _ptrFsmInterface->print();
 	}
 
-	//assert(_ptrFsmInterface->matchingStates());
+	if(_checkEnable) {
+	  if(!FsmState::staticState(_ptrFsmInterface->systemState())) {
+	    std::cout << "System is not in a static state" << std::endl;
+	    _ptrFsmInterface->print();
+	    if(_assertEnable) assert(false);
+	  }
 
+	  if(!FsmState::staticState(_ptrFsmInterface->processState())) {
+	    std::cout << "Processor is not in a static state" << std::endl;
+	    _ptrFsmInterface->print();
+	  if(_assertEnable) assert(false);
+	  }
+
+	  if(!_ptrFsmInterface->matchingStates()) {
+	    std::cout << "System and processor state do not match" << std::endl;
+	    _ptrFsmInterface->print();
+	    if(_assertEnable) assert(false);
+	  }
+	}
+
+	if(_printEnable) {
+	  std::cout << "Starting processing static state" << std::endl;
+	  _ptrFsmInterface->print();
+	}
+	
 	if(     _ptrFsmInterface->processState()==FsmState::Initial    ) this->initial();
 	else if(_ptrFsmInterface->processState()==FsmState::Halted     ) this->halted();
 	else if(_ptrFsmInterface->processState()==FsmState::ConfiguredA) this->configuredA();
 	else if(_ptrFsmInterface->processState()==FsmState::ConfiguredB) this->configuredB();
 	else if(_ptrFsmInterface->processState()==FsmState::Running    ) this->running();
 	else if(_ptrFsmInterface->processState()==FsmState::Paused     ) this->paused();
-	else assert(false);
+	else {
+	  if(_printEnable) {
+	    std::cout << "Unknown static state" << std::endl;
+	    _ptrFsmInterface->print();
+	  }
+	  
+	  if(_assertEnable) assert(false);
+	}
+	
+	if(_printEnable) {
+	  std::cout << "Finished processing static state" << std::endl;
+	  _ptrFsmInterface->print();
+	}
+
+	if(_printEnable) {
+	  std::cout << "Waiting for handshake not to be Idle" << std::endl;
+	}
+
+	while(_ptrFsmInterface->isIdle()) {
+	  usleep(10);
+	}
 	  
 	if(_printEnable) {
-	  std::cout << "Done processing static state" << std::endl;
+	  std::cout << "Handshake not Idle" << std::endl;
 	  _ptrFsmInterface->print();
 	}
 
-	while(_ptrFsmInterface->isIdle()) usleep(10);
-
-	if(_printEnable) {
-	  std::cout << "Now a non-static handshake" << std::endl;
-	  _ptrFsmInterface->print();
-	}
-
-	//} else {
+	// Handle a Ping
 	if(_ptrFsmInterface->pong()) {
 	  if(_printEnable) {
-	    std::cout << "Did pong" << std::endl;
+	    std::cout << "Handled Ping" << std::endl;
 	    _ptrFsmInterface->print();
 	  }
 
 	} else {
-	  _ptrFsmInterface->setCommandHandshake(FsmInterface::Propose);
+
 	  if(_printEnable) {
 	    std::cout << "Entering new command" << std::endl;
 	    _ptrFsmInterface->print();
 	  }
 
-	  assert(_ptrFsmInterface->matchingStates());
+	  _ptrFsmInterface->setCommandHandshake(FsmInterface::Propose); // ?????
+
+	  if(_printEnable) {
+	    std::cout << "Entering transition sequence" << std::endl;
+	    _ptrFsmInterface->print();
+	  }
+
+	  //assert(_ptrFsmInterface->matchingStates());
 
 	  // PREPARING
-
-	  assert(_ptrFsmInterface->matchingStates());
+	  
+	  //assert(_ptrFsmInterface->matchingStates());
 
 	  //while(!_ptrFsmInterface->prepared(true));
 	  //if(_ptrFsmInterface->systemState()!=FsmState::ConfiguringB) {
 	    assert(_ptrFsmInterface->accepted());
+
+	    if(_printEnable) {
+	      std::cout << "Accepted" << std::endl;
+	      _ptrFsmInterface->print();
+	    }
 	    //} else {
 	    //assert(_ptrFsmInterface->rejected());
 	    //}
 
 	  while(!_ptrFsmInterface->isProceed()) usleep(10);///////////////////////////////////////
 
-	  bool change(_ptrFsmInterface->isChange());
+	    if(_printEnable) {
+	      std::cout << "Proceed" << std::endl;
+	      _ptrFsmInterface->print();
+	    }
+
+	    bool change(_ptrFsmInterface->isChange());
 			
 	  if(_ptrFsmInterface->isChange()) {
 	    //_ptrFsmInterface->forceProcessState(FsmCommand::transitionStateForCommand(_ptrFsmInterface->commandPacket().command()));
@@ -251,7 +278,14 @@ namespace Hgcal10gLinkReceiver {
 	    else if(_ptrFsmInterface->processState()==FsmState::HaltingA    ) this->haltingA(_ptrFsmInterface->commandHandshake());
 	    else if(_ptrFsmInterface->processState()==FsmState::Resetting   ) this->resetting(_ptrFsmInterface->commandHandshake());
 	    else if(_ptrFsmInterface->processState()==FsmState::Ending      ) this->ending(_ptrFsmInterface->commandHandshake());
-	    else assert(false);
+	else {
+	  if(_printEnable) {
+	    std::cout << "Unknown static state" << std::endl;
+	    _ptrFsmInterface->print();
+	  }
+	  
+	  if(_assertEnable) assert(false);
+	}
 	      
 	    //assert(_ptrFsmInterface->matchingStates());
 	      
@@ -274,6 +308,10 @@ namespace Hgcal10gLinkReceiver {
 	  }
 	    
 	  assert(_ptrFsmInterface->completed());
+	    if(_printEnable) {
+	      std::cout << "Completed" << std::endl;
+	      _ptrFsmInterface->print();
+	    }
 
 	  while(!_ptrFsmInterface->isStartStatic()) usleep(10);///////////////////////////////////////
 	    
@@ -698,6 +736,9 @@ namespace Hgcal10gLinkReceiver {
    
   protected:
     bool _printEnable;
+    bool _checkEnable;
+    bool _assertEnable;
+
     FsmInterface *_ptrFsmInterface;
     unsigned _usSleep[FsmState::EndOfStaticEnum];
   };

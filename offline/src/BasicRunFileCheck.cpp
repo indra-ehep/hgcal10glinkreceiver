@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  bool doSrun(false);
+  bool doSrun(true);
 
   unsigned runNumber(0);
   unsigned linkNumber(0);

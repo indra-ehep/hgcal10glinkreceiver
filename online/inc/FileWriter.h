@@ -20,7 +20,7 @@ namespace Hgcal10gLinkReceiver {
     FileWriter() : _protectFiles(false) { // While debugging
     }
 
-    bool open(uint32_t r, uint32_t l, bool s=false, bool w=true) {
+    bool open(uint32_t r, uint32_t l, bool s=false) {
       _runNumber=r;
       _linkNumber=l;
       _superRun=s;
@@ -28,7 +28,7 @@ namespace Hgcal10gLinkReceiver {
       
       setRunFileName();
 
-      _writeEnable=w;
+      _writeEnable=(r<0xffffffff);
       _numberOfBytesInFile=0;
 
       if(_writeEnable) {

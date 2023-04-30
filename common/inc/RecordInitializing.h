@@ -13,6 +13,7 @@ namespace Hgcal10gLinkReceiver {
   
   public:
     RecordInitializing() {
+      setHeader();
     }
     
     void setHeader(uint32_t t=time(0)) {

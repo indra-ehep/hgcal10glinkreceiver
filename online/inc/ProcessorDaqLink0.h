@@ -48,7 +48,7 @@ namespace Hgcal10gLinkReceiver {
 	std::cout << "HERE0 starting" << std::endl;
 	r.deepCopy(_ptrFsmInterface->commandPacket().record());
 	r.print();
-	_fileWriter.open(r.runNumber(),0,false,true);
+	_fileWriter.open(r.runNumber(),0,false);
 	_fileWriter.write(&r);
 
 	/*
@@ -130,6 +130,7 @@ namespace Hgcal10gLinkReceiver {
     void running() {
 	RecordT<1024> r;
 	RecordRunning *rr((RecordRunning*)&r);
+
 	while(_ptrFsmInterface->isIdle()) {
 	  ptrRunFileShm->print();
 	  if(ptrRunFileShm->read((uint64_t*)(&r))==0) {
@@ -140,10 +141,14 @@ namespace Hgcal10gLinkReceiver {
 	  }
 	}
 
+	ptrRunFileShm->print();
+	std::cout << "Finished loop, checking for other events" << std::endl;
+	
 	while(ptrRunFileShm->_writePtr>ptrRunFileShm->_readPtr) {
-	  //while(ptrRunFileShm->read((uint64_t*)(&r))==0) usleep(10);
+	  ptrRunFileShm->print();
+	  assert(ptrRunFileShm->read((uint64_t*)(&r))>0);
 	  rr->print();
-	  _fileWriter.write(&r);	  
+	  _fileWriter.write(&r);
 	}
       }
     
