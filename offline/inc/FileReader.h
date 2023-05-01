@@ -16,6 +16,14 @@ namespace Hgcal10gLinkReceiver {
     FileReader() {
     }
 
+    bool openSuperRun(uint32_t r) {
+      return open(r,2,true);
+    }
+
+    bool openRun(uint32_t r, uint32_t l) {
+      return open(r,l,false);
+    }
+
     bool open(uint32_t r, uint32_t l, bool s=false) {
       _runNumber=r;
       _linkNumber=l;

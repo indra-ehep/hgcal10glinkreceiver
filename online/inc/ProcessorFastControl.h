@@ -33,29 +33,17 @@ namespace Hgcal10gLinkReceiver {
 
     virtual ~ProcessorFastControl() {
     }
-    /*
-    void setUpAll(uint32_t rcKey, uint32_t fifoKey2,
-		  uint32_t fifoKey0, uint32_t fifoKey1) {
-      ShmSingleton< DataFifoT<6,1024> > shm0;
-      shm0.setup(fifoKey0);
-      ptrFifoShm0=shm0.payload();
-      //ShmSingleton< DataFifoT<6,1024> > shm1;
-      //shm1.setup(fifoKey1);
-      //ptrFifoShm1=shm1.payload();
-      ptrFifoShm1=0;
-      
-      setUpAll(rcKey,fifoKey2);
-    }
-    */
-    
+
     void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
       ShmSingleton< DataFifoT<6,1024> > shm2;
-      shm2.setup(fifoKey);
-      ptrFifoShm2=shm2.payload();
+      ptrFifoShm2=shm2.setup(fifoKey);
+      //ptrFifoShm2=shm2.payload();
       startFsm(rcKey);
     }
 
     virtual bool initializing(FsmInterface::HandshakeState s) {
+      if(s==FsmInterface::Change) {
+
 #ifdef ProcessorFastControlHardware
       system("/home/cmx/pdauncey/source setFC.sh");
 
@@ -113,30 +101,74 @@ namespace Hgcal10gLinkReceiver {
 	nds.push_back(lReg.value());
       }
 #else
-      if(s==FsmInterface::Change) {
-	RecordInitializing ri;	
-	ri.print();
-      }
+
+      RecordInitializing ri;	
+      if(_printEnable) ri.print();
 
 #endif
+      }
       return true;
     }
 
     bool configuringA(FsmInterface::HandshakeState s) {
+      if(_printEnable) {
+	std::cout << "ConfiguringA with Handshake = "
+		  << FsmInterface::handshakeName(s) << std::endl;
+	RecordPrinter(_ptrFsmInterface->commandPacket().record());
+	std::cout << std::endl;
+      }
+
+      if(_checkEnable) {
+	if(_ptrFsmInterface->commandPacket().record().state()!=FsmState::ConfiguringA) {
+	  std::cerr << "State does not match" << std::endl;
+	  std::cout << "State does not match" << std::endl;
+	  if(_assertEnable) assert(false);
+	}
+      }
+      
       if(s==FsmInterface::Change) {
-	assert(_ptrFsmInterface->commandPacket().record().state()==FsmState::ConfiguringA);
+	//assert(_ptrFsmInterface->commandPacket().record().state()==FsmState::ConfiguringA);
 
 	_cfgSeqCounter=1;
 	_evtSeqCounter=1;
 
-	RecordConfiguringA rca;
-	_superRunNumber=rca.superRunNumber();
+	if(_printEnable) {
+	  std::cout << "Waiting for space in buffer" << std::endl;
+	  ptrFifoShm2->print();
+	  std::cout << std::endl;
+	}
+
+	RecordConfiguringA *r;
+	while((r=(RecordConfiguringA*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
+
+	if(_printEnable) {
+	  std::cout << "Got buffer Record pointer" << std::endl;
+	  std::cout << std::endl;
+	}
+
+	r->deepCopy(_ptrFsmInterface->commandPacket().record());
+	_superRunNumber=r->superRunNumber();
 	
-	rca.deepCopy(_ptrFsmInterface->commandPacket().record());
-	rca.print();
-	ptrFifoShm2->print();
-	assert(ptrFifoShm2->write(rca.totalLength(),(uint64_t*)(&rca)));
+	if(_checkEnable) {
+	  if(!r->valid()) {
+	    std::cerr << "Record is not valid" << std::endl;
+	    std::cout << "Record is not valid" << std::endl;
+	    r->print();
+	    if(_assertEnable) assert(false);
+	  }
+	}
+	
+	if(_printEnable) {
+	  std::cout << "Releasing Record in buffer" << std::endl;
+	  r->print();
+	  std::cout << std::endl;
+	}
+
+	ptrFifoShm2->writeIncrement();
+	//rca.print();
+	//assert(ptrFifoShm2->write(rca.totalLength(),(uint64_t*)(&rca)));
       }
+
       return true;
     }
     

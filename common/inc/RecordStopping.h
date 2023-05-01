@@ -17,7 +17,7 @@ namespace Hgcal10gLinkReceiver {
     
     void setHeader(uint32_t t=time(0)) {
       setState(FsmState::Stopping);
-      setPayloadLength(2);
+      setPayloadLength(3);
       setUtc(t);
     }
 
@@ -61,7 +61,8 @@ namespace Hgcal10gLinkReceiver {
     }
    
     void setNumberOfPauses(uint32_t p) {
-      _payload[2]&=0xffffffff00000000;
+      //_payload[2]&=0xffffffff00000000;
+      _payload[2]&=0xdeaddead00000000; // Until upper slot filled
       _payload[2]|=p;
     }
    

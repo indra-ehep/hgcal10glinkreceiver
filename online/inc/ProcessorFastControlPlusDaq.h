@@ -201,7 +201,9 @@ namespace Hgcal10gLinkReceiver {
     void running() {
       while(_ptrFsmInterface->isIdle()) {
 	if(!ptrFifoShm2->backPressure()) {
-	readRxSummaryFile();
+	  _eventNumber++;
+	  
+	  readRxSummaryFile();
 
       uint64_t miniDaq[120]={
       0xfe00b34ffffffffb,
@@ -353,7 +355,7 @@ namespace Hgcal10gLinkReceiver {
 	boe->setEventId(_eventNumber);
 	
 	eoe->setBxId((rand()%3564)+1);
-	eoe->setOrbitId(rand());
+	eoe->setOrbitId(time(0)); // CLUDGE!
 	
 	if(_evtSeqCounter<10) {
 	  rr.print();
@@ -494,8 +496,6 @@ namespace Hgcal10gLinkReceiver {
 	    assert(ptrFifoShm1->write(rr.totalLength(),(uint64_t*)(&rr)));
 	  }
 	  
-	_eventNumber++;
-
 	//usleep(100);
 	} else {
 	  if(_printEnable) {

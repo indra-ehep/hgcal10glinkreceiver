@@ -39,6 +39,9 @@ namespace Hgcal10gLinkReceiver {
     else h->print(o,s);
   }
 
+  void RecordPrinter(const Record &h, std::ostream &o=std::cout, std::string s="") {
+    RecordPrinter(&h,o,s);
+  }
 }
 
 #endif

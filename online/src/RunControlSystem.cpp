@@ -46,53 +46,31 @@ void RunControlSignalHandler(int signal) {
 
 int main(int argc, char *argv[]) {
 
-#ifdef JUNK
-  uint16_t bits(1);
-  unsigned nBits(1);
-  bool isBit[8]={true,false,false,false,false,false,false,false};
-  
-  if(argc>1) {
-    std::istringstream sin(argv[argc-1]);
-    sin >> bits;
+    // Turn off printing
+  bool printEnable(false);
+  bool checkEnable(false);
+  bool assertEnable(false);
 
-    nBits=0;
-    for(unsigned i(0);i<8;i++) {
-      if((bits&(1<<i))!=0) {
-	nBits++;
-	isBit[i]=true;
-      } else {
-	isBit[i]=false;
-      }
+  for(int i(1);i<argc;i++) {
+    if(std::string(argv[i])=="-p" ||
+       std::string(argv[i])=="--printEnable") {
+      std::cout << "Setting printEnable to true" << std::endl;
+      printEnable=true;
     }
     
-    std::cout << "Bits = 0x"
-	      << std::hex << std::setfill('0')
-	      << std::setw(2) << unsigned(bits)
-	      << std::dec << std::setfill(' ')
-	      << ", nbits = " << nBits
-	      << std::endl;
+    if(std::string(argv[i])=="-c" ||
+       std::string(argv[i])=="--checkEnable") {
+      std::cout << "Setting checkEnable to true" << std::endl;
+      checkEnable=true;
+    }
+    
+    if(std::string(argv[i])=="-a" ||
+       std::string(argv[i])=="--assertEnable") {
+      std::cout << "Setting assertEnable to true" << std::endl;
+      assertEnable=true;
+    }
   }
   
-  //std::vector< ShmSingleton<RunControlFsmShm> > vShmSingleton(nBits);
-  std::vector< ShmSingleton<FsmInterface> > vShmSingleton(6);
-  std::vector<FsmInterface*> vPtr;
-  /*
-    unsigned j(0);
-    for(unsigned i(0);i<8;i++) {
-    if(isBit[i]) {
-    vShmSingleton[j].setup(1234560+i);
-    vPtr.push_back(vShmSingleton[j].payload());
-    std::cout << j << " with key "
-    << std::hex << std::setfill('0')
-    << std::setw(2) << 1234560+i
-    << std::dec << std::setfill(' ')
-    << std::endl;
-    j++;
-    }
-    }
-    assert(j==nBits);
-  */
-#endif
   std::vector< ShmSingleton<FsmInterface> > vShmSingleton(6);
   std::vector<FsmInterface*> vPtr;
   
@@ -103,9 +81,11 @@ int main(int argc, char *argv[]) {
   vShmSingleton[4].setup(RunControlDaqLink1FsmShmKey);
   vShmSingleton[5].setup(RunControlDaqLink2FsmShmKey);
 
-  std::cout << "HERE" << std::endl;
-
   RunControlEngine engine;
+  engine.setPrintEnable(  printEnable);
+  engine.setCheckEnable(  checkEnable);
+  engine.setAssertEnable(assertEnable);
+
   for(unsigned i(0);i<vShmSingleton.size();i++) {
     vPtr.push_back(vShmSingleton[i].payload());
     engine.add(vShmSingleton[i].payload());
@@ -183,12 +163,13 @@ int main(int argc, char *argv[]) {
 
       RecordConfiguringA rca;
       rca.setHeader();
+
       if(x=='y') rca.setSuperRunNumber();
       else rca.setSuperRunNumber(0xffffffff);
+      uint32_t srNumber(rca.superRunNumber());
+
       rca.setMaxNumberOfConfigurations(nx);
       rca.setProcessKey(0xce000000,123);
-
-      uint32_t srNumber(rca.superRunNumber());
 
       fcp.setCommand(FsmCommand::ConfigureA);
       fcp.setRecord(rca);
@@ -215,9 +196,12 @@ int main(int argc, char *argv[]) {
 	for(nr=0;nr<rcb.maxNumberOfRuns() && continueSuperRun;nr++) {
 	  RecordStarting rsa;
 	  rsa.setHeader();
-	  rsa.setRunNumber();
-	  rsa.setMaxEvents(1000);
-	  rsa.setMaxSeconds(60);
+
+	  if(x=='y') rsa.setRunNumber();
+	  else rsa.setRunNumber(0xffffffff);
+
+	  rsa.setMaxEvents(1000000000);
+	  rsa.setMaxSeconds(200);
 	  rsa.setMaxSpills(0);
       
 	  fcp.setCommand(FsmCommand::Start);

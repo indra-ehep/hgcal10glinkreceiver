@@ -17,6 +17,18 @@ namespace Hgcal10gLinkReceiver {
       _timeoutLimit=1000000;
     }
 
+    void setPrintEnable(bool p) {
+      _printEnable=p;
+    }
+
+    void setCheckEnable(bool c) {
+      _checkEnable=c;
+    }
+
+    void setAssertEnable(bool a) {
+      _assertEnable=a;
+    }
+
     void add(FsmInterface *p) {
       _allFsmInterface.push_back(p);
       _alive.push_back(false);
@@ -40,25 +52,25 @@ namespace Hgcal10gLinkReceiver {
 	  n++;
 	}
       }
-	for(unsigned i(0);i<_goodFsmInterface.size() && i<1;i++) {
+      for(unsigned i(0);i<_goodFsmInterface.size() && i<1;i++) {
 	/*	
-	unsigned timeout(0);
-	_goodFsmInterface[i]->commandPacket().setCommand(FsmCommand::Reset);
+		unsigned timeout(0);
+		_goodFsmInterface[i]->commandPacket().setCommand(FsmCommand::Reset);
 
-	_goodFsmInterface[i]->print();
-	if(command(_goodFsmInterface[i]->commandPacket())) n++;
-	_goodFsmInterface[i]->print();
+		_goodFsmInterface[i]->print();
+		if(command(_goodFsmInterface[i]->commandPacket())) n++;
+		_goodFsmInterface[i]->print();
 
-	assert(_goodFsmInterface[i]->propose());
+		assert(_goodFsmInterface[i]->propose());
 
-	while(!_goodFsmInterface[i]->isAccepted() &&
-	      !_goodFsmInterface[i]->isRejected() &&
-	      timeout<_timeoutLimit) {
-	  timeout++;
-	  usleep(1);
-	}
+		while(!_goodFsmInterface[i]->isAccepted() &&
+		!_goodFsmInterface[i]->isRejected() &&
+		timeout<_timeoutLimit) {
+		timeout++;
+		usleep(1);
+		}
 
-	if(_goodFsmInterface[i]->isAccepted()) n++;
+		if(_goodFsmInterface[i]->isAccepted()) n++;
 	*/
       }
       std::cout << "Coldstart found " << n << std::endl;
@@ -254,7 +266,8 @@ namespace Hgcal10gLinkReceiver {
       
 	  // MORE HERE
 	  if(_printLevel>0) {
-	    std::cout << std::endl << "Shm" << i << " sent ???" << std::endl;
+	    std::cout << std::endl << "Shm" << i << " back in Static" << std::endl;
+	    _goodFsmInterface[i]->commandPacket().resetRecord();
 	    _goodFsmInterface[i]->print();
 	  }
 	}
@@ -309,50 +322,55 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     /*
-    bool reset(unsigned n) {
+      bool reset(unsigned n) {
     
       goodFsmInterface.resize(1);
       std::vector<bool> good(allFsmInterface.size());
     
       for(unsigned i(0);i<allFsmInterface.size();i++) {
-	goodFsmInterface.back()=allFsmInterface[i];
-	if(command(RunControlFsmEnums::Reset)) {
-	}
+      goodFsmInterface.back()=allFsmInterface[i];
+      if(command(RunControlFsmEnums::Reset)) {
       }
-    }
+      }
+      }
   
-    void ColdStart() {
+      void ColdStart() {
       _writePtr=0;
       _readPtr=0;
-    }
+      }
 
-    bool write(uint16_t n, const uint64_t *p) {
+      bool write(uint16_t n, const uint64_t *p) {
       if(_writePtr==_readPtr+BufferDepth) return false;
       //std::memcpy(_buffer[_writePtr%BufferDepth],p,8*n);
       std::memcpy(_buffer[_writePtr&BufferDepthMask],p,8*n);
       _writePtr++;
       return true;
-    }
+      }
 
-    uint16_t read(uint64_t *p) {
+      uint16_t read(uint64_t *p) {
       if(_writePtr==_readPtr) return 0;
       RecordHeader *h((RecordHeader*)_buffer[_readPtr&BufferDepthMask]);
       uint16_t n(h->totalLength());
       std::memcpy(p,h,8*n);
       _readPtr++;
       return n;
-    }
+      }
   
-    void print(std::ostream &o=std::cout) {
+      void print(std::ostream &o=std::cout) {
       o << "RunControlEngineT<" << PowerOfTwo << "," << Width << ">::print()" << std::endl;
       o << " Write pointer to memory  = " << std::setw(10) << _writePtr << std::endl
-	<< " Read pointer from memory = " << std::setw(10) << _readPtr << std::endl;    
+      << " Read pointer from memory = " << std::setw(10) << _readPtr << std::endl;    
       uint32_t diff(_writePtr>_readPtr?_writePtr-_readPtr:0);
       o << " Difference               = " << std::setw(10) << diff << std::endl;
-    }
+      }
     */
     
   private:
+    bool _printEnable;
+    bool _checkEnable;
+    bool _assertEnable;
+
+
     std::vector<bool> _alive;
     std::vector<FsmInterface*> _allFsmInterface;
     std::vector<FsmInterface*> _goodFsmInterface;

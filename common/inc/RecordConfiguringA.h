@@ -21,8 +21,8 @@ namespace Hgcal10gLinkReceiver {
       setUtc(t);
     }
 
-    bool validState() const {
-      return state()==FsmState::ConfiguringA;
+    bool valid() const {
+      return validPattern() && state()==FsmState::ConfiguringA;
     }
     
     uint32_t superRunNumber() const {
@@ -61,7 +61,7 @@ namespace Hgcal10gLinkReceiver {
       RecordHeader::print(o,s+" ");
       
       for(unsigned i(0);i<payloadLength();i++) {
-	o << s << "  Payload word " << std::setw(5) << " = 0x"
+	o << s << "   Payload word " << std::setw(5) << " = 0x"
 	  << std::hex << std::setfill('0')
 	  << std::setw(16) << _payload[i]
 	  << std::dec << std::setfill(' ') << std::endl;

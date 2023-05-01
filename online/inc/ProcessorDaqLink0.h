@@ -91,7 +91,7 @@ namespace Hgcal10gLinkReceiver {
       if(s==FsmInterface::Change) {
 	assert(_ptrFsmInterface->commandPacket().record().state()==FsmState::Stopping);
 	RecordStopping r;
-	std::cout << "HERE2 starting" << std::endl;
+	std::cout << "HERE2 stopping" << std::endl;
 	r.deepCopy(_ptrFsmInterface->commandPacket().record());
 	r.print();
 	_fileWriter.write(&r);
@@ -132,11 +132,11 @@ namespace Hgcal10gLinkReceiver {
 	RecordRunning *rr((RecordRunning*)&r);
 
 	while(_ptrFsmInterface->isIdle()) {
-	  ptrRunFileShm->print();
+	  if(_printEnable) ptrRunFileShm->print();
 	  if(ptrRunFileShm->read((uint64_t*)(&r))==0) {
 	    usleep(10);
 	  } else {
-	    rr->print();
+	    if(_printEnable) rr->RecordHeader::print();
 	    _fileWriter.write(&r);
 	  }
 	}
@@ -145,12 +145,19 @@ namespace Hgcal10gLinkReceiver {
 	std::cout << "Finished loop, checking for other events" << std::endl;
 	
 	while(ptrRunFileShm->_writePtr>ptrRunFileShm->_readPtr) {
-	  ptrRunFileShm->print();
+	  if(_printEnable) ptrRunFileShm->print();
 	  assert(ptrRunFileShm->read((uint64_t*)(&r))>0);
-	  rr->print();
+	  if(_printEnable) rr->RecordHeader::print();
 	  _fileWriter.write(&r);
 	}
-      }
+	usleep(1000);
+	while(ptrRunFileShm->_writePtr>ptrRunFileShm->_readPtr) {
+	  if(_printEnable) ptrRunFileShm->print();
+	  assert(ptrRunFileShm->read((uint64_t*)(&r))>0);
+	  if(_printEnable) rr->RecordHeader::print();
+	  _fileWriter.write(&r);
+	}
+    }
     
       void paused() {
       //sleep(1);

@@ -38,7 +38,7 @@ namespace Hgcal10gLinkReceiver {
     }
 
     virtual void setAssertEnable(bool a) {
-      _checkEnable=a;
+      _assertEnable=a;
     }
 
     virtual bool initializing(FsmInterface::HandshakeState s) {

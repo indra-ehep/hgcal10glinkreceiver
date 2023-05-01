@@ -41,9 +41,37 @@ public:
     _readPtr=0;
   }
 
+  // Processor writing into FIFO
+  Record* getWriteRecord() {
+    if(!writeable()) return nullptr;
+    return (Record*)_buffer[_writePtr&BufferDepthMask];
+  }
+
+  void writeIncrement() {
+    _writePtr++;
+  }
+  
+  // Reading from FIFO to disk without or with modification in FIFO first
+  const Record* readRecord() {
+    if(!readable()) return nullptr;
+    return (const Record*)_buffer[_readPtr&BufferDepthMask];
+  }
+
+  Record* getReadRecord() {
+    if(!readable()) return nullptr;
+    return (Record*)_buffer[_readPtr&BufferDepthMask];
+  }
+
+  void readIncrement() {
+    _readPtr++;
+  }
+  
+
+  
   bool writeRecord(const Record *r) {
     return write(r->payloadLength(),(const uint64_t*)r);
   }
+
 
   bool write(uint16_t n, const uint64_t *p) {
     if(_writePtr==_readPtr+BufferDepth) return false;
@@ -56,20 +84,22 @@ public:
   uint32_t writeable() const {
     return _readPtr+BufferDepth-_writePtr;
   }
+
+
+
+
+
+
+
+
+
+
+
   
   uint32_t readable() {
     return _writePtr-_readPtr;
   }
 
-  const Record* readRecord() {
-    if(!readable()) return nullptr;
-    return (const Record*)_buffer[_readPtr&BufferDepthMask];
-  }
-
-  void readIncrement() {
-    _readPtr++;
-  }
-  
   uint16_t read(uint64_t *p) {
     if(_writePtr==_readPtr) return 0;
     RecordHeader *h((RecordHeader*)_buffer[_readPtr&BufferDepthMask]);

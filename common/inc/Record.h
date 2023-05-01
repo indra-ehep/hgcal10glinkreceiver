@@ -10,6 +10,7 @@ namespace Hgcal10gLinkReceiver {
   class Record : public RecordHeader {
   public:
     Record() {
+      reset();
     }
     
     void incrementPayloadLength(uint16_t l=1) {

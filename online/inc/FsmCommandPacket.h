@@ -43,6 +43,10 @@ namespace Hgcal10gLinkReceiver {
       _record.deepCopy(h);
     }
 
+    void resetRecord() {
+      _record.reset();
+    }
+
     void print(std::ostream &o=std::cout) const {
       o << "FsmCommandPacket::print()" << std::endl;
       o << " Command " << FsmCommand::commandName(_command) << std::endl;
