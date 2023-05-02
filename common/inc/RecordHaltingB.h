@@ -21,11 +21,15 @@ namespace Hgcal10gLinkReceiver {
       setUtc(t);
     }
 
+    bool valid() const {
+      return validPattern() && state()==FsmState::HaltingB;
+    }
+    
     uint32_t superRunNumber() const {
       return _payload[0]&0xffffffff;
     }
 
-    uint32_t configurationCounter() const {
+    uint32_t configurationNumber() const {
       return _payload[0]>>32;
     }
 
@@ -33,19 +37,28 @@ namespace Hgcal10gLinkReceiver {
       return _payload[1]&0xffffffff;
     }
 
+    uint32_t numberOfEvents() const {
+      return _payload[1]>>32;
+    }
+
     void setSuperRunNumber(uint32_t n) {
       _payload[0]&=0xffffffff00000000;
       _payload[0]|=n;
     }
    
-    void setConfigurationCounter(uint32_t c) {
+    void setConfigurationNumber(uint32_t n) {
       _payload[0]&=0x00000000ffffffff;
-      _payload[0]|=uint64_t(c)<<32;
+      _payload[0]|=uint64_t(n)<<32;
     }
    
     void setNumberOfRuns(uint32_t n) {
       _payload[1]&=0xffffffff00000000;
       _payload[1]|=n;
+    }
+   
+    void setNumberOfEvents(uint32_t n) {
+      _payload[1]&=0x00000000ffffffff;
+      _payload[1]|=uint64_t(n)<<32;
     }
    
     void print(std::ostream &o=std::cout, std::string s="") const {
@@ -59,12 +72,14 @@ namespace Hgcal10gLinkReceiver {
 	  << std::dec << std::setfill(' ') << std::endl;
       }
 
-      o << s << "  SuperRun number       = "
+      o << s << "  SuperRun number      = "
 	<< std::setw(10) << superRunNumber() << std::endl;
-      o << s << "  Configuration counter = "
-	<< std::setw(10) << configurationCounter() << std::endl;
-      o << s << "  Number of runs        = "
+      o << s << "  Configuration number = "
+	<< std::setw(10) << configurationNumber() << std::endl;
+      o << s << "  Number of runs       = "
 	<< std::setw(10) << numberOfRuns() << std::endl;
+      o << s << "  Number of events     = "
+	<< std::setw(10) << numberOfEvents() << std::endl;
     }
 
   private:

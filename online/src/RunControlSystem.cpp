@@ -160,6 +160,7 @@ int main(int argc, char *argv[]) {
 
       unsigned nc(0);
       unsigned nr(0);
+      unsigned nrt(0);
 
       RecordConfiguringA rca;
       rca.setHeader();
@@ -245,7 +246,7 @@ int main(int argc, char *argv[]) {
 	  RecordStopping rsb;
 	  rsb.setHeader();
 	  rsb.setRunNumber(rsa.runNumber());
-	  rsb.setNumberOfEvents(0xffffffff); //???
+	  rsb.setNumberOfEvents(0xffffffff);
 	  rsb.setNumberOfSeconds(rsb.utc()-rsa.utc());
 	  rsb.setNumberOfSpills(0);
 	  rsb.setNumberOfPauses(np);
@@ -257,12 +258,15 @@ int main(int argc, char *argv[]) {
 	  fcp.print();
 	  engine.command(fcp);
 	}
-    
+
+	nrt+=nr;
+	
 	RecordHaltingB rhb;
 	rhb.setHeader();
 	rhb.setSuperRunNumber(srNumber);
-	rhb.setConfigurationCounter(nc+1);
+	rhb.setConfigurationNumber(nc+1);
 	rhb.setNumberOfRuns(nr);
+	rhb.setNumberOfEvents(0xffffffff);
     
 	fcp.setCommand(FsmCommand::HaltB);
 	fcp.setRecord(rhb);
@@ -276,6 +280,8 @@ int main(int argc, char *argv[]) {
       rha.setHeader();
       rha.setSuperRunNumber(srNumber);
       rha.setNumberOfConfigurations(nc);
+      rha.setNumberOfRuns(nrt);
+      rha.setNumberOfEvents(0xffffffff);
   
       fcp.setCommand(FsmCommand::HaltA);
       fcp.setRecord(rha);

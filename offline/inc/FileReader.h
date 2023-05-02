@@ -71,6 +71,11 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
+    bool closed() {
+      if(_inputFile) return false;      
+      return true;
+    }
+
     //bool read(RecordHeader *h) {
     //  _inputFile.read((char*)h,8);
     //  _inputFIle.read((char*)(h+1),8*h->payloadLength());

@@ -70,6 +70,7 @@ namespace Hgcal10gLinkReceiver {
       if(s==FsmInterface::Change) {
 	RecordT<1024> r;
 	while(_ptrFifo2->read((uint64_t*)(&r))==0) usleep(10);
+	if(_printEnable) r.print();
 	_fileWriter.write(&r);
       }
       return true;
@@ -157,7 +158,7 @@ namespace Hgcal10gLinkReceiver {
 	h.setUtc();
 	h.print();
       */
-      uint64_t buffer[128];
+      uint64_t buffer[1024];
       RecordHeader *h((RecordHeader*)buffer);
       h->setState(FsmState::ConfiguredB);
       while(h->state()!=FsmState::Continuing) {

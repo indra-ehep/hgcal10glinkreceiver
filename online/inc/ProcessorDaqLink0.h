@@ -43,6 +43,8 @@ namespace Hgcal10gLinkReceiver {
     
     bool starting(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
+	_eventNumber=0;
+	
 	assert(_ptrFsmInterface->commandPacket().record().state()==FsmState::Starting);
 	RecordStarting r;
 	std::cout << "HERE0 starting" << std::endl;
@@ -52,11 +54,11 @@ namespace Hgcal10gLinkReceiver {
 	_fileWriter.write(&r);
 
 	/*
-	while(ptrRunFileShm->read((uint64_t*)(&r))==0) usleep(10);
-	std::cout << "HERE1 starting" << std::endl;
-	r.print();
-	_fileWriter.open(r.runNumber(),0,false,true);
-	_fileWriter.write(&r);
+	  while(ptrRunFileShm->read((uint64_t*)(&r))==0) usleep(10);
+	  std::cout << "HERE1 starting" << std::endl;
+	  r.print();
+	  _fileWriter.open(r.runNumber(),0,false,true);
+	  _fileWriter.write(&r);
 	*/
       }
       return true;
@@ -93,11 +95,12 @@ namespace Hgcal10gLinkReceiver {
 	RecordStopping r;
 	std::cout << "HERE2 stopping" << std::endl;
 	r.deepCopy(_ptrFsmInterface->commandPacket().record());
+	r.setNumberOfEvents(_eventNumber);
 	r.print();
 	_fileWriter.write(&r);
 	_fileWriter.close();
       }
-	return true;
+      return true;
     }    
 
     bool resetting(FsmInterface::HandshakeState s) {
@@ -109,63 +112,69 @@ namespace Hgcal10gLinkReceiver {
       }
       return true;
     }
-      /*	
-      //////////////////////////////////////////////
+    /*	
+//////////////////////////////////////////////
     
-      void initial() {
-      //sleep(1);
-      }
+void initial() {
+//sleep(1);
+}
     
-      void halted() {
-      //sleep(1);
-      }
+void halted() {
+//sleep(1);
+}
     
-      void configuredA() {
-      //sleep(1);
-      }
+void configuredA() {
+//sleep(1);
+}
 
-    virtual void configuredB() {
-    }
-      */
+virtual void configuredB() {
+}
+    */
     void running() {
-	RecordT<1024> r;
-	RecordRunning *rr((RecordRunning*)&r);
+      RecordT<1024> r;
+      RecordRunning *rr((RecordRunning*)&r);
 
-	while(_ptrFsmInterface->isIdle()) {
-	  if(_printEnable) ptrRunFileShm->print();
-	  if(ptrRunFileShm->read((uint64_t*)(&r))==0) {
-	    usleep(10);
-	  } else {
-	    if(_printEnable) rr->RecordHeader::print();
-	    _fileWriter.write(&r);
-	  }
+      while(_ptrFsmInterface->isIdle()) {
+	if(_printEnable) ptrRunFileShm->print();
+	if(ptrRunFileShm->read((uint64_t*)(&r))==0) {
+	  usleep(10);
+	} else {
+	  if(_printEnable) rr->RecordHeader::print();
+	  _fileWriter.write(&r);
+	  _eventNumber++;
 	}
+      }
 
-	ptrRunFileShm->print();
-	std::cout << "Finished loop, checking for other events" << std::endl;
+      ptrRunFileShm->print();
+      std::cout << "Finished loop, checking for other events" << std::endl;
 	
-	while(ptrRunFileShm->_writePtr>ptrRunFileShm->_readPtr) {
-	  if(_printEnable) ptrRunFileShm->print();
-	  assert(ptrRunFileShm->read((uint64_t*)(&r))>0);
-	  if(_printEnable) rr->RecordHeader::print();
-	  _fileWriter.write(&r);
-	}
-	usleep(1000);
-	while(ptrRunFileShm->_writePtr>ptrRunFileShm->_readPtr) {
-	  if(_printEnable) ptrRunFileShm->print();
-	  assert(ptrRunFileShm->read((uint64_t*)(&r))>0);
-	  if(_printEnable) rr->RecordHeader::print();
-	  _fileWriter.write(&r);
-	}
+      while(ptrRunFileShm->_writePtr>ptrRunFileShm->_readPtr) {
+	if(_printEnable) ptrRunFileShm->print();
+	assert(ptrRunFileShm->read((uint64_t*)(&r))>0);
+	if(_printEnable) rr->RecordHeader::print();
+	_fileWriter.write(&r);
+	_eventNumber++;
+      }
+	
+      usleep(1000);
+	
+      while(ptrRunFileShm->_writePtr>ptrRunFileShm->_readPtr) {
+	if(_printEnable) ptrRunFileShm->print();
+	assert(ptrRunFileShm->read((uint64_t*)(&r))>0);
+	if(_printEnable) rr->RecordHeader::print();
+	_fileWriter.write(&r);
+	_eventNumber++;
+      }
     }
     
-      void paused() {
+    void paused() {
       //sleep(1);
-      }
+    }
    
   private:
     DataFifoT<6,1024> *ptrRunFileShm;
     FileWriter _fileWriter;
+    unsigned _eventNumber;
   };
 
 }

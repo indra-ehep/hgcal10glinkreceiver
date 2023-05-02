@@ -115,8 +115,9 @@ class SlinkEoe {
       << std::setw(4) << daqCrc()
       << std::dec << std::setfill(' ')
       << std::endl;
-    o << s << " Event length = " << std::setw(7) << eventLength()
-      << " 128-bit words" << std::endl;
+    o << s << " Event length in 128-bit words = "
+      << std::setw(7) << eventLength()
+      << std::endl;
     o << s << " BX id = " << std::setw(4) << bxId() << std::endl;
     o << s << " Orbit id = " << std::setw(10) << orbitId() << std::endl;
     o << s << " CRC = 0x"

@@ -10,7 +10,7 @@
 #include <getopt.h>
 
 #include "TFileHandler.h"
-#include "TH1I.h"
+#include "TH1F.h"
 
 #include "FileReader.h"
 #include "RecordPrinter.h"
@@ -24,7 +24,8 @@ int main(int argc, char** argv) {
   }
 
   TFileHandler tfh(std::string("BasicSuperRunCheck")+argv[1]);
-  TH1I *h0=new TH1I("EventsVsTime",";Time;Events/sec",5000,0,5000);
+  TH1I *h0=new TH1I("EventsVsTime0",";Time;Events/sec",50000,0,50000);
+  TH1F *h1=new TH1F("EventsVsTime1",";Time;Events/sec", 5000,0,50000);
   
   bool doSrun(true);
 
@@ -55,13 +56,20 @@ int main(int argc, char** argv) {
   unsigned nRs(0);
   unsigned nSp(0);
 
-      unsigned nRunSt(0);
-      unsigned nRunPs(0);
-      unsigned nRunEv(0);
-      unsigned nRunRs(0);
-      unsigned nRunSp(0);
-      unsigned nSeqOff;
-
+  unsigned nRunSt(0);
+  unsigned nRunPs(0);
+  unsigned nRunEv(0);
+  unsigned nRunRs(0);
+  unsigned nRunSp(0);
+  unsigned nSeqOff;
+  
+  unsigned nCfgInSrun(0);
+  unsigned nRunInCfg(0);
+  unsigned nRunInSrun(0);
+  unsigned nEvtInRun(0);
+  unsigned nEvtInCfg(0);
+  unsigned nEvtInSrun(0);
+      
   
   RecordHeader previous;
   
@@ -100,6 +108,10 @@ int main(int argc, char** argv) {
       assert(rcb.configurationCounter()==nCfgB);
       nSt=0;
       nSp=0;
+
+      nCfgInSrun++;
+      nRunInCfg=0;
+      nEvtInCfg=0;
     }
     
     if(h.state()==FsmState::Starting) {
@@ -111,6 +123,10 @@ int main(int argc, char** argv) {
       nPs=0;
       nRs=0;
       
+      nRunInSrun++;
+      nRunInCfg++;
+      nEvtInRun=0;
+
       RecordT<1024> hRun;
       RecordStarting     &runRst((RecordStarting&    )hRun);
       RecordPausing      &runRps((RecordPausing&     )hRun);
@@ -120,7 +136,8 @@ int main(int argc, char** argv) {
 
       FileReader _fileReaderRun;
       _fileReaderRun.openRun(rst.runNumber(),0);
-
+      if(_fileReaderRun.closed()) return 1;
+	 
       nRunSt=0;
       nRunPs=0;
       nRunEv=0;
@@ -185,7 +202,12 @@ int main(int argc, char** argv) {
 	  }
 
 	  h0->Fill(runRrn.slinkEoe()->orbitId()-superRunNumber);
+	  h1->Fill(runRrn.slinkEoe()->orbitId()-superRunNumber,0.1);
 	  nRunEv++;
+
+	  nEvtInSrun++;
+	  nEvtInCfg++;
+	  nEvtInRun++;
 	}
       }
       std::cout << "nRunSt = " << nRunSt << ", nRunSp = " << nRunSp
@@ -209,9 +231,9 @@ int main(int argc, char** argv) {
       assert(nRunRs==rsp.numberOfPauses());
 
       //assert(rsp.numberOfEvents()+1==nRunEv);
-      if(nRunEv<rsp.numberOfEvents()+1) {
+      if(nRunEv<rsp.numberOfEvents()) {
 	std::cerr << "Events dropped = "
-		  << rsp.numberOfEvents()+1 << " - "
+		  << rsp.numberOfEvents() << " - "
 		  << nRunEv << " = " << rsp.numberOfEvents()+1-nRunEv
 		  << std::endl;
 	    }
@@ -222,26 +244,31 @@ int main(int argc, char** argv) {
     }
 
     if(h.state()==FsmState::HaltingB) {
-      //assert(rhb.valid());
+      assert(rhb.valid());
       assert(rhb.utc()>=previous.utc());
       assert(rhb.superRunNumber()==superRunNumber);
 
-      assert(rhb.configurationCounter()==nCfgB);
+      assert(rhb.configurationNumber()==nCfgInSrun);
+      assert(rhb.numberOfRuns()==nRunInCfg);
+      //assert(rhb.numberOfEvents()==nEvtInCfg);
       assert(rhb.numberOfRuns()==nSt);
       assert(rhb.numberOfRuns()==nSp);
     }
 
 
     if(h.state()==FsmState::HaltingA) {
-      //assert(rha.valid());
+      assert(rha.valid());
       assert(rha.utc()>=previous.utc());
       assert(rha.superRunNumber()==superRunNumber);
-
-      assert(rha.numberOfConfigurations()==nCfgB);
+      assert(rha.numberOfConfigurations()==nCfgInSrun);
+      assert(rha.numberOfRuns()==nRunInSrun);
+      assert(rha.numberOfEvents()==nEvtInSrun);
     }
 
     previous=h;
   }
+  return 0;
+}
 
 #ifdef JUNK
   /*
@@ -354,7 +381,9 @@ int main(int argc, char** argv) {
     }
 
   }
-  /*
+
+
+/*
   if(fileNumber==0) assert((p64[0]>>56)==0xbb);
     else              assert((p64[0]>>56)==0xcc);
     
@@ -444,5 +473,3 @@ int main(int argc, char** argv) {
   std::cout << "Directly read " << j << " words" << std::endl;
   */
 #endif
-  return 0;
-}

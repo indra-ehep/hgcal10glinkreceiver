@@ -201,7 +201,7 @@ namespace Hgcal10gLinkReceiver {
     void running() {
       while(_ptrFsmInterface->isIdle()) {
 	if(!ptrFifoShm2->backPressure()) {
-	  _eventNumber++;
+	  _eventNumberInRun++;
 	  
 	  readRxSummaryFile();
 
@@ -352,25 +352,25 @@ namespace Hgcal10gLinkReceiver {
 	eoe->setCrc(0xdead);
 	boe->setL1aSubType(rand()%256);
 	boe->setL1aType(rand()%64);
-	boe->setEventId(_eventNumber);
+	boe->setEventId(_eventNumberInRun);
 	
 	eoe->setBxId((rand()%3564)+1);
 	eoe->setOrbitId(time(0)); // CLUDGE!
-	
-	if(_evtSeqCounter<10) {
-	  rr.print();
-	}	
 
-	if(_evtSeqCounter<10) {
-	std::cout << "HERE" << std::endl;
-	rr.print();
+	if(_printEnable) {
+	  if(_evtSeqCounter<10) {
+	    std::cout << "HERE" << std::endl;
+	    rr.print();
+	  }
 	}
 	
 	if(ptrFifoShm0!=0) {
-	  ptrFifoShm0->print();
+	  if(_printEnable) ptrFifoShm0->print();
 	  //assert(ptrFifoShm0->write(rr.totalLength(),(uint64_t*)(&rr)));
 	  if(!ptrFifoShm0->write(rr.totalLength(),(uint64_t*)(&rr))) {
 	    std::cerr << "Failed to write event" << std::endl;
+	    std::cout << "Failed to write event" << std::endl;
+	    ptrFifoShm0->print();
 	  }
 	}
 
