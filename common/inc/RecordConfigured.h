@@ -81,6 +81,13 @@ namespace Hgcal10gLinkReceiver {
       _payload[payloadLength()]=d;
       incrementPayloadLength(1);
     }
+
+    void addString(const std::string &s) {
+      unsigned n((s.size()+8)/8);
+      _payload[payloadLength()+n]=0xffffffff;
+      std::memcpy(_payload+payloadLength(),s.c_str(),s.size()+1);
+      incrementPayloadLength(n);
+    }
     
     void print(std::ostream &o=std::cout, std::string s="") const {
       o << s << "RecordConfigured::print()" << std::endl;

@@ -28,8 +28,8 @@
 #include "SlinkBoe.h"
 #include "SlinkEoe.h"
 
-#undef ProcessorFastControlHardware
-//#define ProcessorFastControlHardware
+//#undef ProcessorFastControlHardware
+#define ProcessorFastControlHardware
 
 #ifdef ProcessorFastControlHardware
 #include "uhal/uhal.hpp"
@@ -55,10 +55,12 @@ namespace Hgcal10gLinkReceiver {
     }
 
     virtual bool initializing(FsmInterface::HandshakeState s) {
+      std::cout << "HEREI !!!" << std::endl;
       if(s==FsmInterface::Change) {
 
+      std::cout << "HEREI2 !!!" << std::endl;
 #ifdef ProcessorFastControlHardware
-	system("/home/cmx/pdauncey/source setFC.sh");
+	//system("/home/cmx/pdauncey/source setFC.sh");
 
 	const std::string lConnectionFilePath = "etc/connections.xml";
 	const std::string lDeviceId = "x0";
@@ -113,18 +115,49 @@ namespace Hgcal10gLinkReceiver {
 	  std::cout << "... success!" << std::endl << "Value = 0x" << std::hex << lReg.value() << std::endl;
 	  nds.push_back(lReg.value());
 	}
+
+	std::vector<std::string> temp;
+	temp=lHW.getNode("payload").getNodes();
+
+	if(_printEnable) {
+	  for(unsigned i(0);i<temp.size();i++) {
+	    std::cout << "ALL string " << temp[i] << std::endl;
+	  }
+	  std::cout << std::endl;
+	}
+
+	_xhalString.resize(0);
+	for(unsigned i(0);i<temp.size();i++) {
+	  if(temp[i].substr(0,8)=="fc_ctrl.") {
+	    if(temp[i].substr(8,17)!="tcds2_emu") {
+	    std::cout << "XHAL string " << std::setw(3) << " = " 
+		      << temp[i] << std::endl;
+	      _xhalString.push_back(temp[i]);
+	    }
+	  }
+	}
+	
+	if(_printEnable) {
+	  for(unsigned i(0);i<_xhalString.size();i++) {
+	    std::cout << "XHAL string " << std::setw(3) << " = " 
+		      << _xhalString[i] << std::endl;
+
+	    const uhal::Node& lNode = lHW.getNode("payload."+_xhalString[i]);
+	    uhal::ValWord<uint32_t> lReg = lNode.read();
+	    lHW.dispatch();
+	    
+	    std::cout << "XHAL string " << std::setw(3) << " = "
+		      << _xhalString[i] << ", initial value = " 
+		      << lReg.value() << std::endl;
+	  }
+	  std::cout << std::endl;
+	} 
 #else
 	_xhalString.resize(0);
 	_xhalString.push_back("tcds2_emu.ctrl_stat.ctrl.seq_length"); 
 #endif
-    
-	if(_printEnable) {
-	  for(unsigned i(0);i<_xhalString.size();i++) {
-	    std::cout << "XHAL string " << std::setw(3) << " = "
-		      << _xhalString[i] << std::endl;
-	  }
-	}
-      }      
+      }
+	
       return true;
     }
 
@@ -404,11 +437,36 @@ void configuredA() {
       r->setLocation(0xbe00);
       r->print();
       
+      for(unsigned i(0);i<_xhalString.size() && i<10;i++) {
+	r->addString(_xhalString[i]);
+      }
+      r->print();
+      
+      while((r=(RecordConfigured*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
+      r->setHeader(_cfgSeqCounter++);
+      r->setState(FsmState::ConfiguredB);
+      r->setType(RecordConfigured::BE);
+      r->setLocation(0xbe01);
+      r->print();
+      
       XhalInstruction xi;
+
+	const std::string lConnectionFilePath = "etc/connections.xml";
+	const std::string lDeviceId = "x0";
+	uhal::ConnectionManager lConnectionMgr("file://" + lConnectionFilePath);
+	uhal::HwInterface lHW = lConnectionMgr.getDevice(lDeviceId);
+
 
       for(unsigned i(0);i<_xhalString.size();i++) {
 	xi.setAddress(i);
-	xi.setValue(0x1000*i); // READ!!!
+#ifdef ProcessorFastControlHardware
+	const uhal::Node& lNode = lHW.getNode("payload."+_xhalString[i]);
+	uhal::ValWord<uint32_t> lReg = lNode.read();
+	lHW.dispatch();
+	xi.setValue(lReg.value());
+#else
+	xi.setValue(0x1000*i);
+#endif
 	xi.print();
 	r->addData64(xi.data());
       }
@@ -436,12 +494,12 @@ void configuredA() {
 	
 	 assert(ptrFifoShm2->write(h.totalLength(),(uint64_t*)(&h)));
 	 }
-      
+      */      
 	 RecordContinuing rc;
 	 rc.setHeader();
 	 rc.print();
 	 assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
-      */
+
     }
 
 #ifdef NOW_IN_PLUS_DAQ
