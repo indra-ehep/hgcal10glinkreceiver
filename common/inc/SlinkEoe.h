@@ -34,6 +34,10 @@ class SlinkEoe {
     return _word[0]>>56;
   }
 
+  bool validPattern() const {
+    return eoeHeader()==EoePattern;
+  }
+
   uint16_t daqCrc() const {
     return (_word[0]>>40)&0xffff;
   }

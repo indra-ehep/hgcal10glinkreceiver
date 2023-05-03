@@ -17,8 +17,8 @@
 #include "SlinkBoe.h"
 #include "SlinkEoe.h"
 
-#undef ProcessorFastControlPlusDaqHardware
-//#define ProcessorFastControlPlusDaqHardware
+//#undef ProcessorFastControlPlusDaqHardware
+#define ProcessorFastControlPlusDaqHardware
 
 #ifdef ProcessorFastControlPlusDaqHardware
 #include "uhal/uhal.hpp"
@@ -53,12 +53,23 @@ namespace Hgcal10gLinkReceiver {
       ProcessorFastControl::setUpAll(rcKey,fifoKey2);
     }
 
-    void readRxSummaryFile() {
-      const unsigned offset(27);
+    bool readRxSummaryFile() {
+      //const unsigned offset(28); // RX
+      const unsigned offset(28); // TX
+
+      system("ls -l data/");
+      system("rm data/rx_summary.txt; rm data/tx_summary.txt");
+      //system("ls -l data/");
+      system("source ./emp_capture_single.sh");
+      sleep(1);
+      system("ls -l data/");
+      //system("./emp_capture_single.sh");
+      //sleep(1);
+      //system("ls -l data/");
 
       std::ifstream fin;
-      fin.open("rx_summary.txt");
-      if(!fin) return;
+      fin.open("data/tx_summary.txt");
+      if(!fin) return false;
       
       char buffer[1024];
       fin.getline(buffer,1024);
@@ -66,16 +77,23 @@ namespace Hgcal10gLinkReceiver {
       fin.getline(buffer,1024);
       fin.getline(buffer,1024);
       
+      std::cout << "rxSummary data" << std::endl;
       for(unsigned i(0);i<128;i++) {
 	for(unsigned j(0);j<8;j++) {
 	  fin.getline(buffer,1024);
 	  buffer[offset+8]='\0';
 	  std::istringstream sin(buffer+offset);
 	  sin >> std::hex >> _rxSummaryData[j][i];
+
+	  std::cout << " 0x" << std::hex << std::setfill('0') 
+		    << std::setw(8) << _rxSummaryData[j][i]
+		    << std::dec << std::setfill(' ');
 	}
+	std::cout << std::endl;
       }      
 
       fin.close();
+      return true;
     }
 
    
@@ -138,30 +156,40 @@ namespace Hgcal10gLinkReceiver {
 	std::cout << "... success!" << std::endl << "Value = 0x" << std::hex << lReg.value() << std::endl;
 	nds.push_back(lReg.value());
       }
-#else
-      if(s==FsmInterface::Change) {
-	RecordInitializing ri;
-	ri.print();
-      }
 
       // Read in HGCROC capture file
-      unsigned ncount[8][32],mcount[8],kcount[8];
+      unsigned ncount[8][256],mcount[8],kcount[8];
 
       for(unsigned j(0);j<8;j++) {
 	mcount[j]=0;
-	kcount[j]=32;
+	kcount[j]=256;
       }
       
-      for(unsigned k(0);k<1;k++) {
-	readRxSummaryFile();
+      for(unsigned k(25);k<26;k++) {
+	xhalWrite("lpgbt0.lpgbt_frame.shift_elink0",0);
+	xhalWrite("lpgbt0.lpgbt_frame.shift_elink1",0);
+	xhalWrite("lpgbt0.lpgbt_frame.shift_elink2",0);
+	xhalWrite("lpgbt0.lpgbt_frame.shift_elink3",0);
+	xhalWrite("lpgbt0.lpgbt_frame.shift_elink4",k);
+	xhalWrite("lpgbt0.lpgbt_frame.shift_elink5",k);
+	xhalWrite("lpgbt0.lpgbt_frame.shift_elink6",0);
+
+	xhalWrite("lpgbt1.lpgbt_frame.shift_elink0",0);
+	xhalWrite("lpgbt1.lpgbt_frame.shift_elink1",0);
+	xhalWrite("lpgbt1.lpgbt_frame.shift_elink2",0);
+	xhalWrite("lpgbt1.lpgbt_frame.shift_elink3",0);
+	xhalWrite("lpgbt1.lpgbt_frame.shift_elink4",k);
+	xhalWrite("lpgbt1.lpgbt_frame.shift_elink5",k);
+	xhalWrite("lpgbt1.lpgbt_frame.shift_elink6",0);
+
+	std::cout << "readRxSummaryFile returns " << readRxSummaryFile() << std::endl;
 
 	for(unsigned j(0);j<8;j++) {
 	  ncount[j][k]=0;
 
 	  for(unsigned i(0);i<128;i++) {
 	    if(_rxSummaryData[j][i]==0xaccccccc ||
-	       _rxSummaryData[j][i]==0x9ccccccc ||
-	       _rxSummaryData[j][i]==0x3333332b) ncount[j][k]++;
+	       _rxSummaryData[j][i]==0x9ccccccc) ncount[j][k]++;
 	  }
 	}
 	
@@ -174,7 +202,7 @@ namespace Hgcal10gLinkReceiver {
       }
 
       for(unsigned j(0);j<8;j++) {
-	_rxSummaryValid[j]=(mcount[j]>10 && kcount[j]<32);
+	_rxSummaryValid[j]=(mcount[j]>10 && kcount[j]<256);
       }
       
       for(unsigned j(0);j<8;j++) {
@@ -202,8 +230,12 @@ namespace Hgcal10gLinkReceiver {
       while(_ptrFsmInterface->isIdle()) {
 	if(!ptrFifoShm2->backPressure()) {
 	  _eventNumberInRun++;
-	  
-	  readRxSummaryFile();
+	  uint64_t bxNumberInRun(1637*_eventNumberInRun);
+	  uint64_t bc((bxNumberInRun%3564)+1);
+	  uint64_t oc(bxNumberInRun/3564);
+
+
+	  //readRxSummaryFile();
 
       uint64_t miniDaq[120]={
       0xfe00b34ffffffffb,
@@ -327,35 +359,52 @@ namespace Hgcal10gLinkReceiver {
       0x0460000004700000,
       0xe4e37d0c00000000
       };
-	  RecordT<128> buffer;
+
+      miniDaq[0]&=0xfe00000fffffffff;
+      miniDaq[0]|=bc<<45|uint64_t(_eventNumberInRun%64)<<39|(oc%8)<<36;
+
+      uint32_t *p32((uint32_t*)miniDaq);
+
+
+      RecordT<1023> buffer;
 
 	RecordRunning &rr((RecordRunning&)buffer);
 	rr.setIdentifier(RecordHeader::EventData);
 	rr.setState(FsmState::Running);
 	rr.setPayloadLength(4+120);
-	rr.setUtc(_evtSeqCounter++);
+	//rr.setUtc(_evtSeqCounter++);
+	rr.setUtc(_eventNumberInRun);
 
 	SlinkBoe *boe(rr.getSlinkBoe());
 	*boe=SlinkBoe();
+	boe->setEventId(_eventNumberInRun);
+	boe->setL1aSubType(rand()%256);
+	boe->setL1aType(rand()%64);
 	boe->setSourceId(ProcessorDaqLink0FifoShmKey);
 
-	uint64_t *ptr(rr.getDaqPayload());
+	uint32_t *ptr(rr.getDaqPayload());
 	for(unsigned i(0);i<120;i++) {
-	  ptr[i]=miniDaq[i];
+	  //ptr[2*i+1]=p32[2*i  ];
+	  //ptr[2*i  ]=p32[2*i+1];
+	  ptr[2*i  ]=p32[2*i  ];
+	  ptr[2*i+1]=p32[2*i+1];
 	}
-	
 	
 	SlinkEoe *eoe(rr.getSlinkEoe());
 	*eoe=SlinkEoe();
 
 	eoe->setEventLength(2+60);
 	eoe->setCrc(0xdead);
-	boe->setL1aSubType(rand()%256);
-	boe->setL1aType(rand()%64);
 	boe->setEventId(_eventNumberInRun);
 	
-	eoe->setBxId((rand()%3564)+1);
-	eoe->setOrbitId(time(0)); // CLUDGE!
+	eoe->setBxId((bxNumberInRun%3564)+1);
+	eoe->setOrbitId(bxNumberInRun/3564);
+
+	if(eoe->eoeHeader()!=SlinkEoe::EoePattern) {
+	  eoe->print();
+	  rr.print();
+	  assert(false);
+	}
 
 	if(_printEnable) {
 	  if(_evtSeqCounter<10) {
@@ -374,7 +423,7 @@ namespace Hgcal10gLinkReceiver {
 	  }
 	}
 
-#ifdef ProcessorFastControlPlusDaqHardware
+#ifdef JUNK
 	  std::ifstream fin("/home/cmx/pdauncey/data/rx_summary.txt");
 	  if(!fin) {
 	    std::cout << "Failed to open file" << std::endl;

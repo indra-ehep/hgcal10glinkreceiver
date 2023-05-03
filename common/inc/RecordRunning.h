@@ -22,12 +22,16 @@ namespace Hgcal10gLinkReceiver {
       setUtc(t);
     }
 
+    bool valid() const {
+      return validPattern() && state()==FsmState::Running;
+    }
+    
     const SlinkBoe* slinkBoe() const {
       return (SlinkBoe*)_payload;
     }
     
-    const uint64_t* daqPayload() const {
-      return (payloadLength()==0?nullptr:_payload+2);
+    const uint32_t* daqPayload() const {
+      return (payloadLength()==0?nullptr:(const uint32_t*)(_payload+2));
     }
     
     const SlinkEoe* slinkEoe() const {
@@ -38,8 +42,8 @@ namespace Hgcal10gLinkReceiver {
       return (SlinkBoe*)_payload;
     }
     
-    uint64_t* getDaqPayload() {
-      return (payloadLength()==0?nullptr:_payload+2);
+    uint32_t* getDaqPayload() {
+      return (payloadLength()==0?nullptr:(uint32_t*)(_payload+2));
     }
     
     SlinkEoe* getSlinkEoe() {
@@ -49,14 +53,14 @@ namespace Hgcal10gLinkReceiver {
     void print(std::ostream &o=std::cout, std::string s="") const {
       o << s << "RecordRunning::print()" << std::endl;
       RecordHeader::print(o,s+" ");
-      
+      /*      
       for(unsigned i(0);i<payloadLength();i++) {
 	o << s << "   Payload word " << std::setw(5) << " = 0x"
 	  << std::hex << std::setfill('0')
 	  << std::setw(16) << _payload[i]
 	  << std::dec << std::setfill(' ') << std::endl;
       }
-      
+      */
       slinkBoe()->print(o,s+" ");
       slinkEoe()->print(o,s+" ");
     }

@@ -72,7 +72,7 @@ namespace Hgcal10gLinkReceiver {
 	std::cout << "HERE2 pausing" << std::endl;
 	r.deepCopy(_ptrFsmInterface->commandPacket().record());
 	r.print();
-	_fileWriter.write(&r);
+	//_fileWriter.write(&r); NO!
       }
       return true;
     }
@@ -84,7 +84,7 @@ namespace Hgcal10gLinkReceiver {
 	std::cout << "HERE2 starting" << std::endl;
 	r.deepCopy(_ptrFsmInterface->commandPacket().record());
 	r.print();
-	_fileWriter.write(&r);
+	//_fileWriter.write(&r); NO!
       }
       return true;
     }

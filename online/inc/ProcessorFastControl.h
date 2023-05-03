@@ -43,10 +43,11 @@ namespace Hgcal10gLinkReceiver {
   public:
   ProcessorFastControl() : lConnectionFilePath("etc/connections.xml"),
       lDeviceId("x0"),
-      lConnectionMgr("file://" + lConnectionFilePath) {
+      lConnectionMgr("file://" + lConnectionFilePath),
+      lHW(lConnectionMgr.getDevice(lDeviceId)) {
       
 	uhal::setLogLevelTo(uhal::Error());  
-	lHW = lConnectionMgr.getDevice(lDeviceId);
+	//lHW = lConnectionMgr.getDevice(lDeviceId);
     }
 
     virtual ~ProcessorFastControl() {
@@ -169,7 +170,8 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 
 	 */
 
-	xhalWrite("fc_ctrl.fpga_fc.ctrl.tts",0);
+	std::cout << "SETTING SOME DEFAULTS" << std::endl;
+	assert(xhalWrite("fc_ctrl.fpga_fc.ctrl.tts",0));
 	xhalWrite("fc_ctrl.fpga_fc.ctrl.prel1a_offset",3);
 	xhalWrite("fc_ctrl.fpga_fc.ctrl.user_prel1a_off_en",1);
 
@@ -464,7 +466,6 @@ void configuredA() {
 	  std::cout << std::dec << std::setfill(' ');
 	}
 	fin.close();
-
 	r->print();
 	ptrFifoShm2->writeIncrement();
       }
@@ -728,7 +729,18 @@ void configuredA() {
       return lReg.value();
     }
       
-    void xhalWrite(const std::string &s, uint32_t value) {
+    bool xhalWrite(const std::string &s, uint32_t v) {
+      std::cout << "xhalWrite: setting " << s << " to  0x"
+		<< std::hex << std::setfill('0')
+		<< std::setw(8) << v
+		<< std::dec << std::setfill(' ')
+		<< std::endl;
+
+      const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
+      lNode.write(v);
+      lHW.dispatch();
+
+      return xhalRead(s)==v;
     }
 
 #else
@@ -737,12 +749,13 @@ void configuredA() {
       return 999;
     }
 
-    void xhalWrite(const std::string &s, uint32_t v) {
+    bool xhalWrite(const std::string &s, uint32_t v) {
       std::cout << "xhalWrite: setting " << s << " to  0x"
 		<< std::hex << std::setfill('0')
 		<< std::setw(8) << v
 		<< std::dec << std::setfill(' ')
 		<< std::endl;
+      return true;
     }
 
 #endif

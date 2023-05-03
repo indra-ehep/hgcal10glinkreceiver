@@ -28,6 +28,10 @@ class SlinkBoe {
   uint8_t  boeHeader() const {
     return _word[0]>>56;
   }
+
+  bool validPattern() const {
+    return boeHeader()==BoePattern;
+  }
   
   uint8_t  version() const {
     return (_word[0]>>52)&0x0f;
