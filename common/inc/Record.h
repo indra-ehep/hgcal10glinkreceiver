@@ -13,6 +13,14 @@ namespace Hgcal10gLinkReceiver {
       reset();
     }
     
+    const uint64_t* payload() const {
+      return (uint64_t*)(this+1);
+    }
+    
+    uint64_t* getPayload() {
+      return (uint64_t*)(this+1);
+    }
+    
     void incrementPayloadLength(uint16_t l=1) {
       RecordHeader::setPayloadLength(payloadLength()+l);
     }

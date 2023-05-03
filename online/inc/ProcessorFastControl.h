@@ -39,9 +39,14 @@
 namespace Hgcal10gLinkReceiver {
 
   class ProcessorFastControl : public ProcessorBase {
-
+    
   public:
-    ProcessorFastControl() {
+  ProcessorFastControl() : lConnectionFilePath("etc/connections.xml"),
+      lDeviceId("x0"),
+      lConnectionMgr("file://" + lConnectionFilePath) {
+      
+	uhal::setLogLevelTo(uhal::Error());  
+	lHW = lConnectionMgr.getDevice(lDeviceId);
     }
 
     virtual ~ProcessorFastControl() {
@@ -62,17 +67,13 @@ namespace Hgcal10gLinkReceiver {
 #ifdef ProcessorFastControlHardware
 	//system("/home/cmx/pdauncey/source setFC.sh");
 
-	const std::string lConnectionFilePath = "etc/connections.xml";
-	const std::string lDeviceId = "x0";
-  
 	std::vector<std::string> lRegisterName;
 	std::vector<std::string> lRegisterNameW;
   
 	lRegisterName.push_back("tcds2_emu.ctrl_stat.ctrl.seq_length");
 
-	uhal::setLogLevelTo(uhal::Error());  
-	uhal::ConnectionManager lConnectionMgr("file://" + lConnectionFilePath);
-	uhal::HwInterface lHW = lConnectionMgr.getDevice(lDeviceId);
+	//uhal::ConnectionManager lConnectionMgr("file://" + lConnectionFilePath);
+	//uhal::HwInterface lHW = lConnectionMgr.getDevice(lDeviceId);
   
   
 	const uhal::Node& lNode = lHW.getNode("payload.fc_ctrl." + lRegisterName[0]);
@@ -129,6 +130,7 @@ namespace Hgcal10gLinkReceiver {
 	_xhalString.resize(0);
 	for(unsigned i(0);i<temp.size();i++) {
 	  if(temp[i].substr(0,8)=="fc_ctrl.") {
+	    std::cout << "Substr = " << temp[i].substr(8,17) << std::endl;
 	    if(temp[i].substr(8,17)!="tcds2_emu") {
 	    std::cout << "XHAL string " << std::setw(3) << " = " 
 		      << temp[i] << std::endl;
@@ -152,6 +154,39 @@ namespace Hgcal10gLinkReceiver {
 	  }
 	  std::cout << std::endl;
 	} 
+
+	// Now set the initialization values
+	/*
+
+python3 hgcal_fc.py -c test_stand/connections.xml -d x0 encoder configure -tts on = fc_ctrl.fpga_fc.ctrl.tts
+python3 hgcal_fc.py -c test_stand/connections.xml -d x0 encoder configure --set_prel1a_offset 3 = fc_ctrl.fpga_fc.ctrl.prel1a_offset
+fc_ctrl.fpga_fc.ctrl.user_prel1a_off_en
+
+python3 hgcal_fc.py -c test_stand/connections.xml -d x0 tcds2_emu configure --seq_disable
+
+fc_ctrl.fc_lpgbt_pair.ctrl.issue_linkrst
+fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
+
+	 */
+
+	xhalWrite("fc_ctrl.fpga_fc.ctrl.tts",0);
+	xhalWrite("fc_ctrl.fpga_fc.ctrl.prel1a_offset",3);
+	xhalWrite("fc_ctrl.fpga_fc.ctrl.user_prel1a_off_en",1);
+
+	uint32_t hgcrocLatencyBufferDepth(10); // ????
+	uint32_t cpid(8),cped(10); // ???
+	xhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",cpid);
+	xhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",12+cpid+hgcrocLatencyBufferDepth);
+
+	xhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_ext_del",cped);
+	xhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",12+cped+hgcrocLatencyBufferDepth);
+	
+	
+	/* ????
+	fc_ctrl.fc_lpgbt_pair.ctrl.issue_linkrst
+	  fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
+	*/
+	
 #else
 	_xhalString.resize(0);
 	_xhalString.push_back("tcds2_emu.ctrl_stat.ctrl.seq_length"); 
@@ -183,6 +218,12 @@ namespace Hgcal10gLinkReceiver {
 	_cfgSeqCounter=1;
 	_evtSeqCounter=1;
 
+
+	// Do configuration; ones which could have been changed
+	xhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",8);
+
+
+	
 	if(_printEnable) {
 	  std::cout << "Waiting for space in buffer" << std::endl;
 	  ptrFifoShm2->print();
@@ -451,10 +492,8 @@ void configuredA() {
       
       XhalInstruction xi;
 
-	const std::string lConnectionFilePath = "etc/connections.xml";
-	const std::string lDeviceId = "x0";
-	uhal::ConnectionManager lConnectionMgr("file://" + lConnectionFilePath);
-	uhal::HwInterface lHW = lConnectionMgr.getDevice(lDeviceId);
+      //uhal::ConnectionManager lConnectionMgr("file://" + lConnectionFilePath);
+      //uhal::HwInterface lHW = lConnectionMgr.getDevice(lDeviceId);
 
 
       for(unsigned i(0);i<_xhalString.size();i++) {
@@ -680,7 +719,59 @@ void configuredA() {
       _pauseCounter++;
     }
 
-   
+#ifdef ProcessorFastControlHardware
+
+    uint32_t xhalRead(const std::string &s) {
+      const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
+      uhal::ValWord<uint32_t> lReg = lNode.read();
+      lHW.dispatch();
+      return lReg.value();
+    }
+      
+    void xhalWrite(const std::string &s, uint32_t value) {
+    }
+
+#else
+
+    uint32_t xhalRead(const std::string &s) {
+      return 999;
+    }
+
+    void xhalWrite(const std::string &s, uint32_t v) {
+      std::cout << "xhalWrite: setting " << s << " to  0x"
+		<< std::hex << std::setfill('0')
+		<< std::setw(8) << v
+		<< std::dec << std::setfill(' ')
+		<< std::endl;
+    }
+
+#endif
+    
+    void keyConfiguration(uint32_t key) {
+
+      switch(key) {
+	
+      case 0: {
+	break;
+      }
+	
+      case 123: {
+	xhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",
+		  5+_runNumberInSuperRun);
+	break;
+      }
+	
+      case 999: {
+	break;
+      }
+	
+      default: {
+	break;
+      }
+
+      };
+    }
+    
   protected:
     DataFifoT<6,1024> *ptrFifoShm2;
     //DataFifoT<6,1024> *ptrFifoShm0;
@@ -700,6 +791,14 @@ void configuredA() {
     uint32_t _eventNumberInSuperRun;
 
     std::vector<std::string> _xhalString;
+
+#ifdef ProcessorFastControlHardware
+    const std::string lConnectionFilePath;
+    const std::string lDeviceId;
+    uhal::ConnectionManager lConnectionMgr;
+    uhal::HwInterface lHW;
+#endif
+
   };
 
 }
