@@ -55,7 +55,7 @@ namespace Hgcal10gLinkReceiver {
     }
 
     FsmState::State state() const {
-      return (FsmState::State)((_header>>48)&0xff);
+      return (FsmState::State)((_header>>48)&0x7f);
     }
   
     bool validState() const {
@@ -105,7 +105,7 @@ namespace Hgcal10gLinkReceiver {
     }
 
     void setState(FsmState::State s) {
-      _header&=0xff00ffffffffffff;
+      _header&=0xff80ffffffffffff;
       _header|=(uint64_t(s)<<48);
       setIdentifier(StateData);
     }

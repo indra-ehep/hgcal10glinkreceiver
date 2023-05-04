@@ -74,17 +74,21 @@ int main(int argc, char** argv) {
       assert(e!=nullptr);
       if(!e->validPattern()) e->print();
       
-      // Access MiniDaq packet
-      const uint32_t *pMiniDaq(rEvent->daqPayload());
+      // Access the BE packet header
+      const Hgcal10gLinkReceiver::BePacketHeader *bph(rEvent->bePacketHeader());
+      if(bph!=nullptr && print) bph->print();
+      
+      // Access ECON-D packet
+      const uint32_t *pEcond(rEvent->econdPayload());
       
       // Check this is not an empty event
-      if(pMiniDaq!=nullptr) {
+      if(pEcond!=nullptr) {
 
 	if(print) {
-	  std::cout << "First 10 words of MiniDaq packet" << std::endl;
+	  std::cout << "First 10 words of ECON-D packet" << std::endl;
 	  std::cout << std::hex << std::setfill('0');
 	  for(unsigned i(0);i<10;i++) {
-	    std::cout << "0x" << std::setw(8) << pMiniDaq[i] << std::endl;
+	    std::cout << "0x" << std::setw(8) << pEcond[i] << std::endl;
 	  }
 	  std::cout << std::dec << std::setfill(' ');
 	  std::cout << std::endl;

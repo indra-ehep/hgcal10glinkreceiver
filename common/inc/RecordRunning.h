@@ -3,9 +3,10 @@
 
 #include <iostream>
 
-#include "RecordHeader.h"
+#include "BePacketHeader.h"
 #include "SlinkBoe.h"
 #include "SlinkEoe.h"
+#include "RecordHeader.h"
 
 namespace Hgcal10gLinkReceiver {
 
@@ -32,6 +33,14 @@ namespace Hgcal10gLinkReceiver {
     
     const uint32_t* daqPayload() const {
       return (payloadLength()==0?nullptr:(const uint32_t*)(_payload+2));
+    }
+    
+    const BePacketHeader* bePacketHeader() const {
+      return (const BePacketHeader*)daqPayload();
+    }
+    
+    const uint32_t* econdPayload() const {
+      return (payloadLength()==0?nullptr:(const uint32_t*)(_payload+3));
     }
     
     const SlinkEoe* slinkEoe() const {
