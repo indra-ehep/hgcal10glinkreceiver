@@ -12,6 +12,7 @@ namespace Hgcal10gLinkReceiver {
   
   public:
     UhalInstruction() {
+      _data=0;
     }
     
     uint32_t address() const {

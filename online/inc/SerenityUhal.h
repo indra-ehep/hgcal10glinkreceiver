@@ -13,8 +13,8 @@
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
 
-#undef SerenityUhalHardware
-//#define SerenityUhalHardware
+//#undef SerenityUhalHardware
+#define SerenityUhalHardware
 
 #ifdef SerenityUhalHardware
 #include "uhal/uhal.hpp"
@@ -38,6 +38,7 @@ namespace Hgcal10gLinkReceiver {
       lDeviceId("x0"),
       lConnectionMgr("file://" + lConnectionFilePath),
       lHW(lConnectionMgr.getDevice(lDeviceId)) {
+      _printEnable=true;
     }
 #else
     SerenityUhal() {
@@ -141,77 +142,12 @@ namespace Hgcal10gLinkReceiver {
      uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.en_nzs_physics",0);
      uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.l1a_prbs_threshold",0xf000);
 
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.l1a_physics_mask",0xffffffff);
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_mask",0xffffffff);
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_all",0xffffffff);
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_ext",0xffffffff);
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_hgcroc",0xffffffff);
-     uhalWrite("",);
-     uhalWrite("",);
-     uhalWrite("",);
-     uhalWrite("",);
-     uhalWrite("",);
-     uhalWrite("",);
-     uhalWrite("",);
-     uhalWrite("",);
-
-
-
-     
-
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2, initial value = 0
-XHAL string  = 
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_mask, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.l1a_physics_mask
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.l1a_physics_mask, initial value = 0
-xhal string  = fc_ctrl.tcds2_emu.ctrl_stat.ctrl3
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.ctrl3, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.ctrl3.rst_counters
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.ctrl3.rst_counters, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.stat0
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.stat0, initial value = 3
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_all
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_all, initial value = 1
-XHAL string  = 
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_ext, initial value = 1
-XHAL string  = 
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_hgcroc, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.stat1
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.stat1, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.stat2
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.stat2, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.stat3
-XHAL string  = fc_ctrl.tcds2_emu.ctrl_stat.stat3, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.seq_mem
-XHAL string  = fc_ctrl.tcds2_emu.seq_mem, initial value = 1
-XHAL string  = fc_ctrl.tcds2_emu.seq_mem.pointer
-XHAL string  = fc_ctrl.tcds2_emu.seq_mem.pointer, initial value = 1
-XHAL string  = fc_ctrl.tcds2_emu.seq_mem.data
-XHAL string  = fc_ctrl.tcds2_emu.seq_mem.data, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.counters
-XHAL string  = fc_ctrl.tcds2_emu.counters, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.counters.l1a_physics
-XHAL string  = fc_ctrl.tcds2_emu.counters.l1a_physics, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.counters.l1a_random
-XHAL string  = fc_ctrl.tcds2_emu.counters.l1a_random, initial value = dcf7ad6c
-XHAL string  = fc_ctrl.tcds2_emu.counters.l1a_software
-XHAL string  = fc_ctrl.tcds2_emu.counters.l1a_software, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.counters.l1a_regular
-XHAL string  = fc_ctrl.tcds2_emu.counters.l1a_regular, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.counters.l1a_subtype0
-XHAL string  = fc_ctrl.tcds2_emu.counters.l1a_subtype0, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.counters.l1a_subtype1
-XHAL string  = fc_ctrl.tcds2_emu.counters.l1a_subtype1, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.counters.tts_all
-XHAL string  = fc_ctrl.tcds2_emu.counters.tts_all, initial value = 1
-XHAL string  = fc_ctrl.tcds2_emu.counters.tts_soft
-XHAL string  = fc_ctrl.tcds2_emu.counters.tts_soft, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.counters.tts_hgcroc
-XHAL string  = fc_ctrl.tcds2_emu.counters.tts_hgcroc, initial value = 0
-XHAL string  = fc_ctrl.tcds2_emu.counters.tts_ext
-
-
+     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0x1);
+     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_mask",0x7);
+     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.l1a_physics_mask",0xff);
+     //uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_all",1);
+     //uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_ext",1);
+     //uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_hgcroc",1);
      
      uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",12+cpid+hgcrocLatencyBufferDepth);
     
@@ -258,6 +194,24 @@ XHAL string  = fc_ctrl.tcds2_emu.counters.tts_ext
 
 #endif
 
+  void csv(std::ostream &o=std::cout) {
+    for(unsigned i(0);i<_uhalString.size();i++) {
+      uint32_t v(uhalRead(_uhalString[i]));
+      unsigned nComma(0);
+      for(unsigned j(0);j<_uhalString[i].size();j++) {
+	if(_uhalString[i][j]=='.') {
+	  _uhalString[i][j]=',';
+	  nComma++;
+	}
+      }
+      o << _uhalString[i];
+      for(unsigned j(nComma);j<5;j++) {
+	o << ',';
+      }
+      o << v << std::endl;
+    }
+  }
+
   void print(std::ostream &o=std::cout) {
     o << "SerenityUhal::print()" << std::endl;
     o << " Current settings for " << _uhalString.size()
@@ -275,6 +229,7 @@ XHAL string  = fc_ctrl.tcds2_emu.counters.tts_ext
 
   
  protected:
+  bool _printEnable;
   std::vector<std::string> _uhalString;
 
 #ifdef SerenityUhalHardware

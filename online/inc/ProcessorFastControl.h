@@ -18,7 +18,7 @@
 
 
 #include "I2cInstruction.h"
-#include "XhalInstruction.h"
+#include "UhalInstruction.h"
 #include "RecordConfigured.h"
 
 
@@ -491,7 +491,7 @@ void configuredA() {
       r->setLocation(0xbe01);
       r->print();
       
-      XhalInstruction xi;
+      UhalInstruction xi;
 
       //uhal::ConnectionManager lConnectionMgr("file://" + lConnectionFilePath);
       //uhal::HwInterface lHW = lConnectionMgr.getDevice(lDeviceId);

@@ -12,6 +12,7 @@ namespace Hgcal10gLinkReceiver {
   
   public:
     I2cInstruction() {
+      _data=0;
     }
     
     uint16_t address() const {

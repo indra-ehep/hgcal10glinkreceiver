@@ -54,21 +54,18 @@ namespace Hgcal10gLinkReceiver {
     }
 
     bool readRxSummaryFile() {
-      //const unsigned offset(28); // RX
-      const unsigned offset(28); // TX
+      const unsigned offset(27); // RX
+      //const unsigned offset(28); // TX
 
       system("ls -l data/");
       system("rm data/rx_summary.txt; rm data/tx_summary.txt");
-      //system("ls -l data/");
       system("source ./emp_capture_single.sh");
-      sleep(1);
-      system("ls -l data/");
-      //system("./emp_capture_single.sh");
       //sleep(1);
-      //system("ls -l data/");
+      system("ls -l data/");
 
       std::ifstream fin;
-      fin.open("data/tx_summary.txt");
+      //fin.open("data/tx_summary.txt");
+      fin.open("data/rx_summary.txt");
       if(!fin) return false;
       
       char buffer[1024];
