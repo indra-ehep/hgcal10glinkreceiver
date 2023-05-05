@@ -10,20 +10,13 @@
 
 //#include "RunControlFsmShm.h"
 #include "ShmSingleton.h"
-#include "ProcessorFastControl.h"
 #include "DataFifo.h"
 #include "RecordPrinter.h"
 #include "ShmKeys.h"
 #include "SlinkBoe.h"
 #include "SlinkEoe.h"
 
-//#undef ProcessorFastControlPlusDaqHardware
-#define ProcessorFastControlPlusDaqHardware
-
-#ifdef ProcessorFastControlPlusDaqHardware
-#include "uhal/uhal.hpp"
-#include "uhal/ValMem.hpp"
-#endif
+#include "ProcessorFastControl.h"
 
 namespace Hgcal10gLinkReceiver {
 

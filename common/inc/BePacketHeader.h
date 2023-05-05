@@ -40,6 +40,27 @@ namespace Hgcal10gLinkReceiver {
       return (_data>>(3*e))&0x7;
     }
 
+    void setBunchCounter(uint16_t b) {
+      _data&=0xfe001fffffffffff;
+      _data|=uint64_t(b&0xfff)<<45;
+    }
+    
+    void setEventCounter(uint8_t e) {
+      _data&=0xffffe07fffffffff;
+      _data|=uint64_t(e&0x3f)<<39;
+    }
+    
+    void setOrbitCounter(uint16_t o) {
+      _data&=0xffffff8fffffffff;
+      _data|=uint64_t(o&0x7)<<36;
+    }
+
+    void setEcondStatus(unsigned e, uint8_t s) {
+      if(e>=12) return;
+      _data&=~(uint64_t(7)<<(3*e));
+      _data|=uint64_t(s&0x7)<<(3*e);      
+    }
+    
     void print(std::ostream &o=std::cout, std::string s="") const {
       o << s << "BePacketHeader::print()" << std::endl;
       o << s << " Pattern = 0x"
@@ -47,6 +68,7 @@ namespace Hgcal10gLinkReceiver {
         << std::setw(2) << unsigned(pattern())
         << std::dec << std::setfill(' ')
 	<< std::endl;
+
       o << s << " Bunch counter = "
 	<< std::setw(4) << bunchCounter()
 	<< std::endl;

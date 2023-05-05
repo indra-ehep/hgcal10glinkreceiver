@@ -15,6 +15,12 @@ namespace Hgcal10gLinkReceiver {
   public:
     RecordRunning() {
     }
+
+    // Ensure has a 128-bit word structure
+    void setPayloadLength(uint16_t l) {
+      if((l%2)==1) l++;
+      RecordHeader::setPayloadLength(l);
+    }
     
     void setHeader(uint32_t t=time(0)) {
       setIdentifier(RecordHeader::EventData);
@@ -55,6 +61,14 @@ namespace Hgcal10gLinkReceiver {
       return (payloadLength()==0?nullptr:(uint32_t*)(_payload+2));
     }
     
+    BePacketHeader* getBePacketHeader() {
+      return (BePacketHeader*)daqPayload();
+    }
+
+    uint32_t* getEcondPayload() {
+      return (payloadLength()==0?nullptr:(uint32_t*)(_payload+3));
+    }
+    
     SlinkEoe* getSlinkEoe() {
       return (SlinkEoe*)(_payload+payloadLength()-2);
     }
@@ -71,6 +85,7 @@ namespace Hgcal10gLinkReceiver {
       }
       */
       slinkBoe()->print(o,s+" ");
+      if(bePacketHeader()!=nullptr) bePacketHeader()->print(o,s+" ");
       slinkEoe()->print(o,s+" ");
     }
     

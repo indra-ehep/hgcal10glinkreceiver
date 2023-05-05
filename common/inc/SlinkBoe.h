@@ -13,11 +13,11 @@ class SlinkBoe {
   };
   
   SlinkBoe() {
-    _word[0]=uint64_t(16*BoePattern+3)<<52;
+    reset();
   }
 
   SlinkBoe(uint64_t e, uint8_t st, uint16_t t, uint32_t s) {
-    _word[0]=uint64_t(16*BoePattern+3)<<52;
+    reset();
 
     setEventId(e);
     setL1aSubType(st);
@@ -25,6 +25,11 @@ class SlinkBoe {
     setSourceId(s);
   }
 
+  void reset() {
+    _word[0]=uint64_t(16*BoePattern+3)<<52;
+    _word[1]=0;
+  }
+  
   uint8_t  boeHeader() const {
     return _word[0]>>56;
   }

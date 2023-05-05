@@ -14,11 +14,11 @@ class SlinkEoe {
   };
   
   SlinkEoe() {
-    _word[0]=uint64_t(EoePattern)<<56;
+    reset();
   }
 
   SlinkEoe(uint32_t l, uint16_t b, uint32_t o, uint16_t c, uint16_t s) {
-    _word[0]=uint64_t(EoePattern)<<56;
+    reset();
 
     setEventLength(l);
     setBxId(b);
@@ -27,7 +27,9 @@ class SlinkEoe {
     setStatus(s);
   }
 
-  void initialise() {
+  void reset() {
+   _word[0]=uint64_t(EoePattern)<<56;
+   _word[1]=0;
   }
 
   uint8_t  eoeHeader() const {

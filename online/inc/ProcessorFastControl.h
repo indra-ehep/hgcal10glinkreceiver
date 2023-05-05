@@ -28,8 +28,8 @@
 #include "SlinkBoe.h"
 #include "SlinkEoe.h"
 
-//#undef ProcessorFastControlHardware
-#define ProcessorFastControlHardware
+#undef ProcessorFastControlHardware
+//#define ProcessorFastControlHardware
 
 #ifdef ProcessorFastControlHardware
 #include "uhal/uhal.hpp"
@@ -41,6 +41,7 @@ namespace Hgcal10gLinkReceiver {
   class ProcessorFastControl : public ProcessorBase {
     
   public:
+#ifdef ProcessorFastControlHardware
   ProcessorFastControl() : lConnectionFilePath("etc/connections.xml"),
       lDeviceId("x0"),
       lConnectionMgr("file://" + lConnectionFilePath),
@@ -49,6 +50,10 @@ namespace Hgcal10gLinkReceiver {
 	uhal::setLogLevelTo(uhal::Error());  
 	//lHW = lConnectionMgr.getDevice(lDeviceId);
     }
+#else
+    ProcessorFastControl() {
+    }
+#endif
 
     virtual ~ProcessorFastControl() {
     }

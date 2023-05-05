@@ -20,6 +20,10 @@ namespace Hgcal10gLinkReceiver {
     FileWriter() : _protectFiles(false) { // While debugging
     }
 
+    bool openRun(uint32_t r, uint32_t l) {
+      return open(r,l,false);
+    }
+
     bool open(uint32_t r, uint32_t l, bool s=false) {
       _runNumber=r;
       _linkNumber=l;
