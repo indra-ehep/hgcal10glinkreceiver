@@ -8,7 +8,7 @@
 #include "FileWriter.h"
 #include "RecordPrinter.h"
 #include "EcondHeader.h"
-#include "HgcrocWord.h"
+#include "HgcrocHalf.h"
 
 using namespace Hgcal10gLinkReceiver;
 
@@ -19,6 +19,13 @@ int main(int argc, char** argv) {
   }
 
   TRandom3 rndm;
+  HgcrocHalf hHalf[2][6];
+
+  for(unsigned i(0);i<2;i++) {
+    for(unsigned j(0);j<6;j++) {
+      hHalf[i][j].initialize(&rndm);
+    }
+  }  
   
   // 32-bit words = 2 + 6 x 39 + 1 = 237
   // 64-bit words = 1 + 3 x 39 + 0.5 = 118.5
@@ -198,9 +205,12 @@ int main(int argc, char** argv) {
 
   _fileWriter.openRun(runNumber,0);
 
+  unsigned burst(3);
+  
   rStart->setHeader();
-  rStart->setRunNumber(runNumber);
-  rStart->setMaxEvents(1000000000);
+  rStart->setRunNumber(runNumber);  
+  //rStart->setMaxEvents(1000000000);
+  rStart->setMaxEvents(1000000*burst);
   rStart->setMaxSeconds(10);
   rStart->setMaxSpills(0);
   rStart->print();
@@ -212,14 +222,17 @@ int main(int argc, char** argv) {
   unsigned nEvents;
   unsigned bx(0);
   
-  for(nEvents=0;nEvents<rPermanent.maxEvents() && bx<40000000*rPermanent.maxSeconds();nEvents++) {
-    rEvent->setHeader(nEvents+1);
-    
+  for(nEvents=0;nEvents<rPermanent.maxEvents() && bx<40000000*rPermanent.maxSeconds();) {
+
     // Get FE counters
     //double dBx(4000.0*log(1.0/(1.0-rndm.Uniform())));
-    double dBx(rndm.Exp(4000.0));
+    double dBx(burst+rndm.Exp(3999.0-burst));
     bx+=unsigned(dBx);
 
+    for(unsigned l1a(0);l1a<burst;l1a++,nEvents++) {
+    rEvent->setHeader(nEvents+1);
+    bx++;
+    
     unsigned bc(((bx+16)%3564)+1);
     unsigned oc(((bx+16)/3564)%8);
     unsigned ec((nEvents+1)%64);
@@ -242,11 +255,11 @@ int main(int argc, char** argv) {
     bph->setOrbitCounter(oc);
     bph->setEcondStatus(0,0);
     bph->setEcondStatus(3,0);
-
+    
     rEvent->setPayloadLength(5+237);
     uint32_t *ep(rEvent->getEcondPayload());
     std::memcpy(ep,econdPacket,8*237);
-
+    
     for(unsigned i(0);i<2;i++) {
       EcondHeader *eh((EcondHeader*)(ep+237*i));
       eh->reset();
@@ -257,6 +270,19 @@ int main(int argc, char** argv) {
       eh->setPacketWords(235);
       eh->setCrc();
       //eh->print();
+
+      for(unsigned j(0);j<6;j++) {
+	hHalf[i][j].simulate(l1a==0);
+      
+	EcondSubHeader *esh((EcondSubHeader*)(ep+237*i+2+39*j));
+	esh->setCommonMode(0,hHalf[i][j].commonMode(0));
+	esh->setCommonMode(1,hHalf[i][j].commonMode(1));
+	//esh->print();
+	std::memcpy(esh+1,hHalf[i][j].hgcrocWords(),4*37);
+	//for(unsigned k(0);k<37;k++) {
+	//  ((HgcrocWord*)(ep+237*i+2+39*j+2+k))->print();
+	//}
+      }
     }
     
     SlinkEoe *se(rEvent->getSlinkEoe());
@@ -268,13 +294,15 @@ int main(int argc, char** argv) {
     se->setCrc(0xdead);
     se->setStatus(0);
 
-    if(nEvents<5) rEvent->print();
+    if(nEvents<10) rEvent->print();
     
     _fileWriter.write(r);
+    }
   }
   
   rStop->setHeader();
   rStop->setRunNumber(runNumber);
+  rStop->setUtc(runNumber+(bx/40000000));
   rStop->setNumberOfEvents(nEvents);
   rStop->setNumberOfSeconds(bx/40000000);
   rStop->setNumberOfSpills(0);

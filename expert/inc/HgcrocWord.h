@@ -36,12 +36,12 @@ namespace Hgcal10gLinkReceiver {
     }
     
     void setAdcM(uint16_t a) {
-      _data&=0xcff003ff;
+      _data&=0xc00fffff;
       _data|=uint32_t(a&0x3ff)<<20;
     }
 
     void setAdc(uint16_t a) {
-      _data&=0xc00fffff;
+      _data&=0xcff003ff;
       _data|=uint32_t(a&0x3ff)<<10;
     }
 

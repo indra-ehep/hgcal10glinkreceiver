@@ -2,8 +2,18 @@
 #include <iomanip>
 #include <cassert>
 
+#include "TH1I.h"
+#include "TH1D.h"
+#include "TH2D.h"
+#include "TProfile.h"
+#include "TFileHandler.h"
+
 #include "FileReader.h"
 #include "EcondHeader.h"
+#include "HgcrocWord.h"
+#include "Average.h"
+
+using namespace Hgcal10gLinkReceiver;
 
 int main(int argc, char** argv) {
   if(argc<2) {
@@ -21,6 +31,18 @@ int main(int argc, char** argv) {
     return 2;
   }
 
+  TFileHandler tfh(std::string("ExampleRunReader")+argv[1]);
+  TH1I *hDbx=new TH1I("Dbx",";Difference in BX;Number",100,0,100000);
+  TProfile *hPedPro=new TProfile("PedPro",";Channel;Average",37,-0.5,36.5);
+
+  TH1D *hPed=new TH1D("Ped",";Channel;Average",37,-0.5,36.5);
+  TH1D *hPedSig=new TH1D("PedSig",";Channel;RMS",37,-0.5,36.5);
+  TH1D *hCorrPed=new TH1D("CorrPed",";Channel;Average",37,-0.5,36.5);
+  TH1D *hCorrPedSig=new TH1D("CorrPedSig",";Channel;RMS",37,-0.5,36.5);
+  TH2D *hCmCorr=new TH2D("CmCorr",";CM0;CM1;Number",41,79.5,120.5,41,79.5,120.5);
+
+  Average avg[2][6][37][2];
+  
   // Create the file reader
   Hgcal10gLinkReceiver::FileReader _fileReader;
 
@@ -32,6 +54,10 @@ int main(int argc, char** argv) {
   const Hgcal10gLinkReceiver::RecordStopping *rStop ((Hgcal10gLinkReceiver::RecordStopping*)r);
   const Hgcal10gLinkReceiver::RecordRunning  *rEvent((Hgcal10gLinkReceiver::RecordRunning*) r);
 
+  // Storage for previous ADC values
+  uint64_t bx,previousBx;
+  uint16_t adcM[2][6][37];
+  
   // Defaults to the files being in directory "dat"
   // Can call setDirectory("blah") to change this
   //_fileReader.setDirectory("somewhere/else");
@@ -74,8 +100,12 @@ int main(int argc, char** argv) {
       const Hgcal10gLinkReceiver::SlinkEoe *e(rEvent->slinkEoe());
       assert(e!=nullptr);
       if(!e->validPattern()) e->print();
-      
-      // Access the BE packet header
+
+      bx=3564*e->orbitId()+e->bxId();
+      if(nEvents>1) hDbx->Fill(bx-previousBx);
+      previousBx=bx;
+
+	// Access the BE packet header
       const Hgcal10gLinkReceiver::BePacketHeader *bph(rEvent->bePacketHeader());
       if(bph!=nullptr && print) bph->print();
       
@@ -86,9 +116,9 @@ int main(int argc, char** argv) {
       if(pData!=nullptr) {
 
 	if(print) {
-	  std::cout << "First 60 words of ECON-D packet" << std::endl;
+	  std::cout << "Words of ECON-D packet" << std::endl;
 	  std::cout << std::hex << std::setfill('0');
-	  for(unsigned i(0);i<2*rEvent->payloadLength();i++) {
+	  for(unsigned i(0);i<2*(rEvent->payloadLength()-5);i++) {
 	    std::cout << std::setw(3) << i << " 0x" << std::setw(8) << pData[i] << std::endl;
 	  }
 	  std::cout << std::dec << std::setfill(' ');
@@ -103,12 +133,34 @@ int main(int argc, char** argv) {
 	  std::cout << std::endl;
 	}
 	
+	const Hgcal10gLinkReceiver::EcondSubHeader *pEsh((const Hgcal10gLinkReceiver::EcondSubHeader*)(pData+2));
+	for(unsigned k(0);k<37;k++) {
+	  const HgcrocWord *hw((const HgcrocWord*)(pData+4+k));
+	  hPedPro->Fill(k,hw->adc());
+	  avg[0][0][k][0]+=hw->adc();
+	  avg[0][0][k][1]+=hw->adc()-0.5*(pEsh->commonMode(0)+pEsh->commonMode(1));
+	  hCmCorr->Fill(pEsh->commonMode(0),pEsh->commonMode(1));
+	}
+
 	// Do other stuff here
 
       }
     }
   }
 
+	for(unsigned k(0);k<37;k++) {
+	  hPed->SetBinContent(k+1,avg[0][0][k][0].average());
+	  hPed->SetBinError(k+1,avg[0][0][k][0].errorOnAverage());
+	  hPedSig->SetBinContent(k+1,avg[0][0][k][0].sigma());
+	  hPedSig->SetBinError(k+1,avg[0][0][k][0].errorOnSigma());
+
+	  hCorrPed->SetBinContent(k+1,avg[0][0][k][1].average());
+	  hCorrPed->SetBinError(k+1,avg[0][0][k][1].errorOnAverage());
+	  hCorrPedSig->SetBinContent(k+1,avg[0][0][k][1].sigma());
+	  hCorrPedSig->SetBinError(k+1,avg[0][0][k][1].errorOnSigma());
+	}
+  
+  
   std::cout << "Total number of event records seen = "
 	    << nEvents << std::endl;
 

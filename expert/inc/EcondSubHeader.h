@@ -43,6 +43,13 @@ namespace Hgcal10gLinkReceiver {
       return (_wordA>>(15-10*c))&0x3ff;
     }
 
+    void setCommonMode(unsigned c, uint16_t a) {
+      assert(c<2);
+      if(c==0) _wordA&=0xfe007fff;
+      else     _wordA&=0xffff801f;
+      _wordA|=uint32_t(a&0x3ff)<<(15-10*c);
+    }
+
     uint64_t channelMap() const {
       uint64_t m(_wordA&0x1f);
       m=(m<<32)|_wordB;
