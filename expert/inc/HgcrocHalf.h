@@ -57,7 +57,7 @@ namespace Hgcal10gLinkReceiver {
       for(unsigned i(0);i<37;i++) {
 	_hgcrocWord[i].setAdcM(_hgcrocWord[i].adc());
 
-	double sigma((i==8 || i==17 || i==18 || i=19 || i==28)?_channelSigma[1]:_channelSigma[0]);
+	double sigma((i==8 || i==17 || i==18 || i==19 || i==28)?_channelSigma[1]:_channelSigma[0]);
 	channelValue[i]=_channelSignal[i]+_channelPedestal[i]
 	  +0.5*(_cmPedestal[0]+_cmPedestal[1])+cmTrue+_rndm->Gaus(0.0,sigma);
 

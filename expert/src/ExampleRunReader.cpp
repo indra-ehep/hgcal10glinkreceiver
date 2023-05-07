@@ -102,9 +102,10 @@ int main(int argc, char** argv) {
       if(!e->validPattern()) e->print();
 
       bx=3564*e->orbitId()+e->bxId();
-      if(nEvents>1) hDbx->Fill(bx-previousBx);
-      previousBx=bx;
-
+      if(nEvents>1) {
+	hDbx->Fill(bx-previousBx);
+      }
+      
 	// Access the BE packet header
       const Hgcal10gLinkReceiver::BePacketHeader *bph(rEvent->bePacketHeader());
       if(bph!=nullptr && print) bph->print();
@@ -136,6 +137,12 @@ int main(int argc, char** argv) {
 	const Hgcal10gLinkReceiver::EcondSubHeader *pEsh((const Hgcal10gLinkReceiver::EcondSubHeader*)(pData+2));
 	for(unsigned k(0);k<37;k++) {
 	  const HgcrocWord *hw((const HgcrocWord*)(pData+4+k));
+	  if(bx==previousBx+1) {
+	    assert(hw->adcM()==adcM[0][0][k]);
+	  }
+	  
+	  adcM[0][0][k]=hw->adc();
+
 	  hPedPro->Fill(k,hw->adc());
 	  avg[0][0][k][0]+=hw->adc();
 	  avg[0][0][k][1]+=hw->adc()-0.5*(pEsh->commonMode(0)+pEsh->commonMode(1));
@@ -145,6 +152,8 @@ int main(int argc, char** argv) {
 	// Do other stuff here
 
       }
+
+      previousBx=bx;
     }
   }
 

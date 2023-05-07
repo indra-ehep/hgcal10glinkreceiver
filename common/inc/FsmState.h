@@ -162,9 +162,7 @@ namespace Hgcal10gLinkReceiver {
     static const std::string _stateName[EndOfStateEnum];
   };
  
-  const std::string FsmState::_unknown={
-    "Unknown    "
-  };
+  const std::string FsmState::_unknown="Unknown    ";
     
   const std::string FsmState::_stateName[EndOfStateEnum]={
     // Statics
