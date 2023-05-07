@@ -31,8 +31,9 @@ int main(int argc, char *argv[]) {
   su.makeTable();
   su.setDefaults();
   //su.uhalWrite("BLAH",0xdead);
-  su.print();
 
+  su.uhalWrite("lpgbt1.lpgbt_frame.shift_elink4",57&0xff);
+  su.print();
 
   const unsigned offset(27); // RX
   //const unsigned offset(28); // TX
@@ -43,9 +44,9 @@ int main(int argc, char *argv[]) {
   //sleep(1);
   system("ls -l data/");
 
-  uint32_t _rxSummaryData[8][128];
+  uint32_t _rxSummaryData[8][128],_phaseData[8]={0,0,0,0,0,0,0,0};
   uint64_t data64[8][127];
-
+  
 
   std::ifstream fin;
   fin.open("data/rx_summary.txt");
@@ -61,6 +62,8 @@ int main(int argc, char *argv[]) {
   for(unsigned i(0);i<128;i++) {
     for(unsigned j(0);j<8;j++) {
       fin.getline(buffer,1024);
+      if(buffer[15]=='1') _phaseData[j]++;
+
       buffer[offset+8]='\0';
       std::istringstream sin(buffer+offset);
       sin >> std::hex >> _rxSummaryData[j][i];
@@ -71,9 +74,12 @@ int main(int argc, char *argv[]) {
     }
     std::cout << std::endl;
   }      
+
   fin.close();
 
   for(unsigned j(0);j<8;j++) {
+    std::cout << "Phase data for j =" << j << " = " << _phaseData[j] << std::endl;
+
     for(unsigned i(0);i<127;i++) {
       data64[j][i]=uint64_t(_rxSummaryData[j][i])<<32|_rxSummaryData[j][i+1];
       std::cout << " 0x" << std::hex << std::setfill('0')
