@@ -10,6 +10,9 @@
 #include <cassert>
 
 #include "ShmKeys.h"
+
+#define ProcessorFastControlHardware
+
 #include "ProcessorFastControlPlusDaq.h"
 
 using namespace Hgcal10gLinkReceiver;
@@ -85,6 +88,8 @@ int main(int argc, char *argv[]) {
 
   s=(const char*)(buffer);
   std::cout << "String length = " << s.size() << " = " << s << std::endl;
+
+  SerenityUhal::setUhalLogLevel();
 
   ProcessorFastControlPlusDaq pb;
   pb.setPrintEnable(  printEnable);

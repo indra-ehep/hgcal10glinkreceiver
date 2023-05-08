@@ -10,6 +10,9 @@
 #include <cassert>
 
 #include "ShmKeys.h"
+
+#define ProcessorFastControlHardware
+
 #include "ProcessorFastControl.h"
 
 using namespace Hgcal10gLinkReceiver;
@@ -41,6 +44,8 @@ int main(int argc, char *argv[]) {
     }
   }
   
+  SerenityUhal::setUhalLogLevel();
+
   ProcessorFastControl pb;
   pb.setPrintEnable(  printEnable);
   pb.setCheckEnable(  checkEnable);

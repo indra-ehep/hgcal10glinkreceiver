@@ -484,7 +484,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       }
       
       ///////////////
-
+      /*
       while((r=(RecordConfigured*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
       r->setHeader(_cfgSeqCounter++);
       r->setState(FsmState::ConfiguredB);
@@ -504,7 +504,8 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       r->setType(RecordConfigured::BE);
       r->setLocation(0xbe01);
       r->print();
-      
+
+
       UhalInstruction xi;
 
       //uhal::ConnectionManager lConnectionMgr("file://" + lConnectionFilePath);
@@ -529,6 +530,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
     
       if(_printEnable) r->print();
 	ptrFifoShm2->writeIncrement();
+      */
           
       ///////////////
 	

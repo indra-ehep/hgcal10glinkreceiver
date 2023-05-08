@@ -50,11 +50,9 @@ namespace Hgcal10gLinkReceiver {
       const unsigned offset(27); // RX
       //const unsigned offset(28); // TX
 
-      system("ls -l data/");
-      system("rm data/rx_summary.txt; rm data/tx_summary.txt");
-      system("source ./emp_capture_single.sh 1");
-      //sleep(1);
-      system("ls -l data/");
+      //system("ls -l data/");
+      system("rm data/rx_summary.txt; rm data/tx_summary.txt; source ./emp_capture_single.sh 1");
+      //system("ls -l data/");
 
       std::ifstream fin;
       //fin.open("data/tx_summary.txt");
@@ -367,7 +365,7 @@ namespace Hgcal10gLinkReceiver {
 
 
 	  RecordRunning *r;
-	  while((r=ptrFifoShm0->getWriteRecord())==nullptr) usleep(1);
+	  while((r=(RecordRunning*)(ptrFifoShm0->getWriteRecord()))==nullptr) usleep(1);
 
 	  
 	  /*
@@ -400,21 +398,21 @@ namespace Hgcal10gLinkReceiver {
 	  if(hgcrocData) {
 	    r->setPayloadLength(4+40);
 
-	    uint32_t *ptr(rr.getDaqPayload());
+	    uint32_t *ptr((uint32_t*)(r->getPayload()));
 	    for(unsigned i(0);i<40;i++) {
 	      ptr[i]=i;
 	    }
 
 	  } else {
 	    r->setPayloadLength(4+120);
-	    SlinkBoe *boe(rr.getSlinkBoe());
+	    SlinkBoe *boe(r->getSlinkBoe());
 	    *boe=SlinkBoe();
 	    boe->setEventId(_eventNumberInRun);
 	    boe->setL1aSubType(rand()%256);
 	    boe->setL1aType(rand()%64);
 	    boe->setSourceId(ProcessorDaqLink0FifoShmKey);
 	    
-	    uint32_t *ptr(rr.getDaqPayload());
+	    uint32_t *ptr(r->getDaqPayload());
 	    for(unsigned i(0);i<120;i++) {
 	      //ptr[2*i+1]=p32[2*i  ];
 	      //ptr[2*i  ]=p32[2*i+1];
@@ -422,7 +420,7 @@ namespace Hgcal10gLinkReceiver {
 	      ptr[2*i+1]=p32[2*i+1];
 	    }
 	    
-	    SlinkEoe *eoe(rr.getSlinkEoe());
+	    SlinkEoe *eoe(r->getSlinkEoe());
 	    *eoe=SlinkEoe();
 	    
 	    eoe->setEventLength(2+60);
@@ -434,14 +432,14 @@ namespace Hgcal10gLinkReceiver {
 	    
 	    if(eoe->eoeHeader()!=SlinkEoe::EoePattern) {
 	      eoe->print();
-	      rr.print();
+	      r->print();
 	      assert(false);
 	    }
 	    
 	    if(_printEnable) {
 	      if(_evtSeqCounter<10) {
 		std::cout << "HERE" << std::endl;
-		rr.print();
+		r->print();
 	      }
 	    }
 	  }
@@ -459,10 +457,10 @@ namespace Hgcal10gLinkReceiver {
 	  }
 	  */
 
-	  boe->setSourceId(ProcessorDaqLink1FifoShmKey);
 	  
 	  if(ptrFifoShm1!=0) {
-	    assert(ptrFifoShm1->write(rr.totalLength(),(uint64_t*)(&rr)));
+	    //boe->setSourceId(ProcessorDaqLink1FifoShmKey);
+	    assert(ptrFifoShm1->write(r->totalLength(),(uint64_t*)r));
 	  }
 	  
 	  //usleep(100);
