@@ -133,29 +133,29 @@ namespace Hgcal10gLinkReceiver {
 	  std::cout << std::endl;
 	}
 
-	_xhalString.resize(0);
+	_uhalString.resize(0);
 	for(unsigned i(0);i<temp.size();i++) {
 	  if(temp[i].substr(0,8)=="fc_ctrl.") {
 	    std::cout << "Substr = " << temp[i].substr(8,17) << std::endl;
 	    if(temp[i].substr(8,17)!="tcds2_emu") {
-	    std::cout << "XHAL string " << std::setw(3) << " = " 
+	    std::cout << "UHAL string " << std::setw(3) << " = " 
 		      << temp[i] << std::endl;
-	      _xhalString.push_back(temp[i]);
+	      _uhalString.push_back(temp[i]);
 	    }
 	  }
 	}
 	
 	if(_printEnable) {
-	  for(unsigned i(0);i<_xhalString.size();i++) {
-	    std::cout << "XHAL string " << std::setw(3) << " = " 
-		      << _xhalString[i] << std::endl;
+	  for(unsigned i(0);i<_uhalString.size();i++) {
+	    std::cout << "UHAL string " << std::setw(3) << " = " 
+		      << _uhalString[i] << std::endl;
 
-	    const uhal::Node& lNode = lHW.getNode("payload."+_xhalString[i]);
+	    const uhal::Node& lNode = lHW.getNode("payload."+_uhalString[i]);
 	    uhal::ValWord<uint32_t> lReg = lNode.read();
 	    lHW.dispatch();
 	    
-	    std::cout << "XHAL string " << std::setw(3) << " = "
-		      << _xhalString[i] << ", initial value = " 
+	    std::cout << "UHAL string " << std::setw(3) << " = "
+		      << _uhalString[i] << ", initial value = " 
 		      << lReg.value() << std::endl;
 	  }
 	  std::cout << std::endl;
@@ -176,17 +176,17 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 	 */
 
 	std::cout << "SETTING SOME DEFAULTS" << std::endl;
-	assert(xhalWrite("fc_ctrl.fpga_fc.ctrl.tts",0));
-	xhalWrite("fc_ctrl.fpga_fc.ctrl.prel1a_offset",3);
-	xhalWrite("fc_ctrl.fpga_fc.ctrl.user_prel1a_off_en",1);
+	assert(uhalWrite("fc_ctrl.fpga_fc.ctrl.tts",0));
+	uhalWrite("fc_ctrl.fpga_fc.ctrl.prel1a_offset",3);
+	uhalWrite("fc_ctrl.fpga_fc.ctrl.user_prel1a_off_en",1);
 
 	uint32_t hgcrocLatencyBufferDepth(10); // ????
 	uint32_t cpid(8),cped(10); // ???
-	xhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",cpid);
-	xhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",12+cpid+hgcrocLatencyBufferDepth);
+	uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",cpid);
+	uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",12+cpid+hgcrocLatencyBufferDepth);
 
-	xhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_ext_del",cped);
-	xhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",12+cped+hgcrocLatencyBufferDepth);
+	uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_ext_del",cped);
+	uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",12+cped+hgcrocLatencyBufferDepth);
 	
 	
 	/* ????
@@ -195,8 +195,8 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 	*/
 	
 #else
-	_xhalString.resize(0);
-	_xhalString.push_back("tcds2_emu.ctrl_stat.ctrl.seq_length"); 
+	_uhalString.resize(0);
+	_uhalString.push_back("tcds2_emu.ctrl_stat.ctrl.seq_length"); 
 #endif
       }
 	
@@ -227,7 +227,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 
 
 	// Do configuration; ones which could have been changed
-	xhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",8);
+	uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",8);
 
 
 	
@@ -484,8 +484,8 @@ void configuredA() {
       r->setLocation(0xbe00);
       r->print();
       
-      for(unsigned i(0);i<_xhalString.size() && i<10;i++) {
-	r->addString(_xhalString[i]);
+      for(unsigned i(0);i<_uhalString.size() && i<10;i++) {
+	r->addString(_uhalString[i]);
       }
       r->print();
       
@@ -502,10 +502,10 @@ void configuredA() {
       //uhal::HwInterface lHW = lConnectionMgr.getDevice(lDeviceId);
 
 
-      for(unsigned i(0);i<_xhalString.size();i++) {
+      for(unsigned i(0);i<_uhalString.size();i++) {
 	xi.setAddress(i);
 #ifdef ProcessorFastControlHardware
-	const uhal::Node& lNode = lHW.getNode("payload."+_xhalString[i]);
+	const uhal::Node& lNode = lHW.getNode("payload."+_uhalString[i]);
 	uhal::ValWord<uint32_t> lReg = lNode.read();
 	lHW.dispatch();
 	xi.setValue(lReg.value());
@@ -727,15 +727,15 @@ void configuredA() {
 
 #ifdef ProcessorFastControlHardware
 
-    uint32_t xhalRead(const std::string &s) {
+    uint32_t uhalRead(const std::string &s) {
       const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
       uhal::ValWord<uint32_t> lReg = lNode.read();
       lHW.dispatch();
       return lReg.value();
     }
       
-    bool xhalWrite(const std::string &s, uint32_t v) {
-      std::cout << "xhalWrite: setting " << s << " to  0x"
+    bool uhalWrite(const std::string &s, uint32_t v) {
+      std::cout << "uhalWrite: setting " << s << " to  0x"
 		<< std::hex << std::setfill('0')
 		<< std::setw(8) << v
 		<< std::dec << std::setfill(' ')
@@ -745,17 +745,17 @@ void configuredA() {
       lNode.write(v);
       lHW.dispatch();
 
-      return xhalRead(s)==v;
+      return uhalRead(s)==v;
     }
 
 #else
 
-    uint32_t xhalRead(const std::string &s) {
+    uint32_t uhalRead(const std::string &s) {
       return 999;
     }
 
-    bool xhalWrite(const std::string &s, uint32_t v) {
-      std::cout << "xhalWrite: setting " << s << " to  0x"
+    bool uhalWrite(const std::string &s, uint32_t v) {
+      std::cout << "uhalWrite: setting " << s << " to  0x"
 		<< std::hex << std::setfill('0')
 		<< std::setw(8) << v
 		<< std::dec << std::setfill(' ')
@@ -774,7 +774,7 @@ void configuredA() {
       }
 	
       case 123: {
-	xhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",
+	uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",
 		  5+_runNumberInSuperRun);
 	break;
       }
@@ -808,7 +808,7 @@ void configuredA() {
     uint32_t _eventNumberInConfiguration;
     uint32_t _eventNumberInSuperRun;
 
-    std::vector<std::string> _xhalString;
+    std::vector<std::string> _uhalString;
 
 #ifdef ProcessorFastControlHardware
     const std::string lConnectionFilePath;

@@ -155,25 +155,26 @@ namespace Hgcal10gLinkReceiver {
 	kcount[j]=256;
       }
       
-      for(unsigned k(25);k<26;k++) {
-	xhalWrite("lpgbt0.lpgbt_frame.shift_elink0",0);
-	xhalWrite("lpgbt0.lpgbt_frame.shift_elink1",0);
-	xhalWrite("lpgbt0.lpgbt_frame.shift_elink2",0);
-	xhalWrite("lpgbt0.lpgbt_frame.shift_elink3",0);
-	xhalWrite("lpgbt0.lpgbt_frame.shift_elink4",k);
-	xhalWrite("lpgbt0.lpgbt_frame.shift_elink5",k);
-	xhalWrite("lpgbt0.lpgbt_frame.shift_elink6",0);
+	/*
+	uhalWrite("lpgbt0.lpgbt_frame.shift_elink0",0);
+	uhalWrite("lpgbt0.lpgbt_frame.shift_elink1",0);
+	uhalWrite("lpgbt0.lpgbt_frame.shift_elink2",0);
+	uhalWrite("lpgbt0.lpgbt_frame.shift_elink3",0);
+	uhalWrite("lpgbt0.lpgbt_frame.shift_elink4",k);
+	uhalWrite("lpgbt0.lpgbt_frame.shift_elink5",k);
+	uhalWrite("lpgbt0.lpgbt_frame.shift_elink6",0);
 
-	xhalWrite("lpgbt1.lpgbt_frame.shift_elink0",0);
-	xhalWrite("lpgbt1.lpgbt_frame.shift_elink1",0);
-	xhalWrite("lpgbt1.lpgbt_frame.shift_elink2",0);
-	xhalWrite("lpgbt1.lpgbt_frame.shift_elink3",0);
-	xhalWrite("lpgbt1.lpgbt_frame.shift_elink4",k);
-	xhalWrite("lpgbt1.lpgbt_frame.shift_elink5",k);
-	xhalWrite("lpgbt1.lpgbt_frame.shift_elink6",0);
-
+	uhalWrite("lpgbt1.lpgbt_frame.shift_elink0",0);
+	uhalWrite("lpgbt1.lpgbt_frame.shift_elink1",0);
+	uhalWrite("lpgbt1.lpgbt_frame.shift_elink2",0);
+	uhalWrite("lpgbt1.lpgbt_frame.shift_elink3",0);
+	uhalWrite("lpgbt1.lpgbt_frame.shift_elink4",k);
+	uhalWrite("lpgbt1.lpgbt_frame.shift_elink5",k);
+	uhalWrite("lpgbt1.lpgbt_frame.shift_elink6",0);
+	*/
 	std::cout << "readRxSummaryFile returns " << readRxSummaryFile() << std::endl;
 
+      for(unsigned k(0);k<32;k++) {
 	for(unsigned j(0);j<8;j++) {
 	  ncount[j][k]=0;
 
@@ -197,7 +198,7 @@ namespace Hgcal10gLinkReceiver {
       
       for(unsigned j(0);j<8;j++) {
 	std::cout << "RX channel " << j << ", max matches = " << mcount[j]
-		  << " out of 128, for offset " << kcount[j]
+		  << " out of 127, for offset " << kcount[j]
 		  << ", valid = " << _rxSummaryValid[j] << std::endl;
       }
       
