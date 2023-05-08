@@ -155,7 +155,7 @@ namespace Hgcal10gLinkReceiver {
 	kcount[j]=256;
       }
       
-	/*
+      /*
 	uhalWrite("lpgbt0.lpgbt_frame.shift_elink0",0);
 	uhalWrite("lpgbt0.lpgbt_frame.shift_elink1",0);
 	uhalWrite("lpgbt0.lpgbt_frame.shift_elink2",0);
@@ -171,8 +171,8 @@ namespace Hgcal10gLinkReceiver {
 	uhalWrite("lpgbt1.lpgbt_frame.shift_elink4",k);
 	uhalWrite("lpgbt1.lpgbt_frame.shift_elink5",k);
 	uhalWrite("lpgbt1.lpgbt_frame.shift_elink6",0);
-	*/
-	std::cout << "readRxSummaryFile returns " << readRxSummaryFile() << std::endl;
+      */
+      std::cout << "readRxSummaryFile returns " << readRxSummaryFile() << std::endl;
 
       for(unsigned k(0);k<32;k++) {
 	for(unsigned j(0);j<8;j++) {
@@ -229,309 +229,234 @@ namespace Hgcal10gLinkReceiver {
 	  uint64_t bc((bxNumberInRun%3564)+1);
 	  uint64_t oc(bxNumberInRun/3564);
 
+	  bool hgcrocData(true);
 
-	  readRxSummaryFile();
+	  if(hgcrocData) readRxSummaryFile();
 
-      uint64_t miniDaq[120]={
-      0xfe00b34ffffffffb,
-      0xf33af0000052eca6,
-      0xe000001fffffffff,
-      0x0000000000100000,
-      0x0020000000300000,
-      0x0040000000500000,
-      0x0060000000700000,
-      0x0080000000900000,
-      0x00a0000000b00000,
-      0x00c0000000d00000,
-      0x00e0000000f00000,
-      0x0100000001100000,
-      0x0000000001200000,
-      0x0130000001400000,
-      0x0150000001600000,
-      0x0170000001800000,
-      0x0190000001a00000,
-      0x01b0000001c00000,
-      0x01d0000001e00000,
-      0x01f0000002000000,
-      0x0210000002200000,
-      0x02300000e000001f,
-      0xffffffff02400000,
-      0x0250000002600000,
-      0x0270000002800000,
-      0x0290000002a00000,
-      0x02b0000002c00000,
-      0x02d0000002e00000,
-      0x02f0000003000000,
-      0x0310000003200000,
-      0x0330000003400000,
-      0x0350000000000000,
-      0x0360000003700000,
-      0x0380000003900000,
-      0x03a0000003b00000,
-      0x03c0000003d00000,
-      0x03e0000003f00000,
-      0x0400000004100000,
-      0x0420000004300000,
-      0x0440000004500000,
-      0x0460000004700000,
-      0xe000001fffffffff,
-      0x0000000000100000,
-      0x0020000000300000,
-      0x0040000000500000,
-      0x0060000000700000,
-      0x0080000000900000,
-      0x00a0000000b00000,
-      0x00c0000000d00000,
-      0x00e0000000f00000,
-      0x0100000001100000,
-      0x0000000001200000,
-      0x0130000001400000,
-      0x0150000001600000,
-      0x0170000001800000,
-      0x0190000001a00000,
-      0x01b0000001c00000,
-      0x01d0000001e00000,
-      0x01f0000002000000,
-      0x0210000002200000,
-      0x02300000e000001f,
-      0xffffffff02400000,
-      0x0250000002600000,
-      0x0270000002800000,
-      0x0290000002a00000,
-      0x02b0000002c00000,
-      0x02d0000002e00000,
-      0x02f0000003000000,
-      0x0310000003200000,
-      0x0330000003400000,
-      0x0350000000000000,
-      0x0360000003700000,
-      0x0380000003900000,
-      0x03a0000003b00000,
-      0x03c0000003d00000,
-      0x03e0000003f00000,
-      0x0400000004100000,
-      0x0420000004300000,
-      0x0440000004500000,
-      0x0460000004700000,
-      0xe000001fffffffff,
-      0x0000000000100000,
-      0x0020000000300000,
-      0x0040000000500000,
-      0x0060000000700000,
-      0x0080000000900000,
-      0x00a0000000b00000,
-      0x00c0000000d00000,
-      0x00e0000000f00000,
-      0x0100000001100000,
-      0x0000000001200000,
-      0x0130000001400000,
-      0x0150000001600000,
-      0x0170000001800000,
-      0x0190000001a00000,
-      0x01b0000001c00000,
-      0x01d0000001e00000,
-      0x01f0000002000000,
-      0x0210000002200000,
-      0x02300000e000001f,
-      0xffffffff02400000,
-      0x0250000002600000,
-      0x0270000002800000,
-      0x0290000002a00000,
-      0x02b0000002c00000,
-      0x02d0000002e00000,
-      0x02f0000003000000,
-      0x0310000003200000,
-      0x0330000003400000,
-      0x0350000000000000,
-      0x0360000003700000,
-      0x0380000003900000,
-      0x03a0000003b00000,
-      0x03c0000003d00000,
-      0x03e0000003f00000,
-      0x0400000004100000,
-      0x0420000004300000,
-      0x0440000004500000,
-      0x0460000004700000,
-      0xe4e37d0c00000000
-      };
+	  
+	  uint64_t miniDaq[120]={
+	    0xfe00b34ffffffffb,
+	    0xf33af0000052eca6,
+	    0xe000001fffffffff,
+	    0x0000000000100000,
+	    0x0020000000300000,
+	    0x0040000000500000,
+	    0x0060000000700000,
+	    0x0080000000900000,
+	    0x00a0000000b00000,
+	    0x00c0000000d00000,
+	    0x00e0000000f00000,
+	    0x0100000001100000,
+	    0x0000000001200000,
+	    0x0130000001400000,
+	    0x0150000001600000,
+	    0x0170000001800000,
+	    0x0190000001a00000,
+	    0x01b0000001c00000,
+	    0x01d0000001e00000,
+	    0x01f0000002000000,
+	    0x0210000002200000,
+	    0x02300000e000001f,
+	    0xffffffff02400000,
+	    0x0250000002600000,
+	    0x0270000002800000,
+	    0x0290000002a00000,
+	    0x02b0000002c00000,
+	    0x02d0000002e00000,
+	    0x02f0000003000000,
+	    0x0310000003200000,
+	    0x0330000003400000,
+	    0x0350000000000000,
+	    0x0360000003700000,
+	    0x0380000003900000,
+	    0x03a0000003b00000,
+	    0x03c0000003d00000,
+	    0x03e0000003f00000,
+	    0x0400000004100000,
+	    0x0420000004300000,
+	    0x0440000004500000,
+	    0x0460000004700000,
+	    0xe000001fffffffff,
+	    0x0000000000100000,
+	    0x0020000000300000,
+	    0x0040000000500000,
+	    0x0060000000700000,
+	    0x0080000000900000,
+	    0x00a0000000b00000,
+	    0x00c0000000d00000,
+	    0x00e0000000f00000,
+	    0x0100000001100000,
+	    0x0000000001200000,
+	    0x0130000001400000,
+	    0x0150000001600000,
+	    0x0170000001800000,
+	    0x0190000001a00000,
+	    0x01b0000001c00000,
+	    0x01d0000001e00000,
+	    0x01f0000002000000,
+	    0x0210000002200000,
+	    0x02300000e000001f,
+	    0xffffffff02400000,
+	    0x0250000002600000,
+	    0x0270000002800000,
+	    0x0290000002a00000,
+	    0x02b0000002c00000,
+	    0x02d0000002e00000,
+	    0x02f0000003000000,
+	    0x0310000003200000,
+	    0x0330000003400000,
+	    0x0350000000000000,
+	    0x0360000003700000,
+	    0x0380000003900000,
+	    0x03a0000003b00000,
+	    0x03c0000003d00000,
+	    0x03e0000003f00000,
+	    0x0400000004100000,
+	    0x0420000004300000,
+	    0x0440000004500000,
+	    0x0460000004700000,
+	    0xe000001fffffffff,
+	    0x0000000000100000,
+	    0x0020000000300000,
+	    0x0040000000500000,
+	    0x0060000000700000,
+	    0x0080000000900000,
+	    0x00a0000000b00000,
+	    0x00c0000000d00000,
+	    0x00e0000000f00000,
+	    0x0100000001100000,
+	    0x0000000001200000,
+	    0x0130000001400000,
+	    0x0150000001600000,
+	    0x0170000001800000,
+	    0x0190000001a00000,
+	    0x01b0000001c00000,
+	    0x01d0000001e00000,
+	    0x01f0000002000000,
+	    0x0210000002200000,
+	    0x02300000e000001f,
+	    0xffffffff02400000,
+	    0x0250000002600000,
+	    0x0270000002800000,
+	    0x0290000002a00000,
+	    0x02b0000002c00000,
+	    0x02d0000002e00000,
+	    0x02f0000003000000,
+	    0x0310000003200000,
+	    0x0330000003400000,
+	    0x0350000000000000,
+	    0x0360000003700000,
+	    0x0380000003900000,
+	    0x03a0000003b00000,
+	    0x03c0000003d00000,
+	    0x03e0000003f00000,
+	    0x0400000004100000,
+	    0x0420000004300000,
+	    0x0440000004500000,
+	    0x0460000004700000,
+	    0xe4e37d0c00000000
+	  };
 
-      miniDaq[0]&=0xfe00000fffffffff;
-      miniDaq[0]|=bc<<45|uint64_t(_eventNumberInRun%64)<<39|(oc%8)<<36;
+	  miniDaq[0]&=0xfe00000fffffffff;
+	  miniDaq[0]|=bc<<45|uint64_t(_eventNumberInRun%64)<<39|(oc%8)<<36;
 
-      uint32_t *p32((uint32_t*)miniDaq);
-
-
-      RecordT<1023> buffer;
-
-	RecordRunning &rr((RecordRunning&)buffer);
-	rr.setIdentifier(RecordHeader::EventData);
-	rr.setState(FsmState::Running);
-	rr.setPayloadLength(4+120);
-	//rr.setUtc(_evtSeqCounter++);
-	rr.setUtc(_eventNumberInRun);
-
-	SlinkBoe *boe(rr.getSlinkBoe());
-	*boe=SlinkBoe();
-	boe->setEventId(_eventNumberInRun);
-	boe->setL1aSubType(rand()%256);
-	boe->setL1aType(rand()%64);
-	boe->setSourceId(ProcessorDaqLink0FifoShmKey);
-
-	uint32_t *ptr(rr.getDaqPayload());
-	for(unsigned i(0);i<120;i++) {
-	  //ptr[2*i+1]=p32[2*i  ];
-	  //ptr[2*i  ]=p32[2*i+1];
-	  ptr[2*i  ]=p32[2*i  ];
-	  ptr[2*i+1]=p32[2*i+1];
-	}
-	
-	SlinkEoe *eoe(rr.getSlinkEoe());
-	*eoe=SlinkEoe();
-
-	eoe->setEventLength(2+60);
-	eoe->setCrc(0xdead);
-	boe->setEventId(_eventNumberInRun);
-	
-	eoe->setBxId((bxNumberInRun%3564)+1);
-	eoe->setOrbitId(bxNumberInRun/3564);
-
-	if(eoe->eoeHeader()!=SlinkEoe::EoePattern) {
-	  eoe->print();
-	  rr.print();
-	  assert(false);
-	}
-
-	if(_printEnable) {
-	  if(_evtSeqCounter<10) {
-	    std::cout << "HERE" << std::endl;
-	    rr.print();
-	  }
-	}
-	
-	if(ptrFifoShm0!=0) {
-	  if(_printEnable) ptrFifoShm0->print();
-	  //assert(ptrFifoShm0->write(rr.totalLength(),(uint64_t*)(&rr)));
-	  if(!ptrFifoShm0->write(rr.totalLength(),(uint64_t*)(&rr))) {
-	    std::cerr << "Failed to write event" << std::endl;
-	    std::cout << "Failed to write event" << std::endl;
-	    ptrFifoShm0->print();
-	  }
-	}
-
-#ifdef JUNK
-	  std::ifstream fin("/home/cmx/pdauncey/data/rx_summary.txt");
-	  if(!fin) {
-	    std::cout << "Failed to open file" << std::endl;
-	    //return false;
-	  }
-
-	  uint64_t singled[128];
-	  uint64_t doubled[127];
-
-	  char buffer[1024];
-	  fin.getline(buffer,1024);
-	  //if(sfhDebug) 
-	  std::cout << buffer << std::endl;
-	  fin.getline(buffer,1024);
-	  //if(sfhDebug) 
-	  std::cout << buffer << std::endl;
-      
-	  std::string str;
-	  fin >> str;
-	  ///if(sfhDebug)
-	  std::cout << str;
-	  fin >> str;
-	  std::cout << " " << str;
-	  fin >> str;
-	  std::cout << " " << str;
-	  uint64_t n64;
-	  for(unsigned i(0);i<128 && fin;i++) {
-      
-	    fin >> str;
-	    std::cout << " " << str;
-	    fin >> str;
-	    std::cout << " " << str << std::endl;
-
-	    fin >> std::hex >> singled[i]
-	      std::cout << std::hex << singled[i] << std::endl;
-	    fin >> str;
-	    std::cout << " " << str;
-	  }
-	  std::cout << std::dec << std::endl;
-
-	  fin.close();
-#endif
+	  uint32_t *p32((uint32_t*)miniDaq);
 
 
-	  //fin >> n64;
-	  //std::cout << n64 << std::endl;
 
+
+
+	  RecordRunning *r;
+	  while((r=ptrFifoShm0->getWriteRecord())==nullptr) usleep(1);
+
+	  
 	  /*
-	    unsigned nLinks(0);
-	    for(unsigned i(0);i<120 && str!="Frame";i++) {
-	    nLinks++;
-	
-	    if(!append) {
-	    v.push_back(SummaryLinkRawData());
-	    v.back().link(str);
-	    v.back().utc(timestamp);
-	    v.back().bx(bxStart);
+	  if(ptrFifoShm0!=0) {
+	    //assert(ptrFifoShm0->write(rr.totalLength(),(uint64_t*)(&rr)));
+	    if(!ptrFifoShm0->write(rr.totalLength(),(uint64_t*)(&rr))) {
+	      std::cerr << "Failed to write event" << std::endl;
+	      std::cout << "Failed to write event" << std::endl;
+	      ptrFifoShm0->print();
 	    }
-	
-	    if(i>0 && sfhDebug) std::cout << " " << str;
-	    fin >> str;
-	    }
-      
-	    assert(nLinks==v.size());
-	    if(sfhDebug) std::cout << std::endl;
+	  }
 	  */
 
 
 
+
+
+
 	  /*
-	    unsigned m;
-	    uint64_t d;
-	    unsigned f;
-      
-	    for(unsigned i(0);i<2048 && fin;i++) {
-	    assert(str=="Frame");
-	
-	    fin >> f;
-	    assert(f==i);
-	
-	    if(sfhDebug) {
-	    std::cout << "Frame " << std::setw(4) << i
-	    << ", command and data = ";
+	  RecordT<1023> buffer;
+
+	  RecordRunning &rr((RecordRunning&)buffer);
+	  */
+	  //r->setIdentifier(RecordHeader::EventData);
+	  //r->setState(FsmState::Running);
+	  r->setHeader(_eventNumberInRun);
+	  //rr.setUtc(_evtSeqCounter++);
+	  //rr.setUtc(_eventNumberInRun);
+
+	  if(hgcrocData) {
+	    r->setPayloadLength(4+40);
+
+	    uint32_t *ptr(rr.getDaqPayload());
+	    for(unsigned i(0);i<40;i++) {
+	      ptr[i]=i;
 	    }
-	
-	    for(unsigned j(0);j<v.size();j++) {
-	    fin >> m >> std::hex >> d >> std::dec;
-	  
-	    uint8_t c(0);
-	    if( (m/1000    )==1) c+=8;
-	    if(((m/100 )%10)==1) c+=4;
-	    if(((m/10  )%10)==1) c+=2;
-	    if( (m      %10)==1) c+=1;
-	  
-	    if(sfhDebug) {
-	    if(j>0) std::cout << ", ";
-	    std::cout << " 0x0x" << std::hex << std::setfill('0') 
-	    << std::setw(2) << unsigned(c)
-	    << " x" << std::setw(16) << d
-	    << std::dec << std::setfill(' ');
+
+	  } else {
+	    r->setPayloadLength(4+120);
+	    SlinkBoe *boe(rr.getSlinkBoe());
+	    *boe=SlinkBoe();
+	    boe->setEventId(_eventNumberInRun);
+	    boe->setL1aSubType(rand()%256);
+	    boe->setL1aType(rand()%64);
+	    boe->setSourceId(ProcessorDaqLink0FifoShmKey);
+	    
+	    uint32_t *ptr(rr.getDaqPayload());
+	    for(unsigned i(0);i<120;i++) {
+	      //ptr[2*i+1]=p32[2*i  ];
+	      //ptr[2*i  ]=p32[2*i+1];
+	      ptr[2*i  ]=p32[2*i  ];
+	      ptr[2*i+1]=p32[2*i+1];
 	    }
-	  
-	    v[j].append(c,d);
+	    
+	    SlinkEoe *eoe(rr.getSlinkEoe());
+	    *eoe=SlinkEoe();
+	    
+	    eoe->setEventLength(2+60);
+	    eoe->setCrc(0xdead);
+	    boe->setEventId(_eventNumberInRun);
+	    
+	    eoe->setBxId((bxNumberInRun%3564)+1);
+	    eoe->setOrbitId(bxNumberInRun/3564);
+	    
+	    if(eoe->eoeHeader()!=SlinkEoe::EoePattern) {
+	      eoe->print();
+	      rr.print();
+	      assert(false);
 	    }
-	
-	    if(sfhDebug) std::cout << std::endl;
-	
-	    fin >> str;
+	    
+	    if(_printEnable) {
+	      if(_evtSeqCounter<10) {
+		std::cout << "HERE" << std::endl;
+		rr.print();
+	      }
 	    }
-      
-	    if(!append) {
-	    for(unsigned j(0);j<v.size();j++) v[j].setPhase();
+	  }
+
+	  ptrFifoShm0->writeIncrement();
+	  /*	
+	  if(ptrFifoShm0!=0) {
+	    if(_printEnable) ptrFifoShm0->print();
+	    //assert(ptrFifoShm0->write(rr.totalLength(),(uint64_t*)(&rr)));
+	    if(!ptrFifoShm0->write(rr.totalLength(),(uint64_t*)(&rr))) {
+	      std::cerr << "Failed to write event" << std::endl;
+	      std::cout << "Failed to write event" << std::endl;
+	      ptrFifoShm0->print();
 	    }
+	  }
 	  */
 
 	  boe->setSourceId(ProcessorDaqLink1FifoShmKey);
@@ -540,7 +465,7 @@ namespace Hgcal10gLinkReceiver {
 	    assert(ptrFifoShm1->write(rr.totalLength(),(uint64_t*)(&rr)));
 	  }
 	  
-	//usleep(100);
+	  //usleep(100);
 	} else {
 	  if(_printEnable) {
 	    std::cout << "Backpressured" << std::endl;
@@ -548,19 +473,22 @@ namespace Hgcal10gLinkReceiver {
 	  }
 	}
       }
+
+
+	// Throttle
       _serenityUhal.uhalWrite("fc_ctrl.fpga_fc.ctrl.tts",0);
       _serenityUhal.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0); // TEMP
     }
 
     
-  void paused() {
-    _pauseCounter++;
-  }
+    void paused() {
+      _pauseCounter++;
+    }
 
    
   private:
-  bool     _rxSummaryValid[8];
-  uint32_t _rxSummaryData[8][128];
+    bool     _rxSummaryValid[8];
+    uint32_t _rxSummaryData[8][128];
 
     DataFifoT<6,1024> *ptrFifoShm0;
     DataFifoT<6,1024> *ptrFifoShm1;

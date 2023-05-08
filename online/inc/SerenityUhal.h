@@ -48,10 +48,10 @@ namespace Hgcal10gLinkReceiver {
     virtual ~SerenityUhal() {
     }
     
-    bool makeTable() {
+    bool makeTable(const std::string &s="payload") {
 #ifdef SerenityUhalHardware
       std::vector<std::string> temp;
-      temp=lHW.getNode("payload").getNodes();
+      temp=lHW.getNode(s).getNodes();
       
       if(_printEnable) {
 	for(unsigned i(0);i<temp.size();i++) {

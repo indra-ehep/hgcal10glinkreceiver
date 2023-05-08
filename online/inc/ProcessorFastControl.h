@@ -307,6 +307,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 
 	_runNumber=r->runNumber();
 	if(_printEnable) r->print();
+	ptrFifoShm2->writeIncrement();
 
 	//ptrFifoShm2->print();
 	//assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
@@ -355,6 +356,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 	r->setNumberOfEvents(_eventNumberInRun);
 	r->setNumberOfPauses(_pauseCounter);
 	if(_printEnable) r->print();
+	ptrFifoShm2->writeIncrement();
 
 	//RecordStopping rr;
 	//rr.deepCopy(_ptrFsmInterface->commandPacket().record());
@@ -494,6 +496,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 	r->addString(_uhalString[i]);
       }
       r->print();
+	ptrFifoShm2->writeIncrement();
       
       while((r=(RecordConfigured*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
       r->setHeader(_cfgSeqCounter++);
@@ -525,6 +528,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       }
     
       if(_printEnable) r->print();
+	ptrFifoShm2->writeIncrement();
           
       ///////////////
 	
