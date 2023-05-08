@@ -10,6 +10,7 @@
 #include <string>
 #include <cstring>
 
+#include "SerenityUhal.h"
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
@@ -24,8 +25,6 @@
 
 #include "RecordPrinter.h"
 #include "ShmKeys.h"
-//#include "SlinkBoe.h"
-//#include "SlinkEoe.h"
 
 #ifdef ProcessorFastControlHardware
 #include "uhal/uhal.hpp"
@@ -38,6 +37,7 @@ namespace Hgcal10gLinkReceiver {
     
   public:
 #ifdef ProcessorFastControlHardware
+#ifdef JUNK
   ProcessorFastControl() : lConnectionFilePath("etc/connections.xml"),
       lDeviceId("x0"),
       lConnectionMgr("file://" + lConnectionFilePath),
@@ -46,6 +46,7 @@ namespace Hgcal10gLinkReceiver {
 	uhal::setLogLevelTo(uhal::Error());  
 	//lHW = lConnectionMgr.getDevice(lDeviceId);
     }
+#endif
 #else
     ProcessorFastControl() {
     }
@@ -55,6 +56,9 @@ namespace Hgcal10gLinkReceiver {
     }
   
     void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
+      _serenityUhal.makeTable();
+      
+
       ShmSingleton< DataFifoT<6,1024> > shm2;
       ptrFifoShm2=shm2.setup(fifoKey);
       //ptrFifoShm2=shm2.payload();
@@ -64,8 +68,11 @@ namespace Hgcal10gLinkReceiver {
     virtual bool initializing(FsmInterface::HandshakeState s) {
       std::cout << "HEREI !!!" << std::endl;
       if(s==FsmInterface::Change) {
+	_serenityUhal.setDefaults();
+	_serenityUhal.print();
 
       std::cout << "HEREI2 !!!" << std::endl;
+#ifdef JUNK
 #ifdef ProcessorFastControlHardware
 	//system("/home/cmx/pdauncey/source setFC.sh");
 
@@ -171,6 +178,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 
 	 */
 
+
 	std::cout << "SETTING SOME DEFAULTS" << std::endl;
 	assert(uhalWrite("fc_ctrl.fpga_fc.ctrl.tts",0));
 	uhalWrite("fc_ctrl.fpga_fc.ctrl.prel1a_offset",3);
@@ -193,6 +201,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 #else
 	_uhalString.resize(0);
 	_uhalString.push_back("tcds2_emu.ctrl_stat.ctrl.seq_length"); 
+#endif
 #endif
       }
 	
@@ -223,9 +232,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 
 
 	// Do configuration; ones which could have been changed
-	uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",8);
-
-
+	_serenityUhal.uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",8);
 	
 	if(_printEnable) {
 	  std::cout << "Waiting for space in buffer" << std::endl;
@@ -504,10 +511,12 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       for(unsigned i(0);i<_uhalString.size();i++) {
 	xi.setAddress(i);
 #ifdef ProcessorFastControlHardware
+#ifdef JUNK
 	const uhal::Node& lNode = lHW.getNode("payload."+_uhalString[i]);
 	uhal::ValWord<uint32_t> lReg = lNode.read();
 	lHW.dispatch();
 	xi.setValue(lReg.value());
+#endif
 #else
 	xi.setValue(0x1000*i);
 #endif
@@ -559,7 +568,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       }
 	
       case 123: {
-	uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",
+	_serenityUhal.uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",
 		  5+_runNumberInSuperRun);
 	break;
       }
@@ -590,6 +599,9 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
     uint32_t _eventNumberInRun;
     uint32_t _eventNumberInConfiguration;
     uint32_t _eventNumberInSuperRun;
+
+    SerenityUhal _serenityUhal;
+
   };
 
 }

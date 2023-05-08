@@ -112,7 +112,7 @@ namespace Hgcal10gLinkReceiver {
 
       // fpga_fc
       
-      uhalWrite("fc_ctrl.fpga_fc.ctrl.tts",0);
+      uhalWrite("fc_ctrl.fpga_fc.ctrl.tts",1);
       uhalWrite("fc_ctrl.fpga_fc.ctrl.prel1a_offset",3);
       uhalWrite("fc_ctrl.fpga_fc.ctrl.user_prel1a_off_en",1);
       
@@ -225,6 +225,19 @@ namespace Hgcal10gLinkReceiver {
 		<< std::endl;
     }
     o << std::dec << std::setfill(' ');
+
+    uhalWrite("fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+    uint32_t seqLength=uhalRead("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length");
+    for(unsigned i(0);i<seqLength;i++) {
+      uint32_t seqMemPointer=uhalRead("fc_ctrl.tcds2_emu.seq_mem.pointer");
+      uint32_t seqMemData=uhalRead("fc_ctrl.tcds2_emu.seq_mem.data");
+      std::cout << "Seq l, mp, md = " << seqLength << ", " << seqMemPointer
+		<< ", 0x" << std::hex << std::setfill('0') 
+		<< std::setw(8) << seqMemData 
+		<< std::dec << std::setfill(' ')
+		<< " meaning BX = " << (seqMemData>>16)
+		<< std::endl;
+    }
   }
 
   

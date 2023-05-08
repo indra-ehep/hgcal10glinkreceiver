@@ -52,7 +52,7 @@ namespace Hgcal10gLinkReceiver {
 
       system("ls -l data/");
       system("rm data/rx_summary.txt; rm data/tx_summary.txt");
-      system("source ./emp_capture_single.sh");
+      system("source ./emp_capture_single.sh 1");
       //sleep(1);
       system("ls -l data/");
 
@@ -218,7 +218,11 @@ namespace Hgcal10gLinkReceiver {
     }
 
     void running() {
+      _serenityUhal.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",1); // TEMP
+      _serenityUhal.uhalWrite("fc_ctrl.fpga_fc.ctrl.tts",1);
+
       while(_ptrFsmInterface->isIdle()) {
+
 	if(!ptrFifoShm2->backPressure()) {
 	  _eventNumberInRun++;
 	  uint64_t bxNumberInRun(1637*_eventNumberInRun);
@@ -226,7 +230,7 @@ namespace Hgcal10gLinkReceiver {
 	  uint64_t oc(bxNumberInRun/3564);
 
 
-	  //readRxSummaryFile();
+	  readRxSummaryFile();
 
       uint64_t miniDaq[120]={
       0xfe00b34ffffffffb,
@@ -544,6 +548,8 @@ namespace Hgcal10gLinkReceiver {
 	  }
 	}
       }
+      _serenityUhal.uhalWrite("fc_ctrl.fpga_fc.ctrl.tts",0);
+      _serenityUhal.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0); // TEMP
     }
 
     
