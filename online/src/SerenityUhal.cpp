@@ -9,7 +9,11 @@
 #include <iostream>
 #include <cassert>
 
+//#undef ProcessorFastControlHardware
+#define ProcessorFastControlHardware
+
 #include "SerenityUhal.h"
+#include "ProcessorFastControlPlusDaq.h"
 
 using namespace Hgcal10gLinkReceiver;
 
@@ -34,6 +38,54 @@ int main(int argc, char *argv[]) {
 
   su.uhalWrite("lpgbt1.lpgbt_frame.shift_elink4",57&0xff);
   su.print();
+
+  su.uhalWrite("fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+  //su.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",3);
+
+  // 0x0040 = L1A, 0x0010 = ECR
+  /*
+  "BC0"         : 0,
+    "OC0"         : 1,
+    "undefined-0" : 2 ,
+    "CALPULSE"    : 4 ,
+    "EBR"         : 8 ,
+    "ECR"         : 16,
+    "EXT_READOUT" : 32 ,
+    "L1A"         : 64 ,
+    "LR_ECONT"    : 128 ,
+    "LR_ECOND"    : 256,
+    "LR_ROCT"     : 512,
+    "LR_ROCD"     : 1024,
+    "ECONWDCLR"   : 2048,
+    "ROCSERRST"   : 4096
+  */
+
+  su.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",0);
+  //su.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",1);
+  su.uhalWrite("fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+
+  uint32_t seqLength=su.uhalRead("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length");
+  for(unsigned i(0);i<seqLength;i++) {
+    uint32_t seqMemPointer=su.uhalRead("fc_ctrl.tcds2_emu.seq_mem.pointer");
+    uint32_t seqMemData=su.uhalRead("fc_ctrl.tcds2_emu.seq_mem.data");
+    std::cout << "Seq l, mp, md = " << seqLength << ", " << seqMemPointer
+	      << ", 0x" << std::hex << std::setfill('0') 
+	      << std::setw(8) << seqMemData 
+	      << std::dec << std::setfill(' ')
+	      << " meaning BX = " << (seqMemData>>16)
+	      << std::endl;
+  }
+
+  su.uhalWrite("fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+
+  su.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",3);
+  
+  //ProcessorFastControlPlusDaq pfcpd;
+  //pfcpd.initializing(FsmInterface::Change);
+  //return 0;
+
+
+
 
   const unsigned offset(27); // RX
   //const unsigned offset(28); // TX
