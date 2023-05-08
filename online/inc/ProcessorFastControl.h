@@ -10,7 +10,6 @@
 #include <string>
 #include <cstring>
 
-//#include "RunControlFsmShm.h"
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
@@ -25,11 +24,8 @@
 
 #include "RecordPrinter.h"
 #include "ShmKeys.h"
-#include "SlinkBoe.h"
-#include "SlinkEoe.h"
-
-#undef ProcessorFastControlHardware
-//#define ProcessorFastControlHardware
+//#include "SlinkBoe.h"
+//#include "SlinkEoe.h"
 
 #ifdef ProcessorFastControlHardware
 #include "uhal/uhal.hpp"
@@ -294,14 +290,19 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       if(s==FsmInterface::Change) {
 	_pauseCounter=0;
 	_eventNumberInRun=0;
-      
-	RecordStarting rr;
-	_runNumber=rr.runNumber();
 
-	rr.deepCopy(_ptrFsmInterface->commandPacket().record());
-	rr.print();
-	ptrFifoShm2->print();
-	assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
+	// Enable sequencer (even if masked)
+	_serenityUhal.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",3);
+	
+	RecordStarting *r;
+	while((r=(RecordStarting*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
+	r->deepCopy(_ptrFsmInterface->commandPacket().record());
+
+	_runNumber=r->runNumber();
+	if(_printEnable) r->print();
+
+	//ptrFifoShm2->print();
+	//assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
       }
 
       return true;
@@ -335,16 +336,26 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
     
     bool stopping(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
-
 	_eventNumberInConfiguration+=_eventNumberInRun;
 
-	RecordStopping rr;
-	rr.deepCopy(_ptrFsmInterface->commandPacket().record());
-	rr.setNumberOfEvents(_eventNumberInRun);
-	rr.setNumberOfPauses(_pauseCounter);
-	rr.print();
-	ptrFifoShm2->print();
-	assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
+	// Disable sequencer
+	_serenityUhal.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",0);
+
+	RecordStopping *r;
+	while((r=(RecordStopping*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
+	r->deepCopy(_ptrFsmInterface->commandPacket().record());
+
+	r->setNumberOfEvents(_eventNumberInRun);
+	r->setNumberOfPauses(_pauseCounter);
+	if(_printEnable) r->print();
+
+	//RecordStopping rr;
+	//rr.deepCopy(_ptrFsmInterface->commandPacket().record());
+	//rr.setNumberOfEvents(_eventNumberInRun);
+	//rr.setNumberOfPauses(_pauseCounter);
+	//rr.print();
+	//ptrFifoShm2->print();
+	//assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
       }
       return true;
     }
@@ -392,21 +403,9 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       }
       return true;
     }
-    /*
+
 //////////////////////////////////////////////
-    
-void initial() {
-//sleep(1);
-}
-    
-void halted() {
-//sleep(1);
-}
-    
-void configuredA() {
-//sleep(1);
-}
-    */    
+
 
     virtual void configuredB() {
       std::cout << "configuredB() super run = " << _superRunNumber << std::endl;
@@ -547,223 +546,9 @@ void configuredA() {
 
     }
 
-#ifdef NOW_IN_PLUS_DAQ
-    void running() {
-      while(_ptrFsmInterface->isIdle()) {
-	RecordT<128> buffer;
-
-	RecordRunning &rr((RecordRunning&)buffer);
-	rr.setIdentifier(RecordHeader::EventData);
-	rr.setState(FsmState::Running);
-	rr.setPayloadLength(4);
-	rr.setUtc(_evtSeqCounter++);
-
-	SlinkBoe *boe(rr.getSlinkBoe());
-	*boe=SlinkBoe();
-	boe->setSourceId(RunControlDaqLink0ShmKey);
-
-	SlinkEoe *eoe(rr.getSlinkEoe());
-	*eoe=SlinkEoe();
-
-	eoe->setEventLength(2);
-	eoe->setCrc(0xdead);
-	boe->setL1aSubType(rand()%256);
-	boe->setL1aType(rand()%64);
-	boe->setEventId(_eventNumberInRun);
-	
-	eoe->setBxId((rand()%3564)+1);
-	eoe->setOrbitId(rand());
-	
-	if(_evtSeqCounter<10) {
-	  rr.print();
-	}	
-
-	if(_evtSeqCounter<10) {
-	  std::cout << "HERE" << std::endl;
-	  rr.print();
-	}
-	
-	if(ptrFifoShm0!=0) {
-	  ptrFifoShm0->print();
-	  //assert(ptrFifoShm0->write(rr.totalLength(),(uint64_t*)(&rr)));
-	  if(!ptrFifoShm0->write(rr.totalLength(),(uint64_t*)(&rr))) {
-	    std::cerr << "Failed to write event" << std::endl;
-	  }
-	}
-
-#ifdef ProcessorFastControlHardware
-	std::ifstream fin("/home/cmx/pdauncey/data/rx_summary.txt");
-	if(!fin) {
-	  std::cout << "Failed to open file" << std::endl;
-	  //return false;
-	}
-
-	uint64_t singled[128];
-	uint64_t doubled[127];
-
-	char buffer[1024];
-	fin.getline(buffer,1024);
-	//if(sfhDebug) 
-	std::cout << buffer << std::endl;
-	fin.getline(buffer,1024);
-	//if(sfhDebug) 
-	std::cout << buffer << std::endl;
-      
-	std::string str;
-	fin >> str;
-	///if(sfhDebug)
-	std::cout << str;
-	fin >> str;
-	std::cout << " " << str;
-	fin >> str;
-	std::cout << " " << str;
-	uint64_t n64;
-	for(unsigned i(0);i<128 && fin;i++) {
-      
-	  fin >> str;
-	  std::cout << " " << str;
-	  fin >> str;
-	  std::cout << " " << str << std::endl;
-
-	  fin >> std::hex >> singled[i]
-	    std::cout << std::hex << singled[i] << std::endl;
-	  fin >> str;
-	  std::cout << " " << str;
-	}
-	std::cout << std::dec << std::endl;
-
-	fin.close();
-#endif
-
-
-	//fin >> n64;
-	//std::cout << n64 << std::endl;
-
-	/*
-	  unsigned nLinks(0);
-	  for(unsigned i(0);i<120 && str!="Frame";i++) {
-	  nLinks++;
-	
-	  if(!append) {
-	  v.push_back(SummaryLinkRawData());
-	  v.back().link(str);
-	  v.back().utc(timestamp);
-	  v.back().bx(bxStart);
-	  }
-	
-	  if(i>0 && sfhDebug) std::cout << " " << str;
-	  fin >> str;
-	  }
-      
-	  assert(nLinks==v.size());
-	  if(sfhDebug) std::cout << std::endl;
-	*/
-
-
-
-	/*
-	  unsigned m;
-	  uint64_t d;
-	  unsigned f;
-      
-	  for(unsigned i(0);i<2048 && fin;i++) {
-	  assert(str=="Frame");
-	
-	  fin >> f;
-	  assert(f==i);
-	
-	  if(sfhDebug) {
-	  std::cout << "Frame " << std::setw(4) << i
-	  << ", command and data = ";
-	  }
-	
-	  for(unsigned j(0);j<v.size();j++) {
-	  fin >> m >> std::hex >> d >> std::dec;
-	  
-	  uint8_t c(0);
-	  if( (m/1000    )==1) c+=8;
-	  if(((m/100 )%10)==1) c+=4;
-	  if(((m/10  )%10)==1) c+=2;
-	  if( (m      %10)==1) c+=1;
-	  
-	  if(sfhDebug) {
-	  if(j>0) std::cout << ", ";
-	  std::cout << " 0x" << std::hex << std::setfill('0') 
-	  << std::setw(2) << unsigned(c)
-	  << " 0x" << std::setw(16) << d
-	  << std::dec << std::setfill(' ');
-	  }
-	  
-	  v[j].append(c,d);
-	  }
-	
-	  if(sfhDebug) std::cout << std::endl;
-	
-	  fin >> str;
-	  }
-      
-	  if(!append) {
-	  for(unsigned j(0);j<v.size();j++) v[j].setPhase();
-	  }
-	*/
-
-	boe->setSourceId(RunControlDaqLink1ShmKey);
-	  
-	if(ptrFifoShm1!=0) {
-	  assert(ptrFifoShm1->write(rr.totalLength(),(uint64_t*)(&rr)));
-	}
-	  
-	_eventNumberInRun++;
-
-	usleep(1000);
-      }
-    }
-#endif
-
-    
     void paused() {
       _pauseCounter++;
     }
-
-#ifdef ProcessorFastControlHardware
-
-    uint32_t uhalRead(const std::string &s) {
-      const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
-      uhal::ValWord<uint32_t> lReg = lNode.read();
-      lHW.dispatch();
-      return lReg.value();
-    }
-      
-    bool uhalWrite(const std::string &s, uint32_t v) {
-      std::cout << "uhalWrite: setting " << s << " to  0x"
-		<< std::hex << std::setfill('0')
-		<< std::setw(8) << v
-		<< std::dec << std::setfill(' ')
-		<< std::endl;
-
-      const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
-      lNode.write(v);
-      lHW.dispatch();
-
-      return uhalRead(s)==v;
-    }
-
-#else
-
-    uint32_t uhalRead(const std::string &s) {
-      return 999;
-    }
-
-    bool uhalWrite(const std::string &s, uint32_t v) {
-      std::cout << "uhalWrite: setting " << s << " to  0x"
-		<< std::hex << std::setfill('0')
-		<< std::setw(8) << v
-		<< std::dec << std::setfill(' ')
-		<< std::endl;
-      return true;
-    }
-
-#endif
     
     void keyConfiguration(uint32_t key) {
 
@@ -792,8 +577,6 @@ void configuredA() {
     
   protected:
     DataFifoT<6,1024> *ptrFifoShm2;
-    //DataFifoT<6,1024> *ptrFifoShm0;
-    //DataFifoT<6,1024> *ptrFifoShm1;
 
     uint32_t _cfgSeqCounter;
     uint32_t _evtSeqCounter;
@@ -807,16 +590,6 @@ void configuredA() {
     uint32_t _eventNumberInRun;
     uint32_t _eventNumberInConfiguration;
     uint32_t _eventNumberInSuperRun;
-
-    std::vector<std::string> _uhalString;
-
-#ifdef ProcessorFastControlHardware
-    const std::string lConnectionFilePath;
-    const std::string lDeviceId;
-    uhal::ConnectionManager lConnectionMgr;
-    uhal::HwInterface lHW;
-#endif
-
   };
 
 }
