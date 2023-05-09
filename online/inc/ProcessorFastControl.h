@@ -10,7 +10,8 @@
 #include <string>
 #include <cstring>
 
-#include "SerenityUhal.h"
+#include "SerenityEncoder.h"
+#include "SerenityLpgbt.h"
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
@@ -57,6 +58,7 @@ namespace Hgcal10gLinkReceiver {
   
     void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
       _serenityUhal.makeTable();
+      _serenityLpgbt.makeTable();
       
 
       ShmSingleton< DataFifoT<6,1024> > shm2;
@@ -70,6 +72,8 @@ namespace Hgcal10gLinkReceiver {
       if(s==FsmInterface::Change) {
 	_serenityUhal.setDefaults();
 	_serenityUhal.print();
+	_serenityLpgbt.setDefaults();
+	_serenityLpgbt.print();
 
       std::cout << "HEREI2 !!!" << std::endl;
 #ifdef JUNK
@@ -232,7 +236,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 
 
 	// Do configuration; ones which could have been changed
-	_serenityUhal.uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",8);
+	_serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",8);
 	
 	if(_printEnable) {
 	  std::cout << "Waiting for space in buffer" << std::endl;
@@ -298,9 +302,6 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 	_pauseCounter=0;
 	_eventNumberInRun=0;
 
-	// Enable sequencer (even if masked)
-	_serenityUhal.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",3);
-	
 	RecordStarting *r;
 	while((r=(RecordStarting*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
 	r->deepCopy(_ptrFsmInterface->commandPacket().record());
@@ -345,9 +346,6 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
     bool stopping(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
 	_eventNumberInConfiguration+=_eventNumberInRun;
-
-	// Disable sequencer
-	_serenityUhal.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",0);
 
 	RecordStopping *r;
 	while((r=(RecordStopping*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
@@ -574,7 +572,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       }
 	
       case 123: {
-	_serenityUhal.uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",
+	_serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",
 		  5+_runNumberInSuperRun);
 	break;
       }
@@ -606,7 +604,8 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
     uint32_t _eventNumberInConfiguration;
     uint32_t _eventNumberInSuperRun;
 
-    SerenityUhal _serenityUhal;
+    SerenityEncoder _serenityUhal;
+    SerenityLpgbt _serenityLpgbt;
 
   };
 

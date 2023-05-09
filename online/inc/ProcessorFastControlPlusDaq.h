@@ -81,8 +81,8 @@ namespace Hgcal10gLinkReceiver {
 	    std::istringstream sin(buffer+offset);
 	    sin >> std::hex >> value;
 
-	    if(i>0 || n>0) _rxSummaryData[j][i-1+128*n]|=(value<<32);
-	    _rxSummaryData[j][i+128*n]=value;
+	    if(i>0 || n>0) _rxSummaryData[j][i-1+128*n]|=value;
+	    _rxSummaryData[j][i+128*n]=(value<<32);
 	  }
 	}
 	fin.close();
@@ -104,6 +104,7 @@ namespace Hgcal10gLinkReceiver {
     bool initializing(FsmInterface::HandshakeState s) {
       ProcessorFastControl::initializing(s);
       
+#ifdef JUNK
 #ifdef ProcessorHardware
       system("/home/cmx/pdauncey/source setFC.sh");
 
@@ -228,12 +229,12 @@ namespace Hgcal10gLinkReceiver {
 
 
 #endif
+#endif
       return true;
     }
 
     void running() {
-      _serenityUhal.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",1); // TEMP
-      _serenityUhal.uhalWrite("fc_ctrl.fpga_fc.ctrl.tts",1);
+      _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",1);
 
       while(_ptrFsmInterface->isIdle()) {
 
@@ -412,11 +413,35 @@ namespace Hgcal10gLinkReceiver {
 	  //rr.setUtc(_eventNumberInRun);
 
 	  if(hgcrocData) {
-	    r->setPayloadLength(4+40);
+	    r->setPayloadLength(40);
 
 	    uint32_t *ptr((uint32_t*)(r->getPayload()));
-	    for(unsigned i(0);i<40;i++) {
-	      ptr[i]=i;
+	    bool found(false);
+	    _rxBitShift=7;
+	    for(unsigned j(0);j<87 && !found;j++) {
+	      if((((_rxSummaryData[0][j]>>_rxBitShift)&0xffffffff) != 0xaccccccc) &&
+		 (((_rxSummaryData[0][j]>>_rxBitShift)&0xffffffff) != 0x9ccccccc)) {
+
+		ptr[0]=(_rxSummaryData[0][j]>>_rxBitShift)&0xffffffff;
+		for(unsigned i(1);i<40;i++) {
+		  ptr[i   ]=(_rxSummaryData[0][j+i]>>_rxBitShift)&0xffffffff;
+		}
+		for(unsigned i(0);i<40;i++) {
+		  ptr[i+40]=(_rxSummaryData[1][j+i]>>_rxBitShift)&0xffffffff;
+		}
+		found=true;
+	      }
+	    }
+
+	    if(found) {
+	      std::cout << "HGCROC packets" << std::endl;
+	      for(unsigned i(0);i<80;i++) {
+		std::cout << " Word " << std::setw(4) << i 
+			  << " = 0x" << std::hex << std::setfill('0') 
+			  << std::setw(8) << ptr[i]
+			  << std::dec << std::setfill(' ')
+			  << std::endl;
+	      }
 	    }
 
 	  } else {
@@ -490,8 +515,7 @@ namespace Hgcal10gLinkReceiver {
 
 
 	// Throttle
-      _serenityUhal.uhalWrite("fc_ctrl.fpga_fc.ctrl.tts",0);
-      _serenityUhal.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0); // TEMP
+      _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",0);
     }
 
     
@@ -503,6 +527,7 @@ namespace Hgcal10gLinkReceiver {
   private:
     bool     _rxSummaryValid[8];
     uint64_t _rxSummaryData[8][4000];
+    unsigned _rxBitShift;
 
     DataFifoT<6,1024> *ptrFifoShm0;
     DataFifoT<6,1024> *ptrFifoShm1;

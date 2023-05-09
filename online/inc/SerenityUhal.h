@@ -94,68 +94,6 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
   
-    bool setDefaults() {
-      
-      /*
-	
-	python3 hgcal_fc.py -c test_stand/connections.xml -d x0 encoder configure -tts on = fc_ctrl.fpga_fc.ctrl.tts
-	python3 hgcal_fc.py -c test_stand/connections.xml -d x0 encoder configure --set_prel1a_offset 3 = fc_ctrl.fpga_fc.ctrl.prel1a_offset
-	fc_ctrl.fpga_fc.ctrl.user_prel1a_off_en
-	
-	python3 hgcal_fc.py -c test_stand/connections.xml -d x0 tcds2_emu configure --seq_disable
-	
-	fc_ctrl.fc_lpgbt_pair.ctrl.issue_linkrst
-	fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
-      
-      */
-      
-      std::cout << "SETTING SOME DEFAULTS" << std::endl;
-
-      // fpga_fc
-      
-      uhalWrite("fc_ctrl.fpga_fc.ctrl.tts",1);
-      uhalWrite("fc_ctrl.fpga_fc.ctrl.prel1a_offset",3);
-      uhalWrite("fc_ctrl.fpga_fc.ctrl.user_prel1a_off_en",1);
-      
-      uint32_t hgcrocLatencyBufferDepth(10); // ????
-      uint32_t cpid(8),cped(10); // ???
-      uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",cpid);
-      uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_ext_del",cped);
-
-
-     uhalWrite("fc_ctrl.fpga_fc.ctrl.l1a_stretch",0);
-     uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.ocr_n",8);
-
-     // fc_lpgbt_pair
-
-     uhalWrite("fc_ctrl.fc_lpgbt_pair.ctrl.calpulse_type",1);
-     uhalWrite("fc_ctrl.fc_lpgbt_pair.ctrl.user_bx",1);
-     uhalWrite("fc_ctrl.fc_lpgbt_pair.fc_cmd.user",0x36);
-
-     // tcds2_emu
-     
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_physics",0);
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_random",0);
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_software",1);
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_regular",0);
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.en_nzs_reg",0);
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.en_nzs_rand",0);
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.en_nzs_physics",0);
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.l1a_prbs_threshold",0xf000);
-
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0x1);
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_mask",0x7);
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.l1a_physics_mask",0xff);
-     //uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_all",1);
-     //uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_ext",1);
-     //uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_hgcroc",1);
-     
-     uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",12+cpid+hgcrocLatencyBufferDepth);
-    
-
-      return true;
-    }  
-
 #ifdef ProcessorHardware
   uint32_t uhalRead(const std::string &s) {
     //const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
@@ -235,19 +173,6 @@ namespace Hgcal10gLinkReceiver {
 		<< std::endl;
     }
     o << std::dec << std::setfill(' ');
-
-    uhalWrite("fc_ctrl.tcds2_emu.seq_mem.pointer",0);
-    uint32_t seqLength=uhalRead("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length");
-    for(unsigned i(0);i<seqLength;i++) {
-      uint32_t seqMemPointer=uhalRead("fc_ctrl.tcds2_emu.seq_mem.pointer");
-      uint32_t seqMemData=uhalRead("fc_ctrl.tcds2_emu.seq_mem.data");
-      std::cout << "Seq l, mp, md = " << seqLength << ", " << seqMemPointer
-		<< ", 0x" << std::hex << std::setfill('0') 
-		<< std::setw(8) << seqMemData 
-		<< std::dec << std::setfill(' ')
-		<< " meaning BX = " << (seqMemData>>16)
-		<< std::endl;
-    }
   }
 
   

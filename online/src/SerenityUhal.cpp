@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 
   SerenityUhal su;
   su.makeTable();
-  su.setDefaults();
+  //su.setDefaults();
   //su.uhalWrite("BLAH",0xdead);
 
   su.uhalWrite("lpgbt1.lpgbt_frame.shift_elink4",57&0xff);

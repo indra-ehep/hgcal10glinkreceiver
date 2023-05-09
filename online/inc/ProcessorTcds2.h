@@ -62,6 +62,7 @@ namespace Hgcal10gLinkReceiver {
 	// Do configuration; ones which could have been changed
 	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
 
+	_configuringBCounter=0;
       }
 
       return true;
@@ -69,6 +70,9 @@ namespace Hgcal10gLinkReceiver {
     
     bool configuringB(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",20+(_configuringBCounter%50));
+	
+	_configuringBCounter++;
       }
       return true;
     }
@@ -157,7 +161,7 @@ namespace Hgcal10gLinkReceiver {
       }
 	
       case 123: {
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",20+(_runNumberInSuperRun%50));
+	//_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",20+(_runNumberInSuperRun%50));
 
 				 break;
 				 }
@@ -182,7 +186,7 @@ namespace Hgcal10gLinkReceiver {
       uint32_t _superRunNumber;
       uint32_t _runNumber;
       */
-      uint32_t _runNumberInSuperRun;
+      uint32_t _configuringBCounter;
 
       uint32_t _eventNumberInRun;
       uint32_t _eventNumberInConfiguration;
