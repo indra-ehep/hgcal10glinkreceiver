@@ -30,7 +30,7 @@ int main()
     FsmInterface local;
     
     ShmSingleton<FsmInterface> shmU;
-    shmU.setup(ProcessorDaqLink2ShmKey);
+    shmU.setup(ProcessorDaqLink2FsmShmKey);
     FsmInterface *prcfs=shmU.payload();
     prcfs->print();
 
