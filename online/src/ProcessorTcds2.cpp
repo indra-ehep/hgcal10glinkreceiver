@@ -11,7 +11,7 @@
 
 #include "ShmKeys.h"
 
-#define ProcessorFastControlHardware
+#define ProcessorHardware
 
 #include "ProcessorTcds2.h"
 

@@ -9,8 +9,7 @@
 #include <iostream>
 #include <cassert>
 
-//#undef ProcessorFastControlHardware
-#define ProcessorFastControlHardware
+#define ProcessorHardware
 
 #include "SerenityUhal.h"
 #include "ProcessorFastControlPlusDaq.h"

@@ -13,10 +13,7 @@
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
 
-//#undef SerenityUhalHardware
-#define SerenityUhalHardware
-
-#ifdef SerenityUhalHardware
+#ifdef ProcessorHardware
 #include "uhal/uhal.hpp"
 #include "uhal/ValMem.hpp"
 #endif
@@ -28,12 +25,12 @@ namespace Hgcal10gLinkReceiver {
   public:
   
     static void setUhalLogLevel() {
-#ifdef SerenityUhalHardware
+#ifdef ProcessorHardware
       uhal::setLogLevelTo(uhal::Error());  
 #endif
     }
 
-#ifdef SerenityUhalHardware
+#ifdef ProcessorHardware
   SerenityUhal() : lConnectionFilePath("etc/connections.xml"),
       lDeviceId("x0"),
       lConnectionMgr("file://" + lConnectionFilePath),
@@ -49,7 +46,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool makeTable(const std::string &s="payload") {
-#ifdef SerenityUhalHardware
+#ifdef ProcessorHardware
       std::vector<std::string> temp;
       temp=lHW.getNode(s).getNodes();
       
@@ -62,13 +59,17 @@ namespace Hgcal10gLinkReceiver {
 
       _uhalString.resize(0);
       for(unsigned i(0);i<temp.size();i++) {
-	if(temp[i].substr(0,8)=="fc_ctrl.") {
-	  std::cout << "Substr = " << temp[i].substr(8,17) << std::endl;
-	  if(temp[i].substr(8,17)!="tcds2_emu") {
+	if(s=="payload") {
+	  if(temp[i].substr(0,8)=="fc_ctrl.") {
+	    std::cout << "Substr = " << temp[i].substr(8,17) << std::endl;
+	    //if(temp[i].substr(8,17)!="tcds2_emu") {
 	    std::cout << "UHAL string " << std::setw(3) << " = " 
 		      << temp[i] << std::endl;
 	    _uhalString.push_back(temp[i]);
+	    //}
 	  }
+	} else {
+	  _uhalString.push_back(s+"."+temp[i]);
 	}
       }
     
@@ -77,7 +78,7 @@ namespace Hgcal10gLinkReceiver {
 	  std::cout << "UHAL string " << std::setw(3) << " = " 
 		    << _uhalString[i] << std::endl;
 	
-	  const uhal::Node& lNode = lHW.getNode("payload."+_uhalString[i]);
+	  const uhal::Node& lNode = lHW.getNode(_uhalString[i]);
 	  uhal::ValWord<uint32_t> lReg = lNode.read();
 	  lHW.dispatch();
 	
@@ -155,11 +156,19 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }  
 
-#ifdef SerenityUhalHardware
+#ifdef ProcessorHardware
   uint32_t uhalRead(const std::string &s) {
-    const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
+    //const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
+    const uhal::Node& lNode = lHW.getNode(s);
     uhal::ValWord<uint32_t> lReg = lNode.read();
     lHW.dispatch();
+
+    std::cout << "uhalRead: reading " << s << " as  0x"
+	      << std::hex << std::setfill('0')
+	      << std::setw(8) << lReg.value()
+	      << std::dec << std::setfill(' ')
+	      << std::endl;
+
     return lReg.value();
   }
   
@@ -170,7 +179,8 @@ namespace Hgcal10gLinkReceiver {
 	      << std::dec << std::setfill(' ')
 	      << std::endl;
     
-    const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
+    //const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
+    const uhal::Node& lNode = lHW.getNode(s);
     lNode.write(v);
     lHW.dispatch();
     
@@ -245,7 +255,7 @@ namespace Hgcal10gLinkReceiver {
   bool _printEnable;
   std::vector<std::string> _uhalString;
 
-#ifdef SerenityUhalHardware
+#ifdef ProcessorHardware
   const std::string lConnectionFilePath;
   const std::string lDeviceId;
   uhal::ConnectionManager lConnectionMgr;

@@ -26,7 +26,7 @@
 #include "RecordPrinter.h"
 #include "ShmKeys.h"
 
-#ifdef ProcessorFastControlHardware
+#ifdef ProcessorHardware
 #include "uhal/uhal.hpp"
 #include "uhal/ValMem.hpp"
 #endif
@@ -36,7 +36,7 @@ namespace Hgcal10gLinkReceiver {
   class ProcessorFastControl : public ProcessorBase {
     
   public:
-#ifdef ProcessorFastControlHardware
+#ifdef ProcessorHardware
 #ifdef JUNK
   ProcessorFastControl() : lConnectionFilePath("etc/connections.xml"),
       lDeviceId("x0"),
@@ -73,7 +73,7 @@ namespace Hgcal10gLinkReceiver {
 
       std::cout << "HEREI2 !!!" << std::endl;
 #ifdef JUNK
-#ifdef ProcessorFastControlHardware
+#ifdef ProcessorHardware
 	//system("/home/cmx/pdauncey/source setFC.sh");
 
 	std::vector<std::string> lRegisterName;
@@ -514,7 +514,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 
       for(unsigned i(0);i<_uhalString.size();i++) {
 	xi.setAddress(i);
-#ifdef ProcessorFastControlHardware
+#ifdef ProcessorHardware
 #ifdef JUNK
 	const uhal::Node& lNode = lHW.getNode("payload."+_uhalString[i]);
 	uhal::ValWord<uint32_t> lReg = lNode.read();

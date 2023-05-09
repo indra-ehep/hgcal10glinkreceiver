@@ -104,7 +104,7 @@ namespace Hgcal10gLinkReceiver {
     bool initializing(FsmInterface::HandshakeState s) {
       ProcessorFastControl::initializing(s);
       
-#ifdef ProcessorFastControlPlusDaqHardware
+#ifdef ProcessorHardware
       system("/home/cmx/pdauncey/source setFC.sh");
 
       const std::string lConnectionFilePath = "etc/connections.xml";

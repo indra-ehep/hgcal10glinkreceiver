@@ -10,7 +10,7 @@
 #include <string>
 #include <cstring>
 
-#include "SerenityUhal.h"
+#include "SerenityTcds2.h"
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
@@ -26,7 +26,7 @@
 #include "RecordPrinter.h"
 #include "ShmKeys.h"
 
-#ifdef ProcessorTcds2Hardware
+#ifdef ProcessorHardware
 #include "uhal/uhal.hpp"
 #include "uhal/ValMem.hpp"
 #endif
@@ -42,7 +42,7 @@ namespace Hgcal10gLinkReceiver {
     virtual ~ProcessorTcds2() {
     }
   
-    void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
+    void setUpAll(uint32_t rcKey) {
       _serenityTcds2.makeTable();
       startFsm(rcKey);
     }
@@ -60,7 +60,7 @@ namespace Hgcal10gLinkReceiver {
       if(s==FsmInterface::Change) {
 
 	// Do configuration; ones which could have been changed
-	_serenityTcds2.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
 
       }
 
@@ -77,10 +77,10 @@ namespace Hgcal10gLinkReceiver {
       if(s==FsmInterface::Change) {
 
 	// Enable sequencer (even if masked)
-	_serenityTcds2.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",3);
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",3);
 
 	// Release throttle
-	_serenityTcds2.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",1);
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",1);
       }
 
       return true;
@@ -103,10 +103,10 @@ namespace Hgcal10gLinkReceiver {
 	_eventNumberInConfiguration+=_eventNumberInRun;
 
 	// Impose throttle
-	_serenityUhal.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",1);
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0);
 	
 	// Disable sequencer
-	_serenityTcds2.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",0);
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",0);
 
       }
       return true;
@@ -157,7 +157,7 @@ namespace Hgcal10gLinkReceiver {
       }
 	
       case 123: {
-	_serenityTcds2.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",20+(_runNumberInSuperRun%50);
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",20+(_runNumberInSuperRun%50));
 
 				 break;
 				 }
