@@ -46,41 +46,57 @@ namespace Hgcal10gLinkReceiver {
       ProcessorFastControl::setUpAll(rcKey,fifoKey2);
     }
 
-    bool readRxSummaryFile() {
+    bool readRxSummaryFile(unsigned nr=1) {
       const unsigned offset(27); // RX
       //const unsigned offset(28); // TX
 
+      for(unsigned n(0);n<nr && n<28;n++) {
+	
+	std::ostringstream sout;
+	sout << "rm data/rx_summary.txt; rm data/tx_summary.txt; source ./emp_capture_single.sh " << 128*n+1;
+	system(sout.str().c_str());
+      
+	//system("ls -l data/");
+	//system("rm data/rx_summary.txt; rm data/tx_summary.txt; source ./emp_capture_single.sh 1");
       //system("ls -l data/");
-      system("rm data/rx_summary.txt; rm data/tx_summary.txt; source ./emp_capture_single.sh 1");
-      //system("ls -l data/");
+	
+	std::ifstream fin;
+	//fin.open("data/tx_summary.txt");
+	fin.open("data/rx_summary.txt");
+	if(!fin) return false;
+	
+	char buffer[1024];
+	uint64_t value;
+	
+	fin.getline(buffer,1024);
+	fin.getline(buffer,1024);
+	fin.getline(buffer,1024);
+	fin.getline(buffer,1024);
+      
+	std::cout << "rxSummary data" << std::endl;
+	for(unsigned i(0);i<128;i++) {
+	  for(unsigned j(0);j<8;j++) {
+	    fin.getline(buffer,1024);
+	    buffer[offset+8]='\0';
+	    std::istringstream sin(buffer+offset);
+	    sin >> std::hex >> value;
 
-      std::ifstream fin;
-      //fin.open("data/tx_summary.txt");
-      fin.open("data/rx_summary.txt");
-      if(!fin) return false;
-      
-      char buffer[1024];
-      fin.getline(buffer,1024);
-      fin.getline(buffer,1024);
-      fin.getline(buffer,1024);
-      fin.getline(buffer,1024);
-      
-      std::cout << "rxSummary data" << std::endl;
-      for(unsigned i(0);i<128;i++) {
+	    if(i>0 || n>0) _rxSummaryData[j][i-1+128*n]|=(value<<32);
+	    _rxSummaryData[j][i+128*n]=value;
+	  }
+	}
+	fin.close();
+      }
+
+      for(unsigned i(0);i<128*nr;i++) {
 	for(unsigned j(0);j<8;j++) {
-	  fin.getline(buffer,1024);
-	  buffer[offset+8]='\0';
-	  std::istringstream sin(buffer+offset);
-	  sin >> std::hex >> _rxSummaryData[j][i];
-
 	  std::cout << " 0x" << std::hex << std::setfill('0') 
 		    << std::setw(8) << _rxSummaryData[j][i]
 		    << std::dec << std::setfill(' ');
 	}
 	std::cout << std::endl;
       }      
-
-      fin.close();
+      
       return true;
     }
 
@@ -170,7 +186,7 @@ namespace Hgcal10gLinkReceiver {
 	uhalWrite("lpgbt1.lpgbt_frame.shift_elink5",k);
 	uhalWrite("lpgbt1.lpgbt_frame.shift_elink6",0);
       */
-      std::cout << "readRxSummaryFile returns " << readRxSummaryFile() << std::endl;
+      std::cout << "readRxSummaryFile returns " << readRxSummaryFile(1) << std::endl;
 
       for(unsigned k(0);k<32;k++) {
 	for(unsigned j(0);j<8;j++) {
@@ -229,7 +245,7 @@ namespace Hgcal10gLinkReceiver {
 
 	  bool hgcrocData(true);
 
-	  if(hgcrocData) readRxSummaryFile();
+	  if(hgcrocData) readRxSummaryFile(1);
 
 	  
 	  uint64_t miniDaq[120]={
@@ -486,7 +502,7 @@ namespace Hgcal10gLinkReceiver {
    
   private:
     bool     _rxSummaryValid[8];
-    uint32_t _rxSummaryData[8][128];
+    uint64_t _rxSummaryData[8][4000];
 
     DataFifoT<6,1024> *ptrFifoShm0;
     DataFifoT<6,1024> *ptrFifoShm1;
