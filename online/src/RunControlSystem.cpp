@@ -202,7 +202,7 @@ int main(int argc, char *argv[]) {
 	  else rsa.setRunNumber(0xffffffff);
 
 	  rsa.setMaxEvents(1000000000);
-	  rsa.setMaxSeconds(20);
+	  rsa.setMaxSeconds(60);
 	  rsa.setMaxSpills(0);
       
 	  fcp.setCommand(FsmCommand::Start);
