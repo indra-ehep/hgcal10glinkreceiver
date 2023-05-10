@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
     return 2;
   }
 
-  TFileHandler tfh(std::string("ExampleRunReader")+argv[1]);
+  TFileHandler tfh(std::string("CalibIntTest")+argv[1]);
   TH1I *hDbx=new TH1I("Dbx",";Difference in BX;Number",100,0,100000);
   TProfile *hPedPro=new TProfile("PedPro",";Channel;Average",80,-0.5,79.5);
 
@@ -41,23 +41,23 @@ int main(int argc, char** argv) {
   TH2D *hPedSig2D;
   
   hPed2D=new TH2D("Ped2D",";Channel;CalPulseInt delay;Average",
-		  80,-0.5,79.5,50,19.5,69.5);
+		  80,-0.5,79.5,80,19.5,99.5);
   hPedSig2D=new TH2D("PedSig2D",";Channel;CalPulseInt delay;RMS",
-		  80,-0.5,79.5,50,19.5,69.5);
+		  80,-0.5,79.5,80,19.5,99.5);
 
   for(unsigned k(0);k<80;k++) {
     std::ostringstream sout;
     sout << "Ped" << std::setfill('0') << std::setw(2) << k;
-    hPed[k]=new TH1D(sout.str().c_str(),";CalPulseInt delay;Average",50,19.5,69.5);
+    hPed[k]=new TH1D(sout.str().c_str(),";CalPulseInt delay;Average",80,19.5,99.5);
 
     sout << "Sig";
-    hPedSig[k]=new TH1D(sout.str().c_str(),";CalPulseInt delay;RMS",50,19.5,69.5);
+    hPedSig[k]=new TH1D(sout.str().c_str(),";CalPulseInt delay;RMS",80,19.5,99.5);
   }
   //TH1D *hCorrPed=new TH1D("CorrPed",";Channel;Average",80,-0.5,79.5);
   //TH1D *hCorrPedSig=new TH1D("CorrPedSig",";Channel;RMS",80,-0.5,79.5);
   //TH2D *hCmCorr=new TH2D("CmCorr",";CM0;CM1;Number",41,79.5,120.5,41,79.5,120.5);
 
-  Average avg[50][80];
+  Average avg[80][80];
   
   // Create the file reader
   Hgcal10gLinkReceiver::FileReader _fileReader;
@@ -77,11 +77,18 @@ int main(int argc, char** argv) {
   // Defaults to the files being in directory "dat"
   // Can call setDirectory("blah") to change this
   //_fileReader.setDirectory("somewhere/else");
-  for(unsigned relay(0);relay<50;relay++) {
-    _fileReader.openRun(runNumber+30*relay,0);
+
+  /*
+  for(unsigned relay(0);relay<200;relay++) {
+    _fileReader.openRun(runNumber+20*relay,0);
 
     cpDelay=(relay%50);
+  */
+  for(unsigned relay(0);relay<480;relay++) {
+    _fileReader.openRun(runNumber+20*relay,0);
 
+    cpDelay=(relay%80);
+  
     while(_fileReader.read(r)) {
     if(     r->state()==Hgcal10gLinkReceiver::FsmState::Starting) {
       rStart->print();
@@ -131,7 +138,7 @@ int main(int argc, char** argv) {
 	  const HgcrocWord *hw((const HgcrocWord*)(pData+k));
 	  if(print) hw->print();
 
-	  avg[cpDelay][k]+=hw->adcM();
+	  avg[cpDelay][k]+=hw->adc();
 
 	  //hPedPro->Fill(k,hw->adc());
 	  //hCmCorr->Fill(pEsh->commonMode(0),pEsh->commonMode(1));
@@ -145,7 +152,7 @@ int main(int argc, char** argv) {
   _fileReader.close();
   }
   
-  for(unsigned j(0);j<50;j++) {
+  for(unsigned j(0);j<80;j++) {
     for(unsigned k(0);k<80;k++) {
       if(k!=0 && k!=1 && k!=39 && k!=40 && k!=41 && k!=79) {
 	hPed[k]->SetBinContent(j+1,avg[j][k].average());
