@@ -5,10 +5,10 @@
 #include <cstring>
 #include <unistd.h>
 
-#include "ZmqProcessorFsm.h"
+#include "ZmqPcProcessorFifo.h"
 
 using namespace Hgcal10gLinkReceiver;
 
 int main() {
-  return (ZmqProcessorFsm(ProcessorDummyFsmShmKey,ProcessorDummyFsmPort)?0:1);
+  return (ZmqPcProcessorFifo(ProcessorRelayCl0FifoShmKey,ProcessorRelayCl0FifoPort)?0:1);
 }
