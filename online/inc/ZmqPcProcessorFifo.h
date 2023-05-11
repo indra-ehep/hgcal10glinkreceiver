@@ -34,6 +34,8 @@ bool ZmqPcProcessorFifo(uint32_t key, uint16_t port) {
   
   zmq::message_t request;
 
+  char z('z');
+  
   bool continueLoop(true);
 
   while(continueLoop) {
@@ -51,7 +53,9 @@ bool ZmqPcProcessorFifo(uint32_t key, uint16_t port) {
     // Write into local PC FIFO
     assert(prcfs->write((request.size()+7)/8,(uint64_t*)request.data()));
     prcfs->print();
-  }
+
+    socket.send(zmq::buffer(&z,1), zmq::send_flags::none);
+}
 
   return true;
 }
