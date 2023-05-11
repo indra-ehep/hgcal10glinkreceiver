@@ -62,10 +62,10 @@ namespace Hgcal10gLinkReceiver {
 
     bool configuringA(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
-	RecordConfiguringA *r((RecordConfiguringA*)(_ptrFsmInterface->commandPacket().record()));
-	if(_printEnable) r->print();
+	RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->commandPacket().record()));
+	if(_printEnable) r.print();
 
-	_keyCfgA=r->processorKey(RunControlTcds2FsmShmKey);
+	_keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
 	
 	if(_keyCfgA==123) {
 
@@ -86,10 +86,10 @@ namespace Hgcal10gLinkReceiver {
     
     bool configuringB(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
-	RecordConfiguringB *r((RecordConfiguringB*)(_ptrFsmInterface->commandPacket().record()));
-	if(_printEnable) r->print();
+	RecordConfiguringB &r((RecordConfiguringB&)(_ptrFsmInterface->commandPacket().record()));
+	if(_printEnable) r.print();
 
-	_keyCfgB=r->processorKey(RunControlTcds2FsmShmKey);
+	_keyCfgB=r.processorKey(RunControlTcds2FsmShmKey);
 
 	if(_keyCfgA==123) {
 	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",_keyCfgB);
@@ -201,6 +201,8 @@ namespace Hgcal10gLinkReceiver {
       }
     
     protected:
+      DataFifoT<6,1024> *ptrFifoShm2;
+
       /*
       uint32_t _cfgSeqCounter;
       uint32_t _evtSeqCounter;

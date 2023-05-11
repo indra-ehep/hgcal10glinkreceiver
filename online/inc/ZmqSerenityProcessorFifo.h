@@ -47,10 +47,13 @@ bool ZmqSerenityProcessorFifo(uint32_t key, uint16_t port) {
       prcfs->print();
       
       uint16_t n(prcfs->read(buffer));
-      std::cout << "Size = " << n << std::endl;
+      std::cout << "Size in 64-bit words = " << n << std::endl;
       
       // Send data to PC Processor
-      socket.send(zmq::buffer(buffer,n), zmq::send_flags::none);
+      socket.send(zmq::buffer(buffer,8*n), zmq::send_flags::none);
+
+      zmq::message_t reply{};
+      socket.recv(reply, zmq::recv_flags::none);
     }
     return true;
 }
