@@ -70,9 +70,9 @@ namespace Hgcal10gLinkReceiver {
   const uint32_t ProcessorRelayCl0FifoShmKey(ProcessorFastControlCl0FifoShmKey);
   const uint32_t ProcessorRelayCl1FifoShmKey(0xced0cf01);
 
-  const uint32_t ProcessorFastControlDl0FifoPort(0xcee0da0);
-  const uint32_t ProcessorFastControlDl1FifoPort(0xcee0da1);
-  const uint32_t ProcessorFastControlDl2FifoPort(0xcee0da2);
+  const uint16_t ProcessorFastControlDl0FifoPort(0xcea0);
+  const uint16_t ProcessorFastControlDl1FifoPort(0xcea1);
+  const uint16_t ProcessorFastControlDl2FifoPort(0xcea2);
 
   // Used by Data Link Processors
   const uint32_t ProcessorDaqLink0FifoShmKey(ProcessorFastControlDl0FifoShmKey);
@@ -80,9 +80,9 @@ namespace Hgcal10gLinkReceiver {
   const uint32_t ProcessorDaqLink2FifoShmKey(ProcessorFastControlDl2FifoShmKey);
 //const uint32_t ProcessorDaqLink2FifoShmKey(ProcessorFastControlDl2FifoShmKey | 0x00010000); // Local testing
 
-  const uint32_t ProcessorDaqLink0FifoPort(ProcessorFastControlDl0FifoPort);
-  const uint32_t ProcessorDaqLink1FifoPort(ProcessorFastControlDl1FifoPort);
-  const uint32_t ProcessorDaqLink2FifoPort(ProcessorFastControlDl2FifoPort);
+  const uint16_t ProcessorDaqLink0FifoPort(ProcessorFastControlDl0FifoPort);
+  const uint16_t ProcessorDaqLink1FifoPort(ProcessorFastControlDl1FifoPort);
+  const uint16_t ProcessorDaqLink2FifoPort(ProcessorFastControlDl2FifoPort);
 }
 
 #endif
