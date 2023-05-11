@@ -4,20 +4,28 @@
 #include <iostream>
 #include <fstream>
 
-#include "FileContinuationCloseRecord.h"
-#include "FileContinuationOpenRecord.h"
-#include "FileNamer.h"
+//#include "FileContinuationCloseRecord.h"
+//#include "FileContinuationOpenRecord.h"
+#include "FileReader.h"
 
 namespace Hgcal10gLinkReceiver {
 
-  class FileWriter : public FileNamer {
+  class FileWriter {
   public:
     enum {
       MaximumBytesPerFile=2000000000
       //MaximumBytesPerFile=2000
     };
     
-    FileWriter() : _protectFiles(false) { // While debugging
+  FileWriter() : _directory("dat/"), _protectFiles(false) {
+    }
+
+    void setDirectory(const std::string &s) {
+      _directory=s+"/";
+    }
+
+    bool openRelay(uint32_t r) {
+      return open(r,2,true);
     }
 
     bool openRun(uint32_t r, uint32_t l) {
@@ -27,25 +35,26 @@ namespace Hgcal10gLinkReceiver {
     bool open(uint32_t r, uint32_t l, bool s=false) {
       _runNumber=r;
       _linkNumber=l;
-      _superRun=s;
+      _relay=s;
       _fileNumber=0;
       
-      setRunFileName();
+      if(_relay) _fileName=FileReader::setRelayFileName(_runNumber);
+      else       _fileName=FileReader::setRunFileName(_runNumber,_linkNumber,_fileNumber);
 
       _writeEnable=(r<0xffffffff);
       _numberOfBytesInFile=0;
 
       if(_writeEnable) {
-	std::cout << "FileWrite::open() opening file "
+	std::cout << "FileWriter::open() opening file "
 		  << _fileName.c_str() << std::endl;
-	_outputFile.open(_fileName.c_str(),std::ios::binary);
+	_outputFile.open(_directory+_fileName.c_str(),std::ios::binary);
 	if(!_outputFile) return false;
       }
       return true;
     }
 
     //bool write(uint64_t *d, unsigned n) {
-    bool write(const RecordHeader* h) {
+    bool write(const Record* h) {
       if(_writeEnable) {
 	_outputFile.write((char*)h,8*h->totalLength());
 	_outputFile.flush();
@@ -70,8 +79,8 @@ namespace Hgcal10gLinkReceiver {
 	}
 
 	_fileNumber++;
-	setRunFileName();
-
+	_fileName=FileReader::setRunFileName(_runNumber,_linkNumber,_fileNumber);
+	  
 	FileContinuationOpenRecord fcor;
 	//fcor.setRunNumber(_runNumber);
 	//fcor.setFileNumber(_fileNumber);
@@ -92,7 +101,7 @@ namespace Hgcal10gLinkReceiver {
     
     bool close() {
       if(_outputFile.is_open()) {
-	std::cout << "FileWrite::close() closing file "
+	std::cout << "FileWriter::close() closing file "
 		  << _fileName.c_str() << std::endl;
 	_outputFile.close();
 	if(_protectFiles) {
@@ -107,14 +116,18 @@ namespace Hgcal10gLinkReceiver {
     //}
     
   private:
+    std::string _directory;
+    std::string _fileName;
     std::ofstream _outputFile;
 
-    //std::string _fileName;
-    //unsigned _fileNumber;
-
     bool _writeEnable;
-    unsigned _numberOfBytesInFile;
     bool _protectFiles;
+
+    bool _relay;
+    unsigned _runNumber;
+    unsigned _linkNumber;
+    unsigned _fileNumber;
+    unsigned _numberOfBytesInFile;
   };
 
 }

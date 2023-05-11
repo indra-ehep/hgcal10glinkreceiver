@@ -59,7 +59,7 @@ namespace Hgcal10gLinkReceiver {
 	RecordConfiguringA rca;
 	while(_ptrFifo2->read((uint64_t*)(&rca))==0) usleep(10);
 	rca.print();
-	_fileWriter.open(rca.superRunNumber(),2,true);
+	_fileWriter.openRelay(rca.superRunNumber());
 	_fileWriter.write(&rca);
       }
       

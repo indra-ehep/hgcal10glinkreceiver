@@ -62,7 +62,7 @@ namespace Hgcal10gLinkReceiver {
    
     void setNumberOfPauses(uint32_t p) {
       //_payload[2]&=0xffffffff00000000;
-      _payload[2]&=0xdeaddead00000000; // Until upper slot filled
+      _payload[2]=0xdeaddead00000000; // Until upper slot filled
       _payload[2]|=p;
     }
    

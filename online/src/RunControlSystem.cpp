@@ -71,15 +71,17 @@ int main(int argc, char *argv[]) {
     }
   }
   
-  std::vector< ShmSingleton<FsmInterface> > vShmSingleton(6);
+  std::vector< ShmSingleton<FsmInterface> > vShmSingleton(8);
   std::vector<FsmInterface*> vPtr;
   
   vShmSingleton[0].setup(RunControlDummyFsmShmKey);
-  vShmSingleton[1].setup(RunControlFastControlFsmShmKey);
-  vShmSingleton[2].setup(RunControlTcds2FsmShmKey);
-  vShmSingleton[3].setup(RunControlDaqLink0FsmShmKey);
-  vShmSingleton[4].setup(RunControlDaqLink1FsmShmKey);
-  vShmSingleton[5].setup(RunControlDaqLink2FsmShmKey);
+  vShmSingleton[1].setup(RunControlFrontEndFsmShmKey);
+  vShmSingleton[2].setup(RunControlFastControlFsmShmKey);
+  vShmSingleton[3].setup(RunControlTcds2FsmShmKey);
+  vShmSingleton[4].setup(RunControlRelayFsmShmKey);
+  vShmSingleton[5].setup(RunControlStageFsmShmKey);
+  vShmSingleton[6].setup(RunControlDaqLink0FsmShmKey);
+  vShmSingleton[7].setup(RunControlDaqLink1FsmShmKey);
 
   RunControlEngine engine;
   engine.setPrintEnable(  printEnable);
@@ -108,21 +110,24 @@ int main(int argc, char *argv[]) {
 
   while(continueLoop) {
     char x('z');
-    while(x!='r' && x!='s' && x!='q') {
-      std::cout << "s = Start SuperRun, r = Reset & Initialize, q = Reset & Shutdown"
+    while(x!='r' && x!='s' && x!='q' && x!='x') {
+      std::cout << "s = Start Relay, r = Reset & Initialize, q = Reset & Shutdown, x=Reset & Exit"
 		<< std::endl;
       std::cin >> x;
     }
 
-    if(x=='r' || x=='q') {
+    if(x=='r' || x=='q' || x=='x') {
       RecordResetting rr;
       rr.setHeader();
       fcp.setCommand(FsmCommand::Reset);
       fcp.setRecord(rr);
       fcp.print();
       engine.command(fcp);
-
-      if(x=='r') {
+      
+      if(x=='x') {
+	return 0;
+	
+      }	else if(x=='r') {
 	RecordInitializing ri;
 	ri.setHeader();
 	fcp.setCommand(FsmCommand::Initialize);
@@ -170,7 +175,16 @@ int main(int argc, char *argv[]) {
       uint32_t srNumber(rca.superRunNumber());
 
       rca.setMaxNumberOfConfigurations(nx);
-      rca.setProcessKey(0xce000000,123);
+
+      // Configuration
+      rca.setProcessKey(RunControlDummyFsmShmKey,0);
+      rca.setProcessKey(RunControlFrontEndFsmShmKey,123);
+      rca.setProcessKey(RunControlFastControlFsmShmKey,0);
+      rca.setProcessKey(RunControlTcds2FsmShmKey,123);
+      rca.setProcessKey(RunControlRelayFsmShmKey,0);
+      rca.setProcessKey(RunControlStageFsmShmKey,0);
+      rca.setProcessKey(RunControlDaqLink0FsmShmKey,0);
+      rca.setProcessKey(RunControlDaqLink1FsmShmKey,0);
 
       fcp.setCommand(FsmCommand::ConfigureA);
       fcp.setRecord(rca);
@@ -182,11 +196,13 @@ int main(int argc, char *argv[]) {
       for(nc=0;nc<rca.maxNumberOfConfigurations() && continueSuperRun;nc++) {
 	RecordConfiguringB rcb;
 	rcb.setHeader();
-	rcb.setProcessKey(0xce000000,456);
 	rcb.setSuperRunNumber(srNumber);
 	rcb.setConfigurationCounter(nc+1);
 	rcb.setMaxNumberOfRuns(1);
-    
+
+	// Configuration
+	rcb.setProcessKey(RunControlTcds2FsmShmKey,20+(nc%80));
+	
 	fcp.setCommand(FsmCommand::ConfigureB);
 	fcp.setRecord(rcb);
 	std::cout  << std::endl << "HEREB!" << std::endl << std::endl;
@@ -202,7 +218,7 @@ int main(int argc, char *argv[]) {
 	  else rsa.setRunNumber(0xffffffff);
 
 	  rsa.setMaxEvents(1000000000);
-	  rsa.setMaxSeconds(60);
+	  rsa.setMaxSeconds(10);
 	  rsa.setMaxSpills(0);
       
 	  fcp.setCommand(FsmCommand::Start);

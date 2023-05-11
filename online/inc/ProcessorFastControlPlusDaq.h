@@ -100,139 +100,6 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-   
-    bool initializing(FsmInterface::HandshakeState s) {
-      ProcessorFastControl::initializing(s);
-      
-#ifdef JUNK
-#ifdef ProcessorHardware
-      system("/home/cmx/pdauncey/source setFC.sh");
-
-      const std::string lConnectionFilePath = "etc/connections.xml";
-      const std::string lDeviceId = "x0";
-  
-      std::vector<std::string> lRegisterName;
-      std::vector<std::string> lRegisterNameW;
-  
-      lRegisterName.push_back("tcds2_emu.ctrl_stat.ctrl.seq_length");
-
-      uhal::setLogLevelTo(uhal::Error());  
-      uhal::ConnectionManager lConnectionMgr("file://" + lConnectionFilePath);
-      uhal::HwInterface lHW = lConnectionMgr.getDevice(lDeviceId);
-  
-  
-      const uhal::Node& lNode = lHW.getNode("payload.fc_ctrl." + lRegisterName[0]);
-      std::cout << "Reading from register '" << lRegisterName[0] << "' ..." << std::endl;
-      uhal::ValWord<uint32_t> lReg = lNode.read();
-      lHW.dispatch();
-      std::cout << "... success!" << std::endl << "Value = 0x" << std::hex << lReg.value() << std::endl;
-
-      std::vector<std::string> ids;//, ids_filtered;
-      std::vector<uint32_t> nds;//, ids_filtered;
-      //ids = lHW.getNode("payload.fc_ctrl.tcds2_emu").getNodes();
-      ids = lHW.getNode("payload.fc_ctrl").getNodes();
-  
-      std::cout << "payload.fc_ctrl.tcds2_emu.getNodes(): ";
-      /*
-	std::copy(ids.begin(),
-	ids.end(),
-	std::ostream_iterator<std::string>(std::cout,", "));
-      */
-      for(unsigned i(0);i<ids.size();i++) {
-	std::cout << ids[i] << std::endl;
-      }
-      std::cout << std::endl << std::endl;
-
-
-
-
-      for(unsigned i(0);i<ids.size();i++) {
-  
-	// PART 3: Reading from the register
-	const uhal::Node& lNode = lHW.getNode("payload.fc_ctrl." + ids[i]);
-
-	std::cout << "Reading from register '" << ids[i] << "' ..." << std::endl;
-
-	uhal::ValWord<uint32_t> lReg = lNode.read();
-	// dispatch method sends read request to hardware, and waits for result to return
-	// N.B. Before dispatch, lReg.valid() == false, and lReg.value() will throw
-	lHW.dispatch();
-
-	std::cout << "... success!" << std::endl << "Value = 0x" << std::hex << lReg.value() << std::endl;
-	nds.push_back(lReg.value());
-      }
-
-      // Read in HGCROC capture file
-      unsigned ncount[8][256],mcount[8],kcount[8];
-
-      for(unsigned j(0);j<8;j++) {
-	mcount[j]=0;
-	kcount[j]=256;
-      }
-      
-      /*
-	uhalWrite("lpgbt0.lpgbt_frame.shift_elink0",0);
-	uhalWrite("lpgbt0.lpgbt_frame.shift_elink1",0);
-	uhalWrite("lpgbt0.lpgbt_frame.shift_elink2",0);
-	uhalWrite("lpgbt0.lpgbt_frame.shift_elink3",0);
-	uhalWrite("lpgbt0.lpgbt_frame.shift_elink4",k);
-	uhalWrite("lpgbt0.lpgbt_frame.shift_elink5",k);
-	uhalWrite("lpgbt0.lpgbt_frame.shift_elink6",0);
-
-	uhalWrite("lpgbt1.lpgbt_frame.shift_elink0",0);
-	uhalWrite("lpgbt1.lpgbt_frame.shift_elink1",0);
-	uhalWrite("lpgbt1.lpgbt_frame.shift_elink2",0);
-	uhalWrite("lpgbt1.lpgbt_frame.shift_elink3",0);
-	uhalWrite("lpgbt1.lpgbt_frame.shift_elink4",k);
-	uhalWrite("lpgbt1.lpgbt_frame.shift_elink5",k);
-	uhalWrite("lpgbt1.lpgbt_frame.shift_elink6",0);
-      */
-      std::cout << "readRxSummaryFile returns " << readRxSummaryFile(1) << std::endl;
-
-      for(unsigned k(0);k<32;k++) {
-	for(unsigned j(0);j<8;j++) {
-	  ncount[j][k]=0;
-
-	  for(unsigned i(0);i<128;i++) {
-	    if(_rxSummaryData[j][i]==0xaccccccc ||
-	       _rxSummaryData[j][i]==0x9ccccccc) ncount[j][k]++;
-	  }
-	}
-	
-	for(unsigned j(0);j<8;j++) {
-	  if(mcount[j]<ncount[j][k]) {
-	    mcount[j]=ncount[j][k];
-	    kcount[j]=k;
-	  }
-	}
-      }
-
-      for(unsigned j(0);j<8;j++) {
-	_rxSummaryValid[j]=(mcount[j]>10 && kcount[j]<256);
-      }
-      
-      for(unsigned j(0);j<8;j++) {
-	std::cout << "RX channel " << j << ", max matches = " << mcount[j]
-		  << " out of 127, for offset " << kcount[j]
-		  << ", valid = " << _rxSummaryValid[j] << std::endl;
-      }
-      
-      // HGCROC
-      //bool idle0(_vData[0][w]==0xaccccccc || _vData[0][w]==0x9ccccccc);
-      //bool idle1(_vData[1][w]==0xaccccccc || _vData[1][w]==0x9ccccccc);
-
-      // ECON-D
-      //const uint32_t idleWord(0x77777700);
-      //const uint32_t idleWord(0xaaaaaa00);
-      //const uint32_t idleWord(0x55555500);
-      //const uint32_t idleWord(0xaaaaff00);
-
-
-#endif
-#endif
-      return true;
-    }
-
     void running() {
       _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",1);
 
@@ -513,16 +380,14 @@ namespace Hgcal10gLinkReceiver {
 	}
       }
 
-
 	// Throttle
       _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",0);
-    }
 
-    
-    void paused() {
-      _pauseCounter++;
+      RecordContinuing rc;
+      rc.setHeader();
+      rc.print();
+      assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
     }
-
    
   private:
     bool     _rxSummaryValid[8];

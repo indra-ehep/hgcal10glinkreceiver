@@ -9,7 +9,7 @@
 
 namespace Hgcal10gLinkReceiver {
 
-  class RecordConfiguringA : public RecordT<7> {
+  class RecordConfiguringA : public RecordT<9> {
   
   public:
     RecordConfiguringA() {

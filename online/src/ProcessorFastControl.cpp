@@ -11,7 +11,7 @@
 
 #include "ShmKeys.h"
 
-#define ProcessorHardware
+//#define ProcessorHardware
 
 #include "ProcessorFastControl.h"
 
@@ -51,6 +51,6 @@ int main(int argc, char *argv[]) {
   pb.setCheckEnable(  checkEnable);
   pb.setAssertEnable(assertEnable);
   
-  pb.setUpAll(ProcessorFastControlFsmShmKey,ProcessorFastControlDl2FifoShmKey);
+  pb.setUpAll(ProcessorFastControlFsmShmKey,ProcessorFastControlCl0FifoShmKey);
   return 0;
 }

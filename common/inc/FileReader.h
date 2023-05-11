@@ -33,40 +33,60 @@ namespace Hgcal10gLinkReceiver {
     bool open(uint32_t r, uint32_t l, bool s=false) {
       _runNumber=r;
       _linkNumber=l;
-      _superRun=s;
+      _relay=s;
       _fileNumber=0;
       
-      if(_superRun) _fileName=setRelayFileName(r);
-      else          _fileName=setRunFileName(r,l,_fileNumber);
+      if(_relay) _fileName=setRelayFileName(_runNumber);
+      else       _fileName=setRunFileName(_runNumber,_linkNumber,_fileNumber);
+
+      std::cout << "FileReader::open() opening file "
+		<< _fileName.c_str() << std::endl;
 
       _inputFile.open((_directory+_fileName).c_str(),std::ios::binary);
       return (_inputFile?true:false);
     }
 
     //bool read(uint64_t *d, unsigned n) {
-    bool read(RecordHeader *h) {
+    //bool read(RecordHeader *h) {
+    bool read(Record *h) {
       _inputFile.read((char*)h,8);
       if(!_inputFile) return false;
+
       _inputFile.read((char*)(h+1),8*h->payloadLength());
       
-      //_inputFile.read((char*)d,8);
-      //_inputFile.read((char*)(d+1),8*);
-      
-      if(h->identifier()==RecordHeader::FileContinuationEof) {
+      //if(h->identifier()==RecordHeader::FileContinuationEof) {
+      if(h->state()==FsmState::Continuing) {
+	RecordContinuing rc;
+	rc.deepCopy(h);
+	rc.print();
+	
+	std::cout << "FileReader::close() closing file "
+		  << _fileName.c_str() << std::endl;
 	
 	_inputFile.close();
 	
 	_fileNumber++;
-	setRunFileName(_runNumber,_linkNumber,_fileNumber);
+	_fileName=setRunFileName(_runNumber,_linkNumber,_fileNumber);
+	
+	std::cout << "FileReader::open() opening file "
+		  << _fileName.c_str() << std::endl;
 	
 	_inputFile.open(_fileName.c_str(),std::ios::binary);
-
+	
 	_inputFile.read((char*)h,8);
-	assert(h->identifier()==RecordHeader::FileContinuationBof);
+	if(!_inputFile) return false;
+	
+	//assert(h->identifier()==RecordHeader::FileContinuationBof);
+	assert(h->state()==FsmState::Continuing);
+	assert(((RecordContinuing*)h)->runNumber()     ==rc.runNumber());
+	assert(((RecordContinuing*)h)->fileNumber()    ==rc.fileNumber()+1);
+	assert(((RecordContinuing*)h)->numberOfEvents()==rc.numberOfEvents());
+
 	_inputFile.read((char*)(h+1),8*h->payloadLength());
-
+	
 	_inputFile.read((char*)h,8);
-      h->print();
+	if(!_inputFile) return false;
+	
 	_inputFile.read((char*)(h+1),8*h->payloadLength());
       }
       
@@ -74,19 +94,17 @@ namespace Hgcal10gLinkReceiver {
     }
       
     bool close() {
-      _inputFile.close();
+      if(_inputFile.is_open()) {
+	std::cout << "FileReader::close() closing file "
+		  << _fileName.c_str() << std::endl;
+	_inputFile.close();
+      }
       return true;
     }
 
     bool closed() {
-      if(_inputFile) return false;      
-      return true;
+      return !_inputFile.is_open();
     }
-
-    //bool read(RecordHeader *h) {
-    //  _inputFile.read((char*)h,8);
-    //  _inputFIle.read((char*)(h+1),8*h->payloadLength());
-    //}
 
     static std::string setRelayFileName(uint32_t r) {
       std::ostringstream sRelayFileName;
@@ -107,7 +125,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     protected:
-    bool _superRun;
+    bool _relay;
     uint32_t _runNumber;
     uint32_t _linkNumber;
     uint32_t _fileNumber;

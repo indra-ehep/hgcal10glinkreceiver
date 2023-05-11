@@ -51,6 +51,6 @@ int main(int argc, char *argv[]) {
   pb.setCheckEnable(  checkEnable);
   pb.setAssertEnable(assertEnable);
   
-  pb.setUpAll(ProcessorTcds2FsmShmKey);
+  pb.setUpAll(ProcessorTcds2FsmShmKey,ProcessorCfgLink1FifoShmKey);
   return 0;
 }

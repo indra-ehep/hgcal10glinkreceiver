@@ -9,7 +9,7 @@
 
 namespace Hgcal10gLinkReceiver {
 
-  class RecordConfiguringB : public RecordT<8> {
+  class RecordConfiguringB : public RecordT<10> {
   
   public:
     RecordConfiguringB() {
@@ -17,7 +17,7 @@ namespace Hgcal10gLinkReceiver {
     
     void setHeader(uint32_t t=time(0)) {
       setState(FsmState::ConfiguringB);
-      setPayloadLength(1);
+      setPayloadLength(2);
       setUtc(t);
     }
 
@@ -34,7 +34,7 @@ namespace Hgcal10gLinkReceiver {
     }
 
     uint32_t processorKey(uint32_t id) const {
-      for(unsigned j(1);j<payloadLength();j++) {
+      for(unsigned j(2);j<payloadLength();j++) {
 	if((_payload[j]>>32)==id) return _payload[j]&0xffffffff;
       }
       return 0;
@@ -51,7 +51,8 @@ namespace Hgcal10gLinkReceiver {
     }
    
     void setMaxNumberOfRuns(uint32_t n) {
-      _payload[1]&=0xffffffff00000000;
+      //_payload[1]&=0xffffffff00000000;
+      _payload[1]=0xffffffff00000000; // Until used
       _payload[1]|=n;
     }
    

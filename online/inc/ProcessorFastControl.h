@@ -243,7 +243,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 	  ptrFifoShm2->print();
 	  std::cout << std::endl;
 	}
-
+	/*
 	RecordConfiguringA *r;
 	while((r=(RecordConfiguringA*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
 
@@ -277,6 +277,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 	ptrFifoShm2->writeIncrement();
 	//rca.print();
 	//assert(ptrFifoShm2->write(rca.totalLength(),(uint64_t*)(&rca)));
+	*/
       }
 
       return true;
@@ -284,6 +285,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
     
     bool configuringB(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
+	/*
 	RecordConfiguringB rcb;
 	rcb.deepCopy(_ptrFsmInterface->commandPacket().record());
 
@@ -293,12 +295,14 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 	rcb.print();
 	ptrFifoShm2->print();
 	assert(ptrFifoShm2->write(rcb.totalLength(),(uint64_t*)(&rcb)));
+	*/
       }
       return true;
     }
 
     bool starting(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
+	/*
 	_pauseCounter=0;
 	_eventNumberInRun=0;
 
@@ -312,6 +316,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 
 	//ptrFifoShm2->print();
 	//assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
+	*/
       }
 
       return true;
@@ -345,6 +350,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
     
     bool stopping(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
+	/*
 	_eventNumberInConfiguration+=_eventNumberInRun;
 
 	RecordStopping *r;
@@ -363,12 +369,14 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 	//rr.print();
 	//ptrFifoShm2->print();
 	//assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
+	*/
       }
       return true;
     }
     
     bool haltingB(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
+	/*
 	_eventNumberInSuperRun+=_eventNumberInConfiguration;
 
 	RecordHaltingB rr;
@@ -377,12 +385,14 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 	rr.print();
 	ptrFifoShm2->print();
 	assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
+	*/
       }
       return true;
     }
     
     bool haltingA(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
+	/*
 	RecordHaltingA rr;
 	rr.deepCopy(_ptrFsmInterface->commandPacket().record());
 	//rr.setNumberOfRuns(_runNumberInSuperRun);
@@ -390,14 +400,13 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 	rr.print();
 	ptrFifoShm2->print();
 	assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
+	*/
       }
       return true;
     }
     
     bool resetting(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
-	RecordResetting rr;
-	rr.print();
       }
       return true;
     }
@@ -414,7 +423,15 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 //////////////////////////////////////////////
 
 
+    virtual void configuredA() {
+	 RecordContinuing rc;
+	 rc.setHeader();
+	 rc.print();
+	 assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
+    }
+    
     virtual void configuredB() {
+
       std::cout << "configuredB() super run = " << _superRunNumber << std::endl;
 
       //RecordConfiguredB *r;
@@ -426,7 +443,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 	r->setState(FsmState::ConfiguredB);
 	r->setType(RecordConfigured::HGCROC);
 	r->setLocation(0xfe00+i);
-	r->print();
+	if(_printEnable) r->print();
       
 	I2cInstruction i2c;
 	
@@ -477,7 +494,8 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 	  std::cout << std::dec << std::setfill(' ');
 	}
 	fin.close();
-	r->print();
+	if(_printEnable) r->print();
+
 	ptrFifoShm2->writeIncrement();
       }
       
@@ -554,39 +572,33 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       */      
 	 RecordContinuing rc;
 	 rc.setHeader();
-	 rc.print();
+	 if(_printEnable) rc.print();
 	 assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
 
     }
 
-    void paused() {
-      _pauseCounter++;
+    virtual void running() {
+      _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",1);
+
+      while(_ptrFsmInterface->isIdle()) usleep(10);
+      
+      _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",0);
+      
+      RecordContinuing rc;
+      rc.setHeader();
+      rc.print();
+      assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
     }
     
-    void keyConfiguration(uint32_t key) {
+    void paused() {
+     _pauseCounter++;
 
-      switch(key) {
-	
-      case 0: {
-	break;
-      }
-	
-      case 123: {
-	_serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",
-		  5+_runNumberInSuperRun);
-	break;
-      }
-	
-      case 999: {
-	break;
-      }
-	
-      default: {
-	break;
-      }
-
-      };
+     RecordContinuing rc;
+	 rc.setHeader();
+	 rc.print();
+	 assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
     }
+
     
   protected:
     DataFifoT<6,1024> *ptrFifoShm2;

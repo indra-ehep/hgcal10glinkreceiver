@@ -42,8 +42,12 @@ namespace Hgcal10gLinkReceiver {
     virtual ~ProcessorTcds2() {
     }
   
-    void setUpAll(uint32_t rcKey) {
+    void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
       _serenityTcds2.makeTable();
+
+      ShmSingleton< DataFifoT<6,1024> > shm2;
+      ptrFifoShm2=shm2.setup(fifoKey);
+
       startFsm(rcKey);
     }
 
@@ -58,15 +62,22 @@ namespace Hgcal10gLinkReceiver {
 
     bool configuringA(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
+	RecordConfiguringA *r((RecordConfiguringA*)(_ptrFsmInterface->commandPacket().record()));
+	if(_printEnable) r->print();
 
-	// Do configuration; ones which could have been changed
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
+	_keyCfgA=r->processorKey(RunControlTcds2FsmShmKey);
+	
+	if(_keyCfgA==123) {
 
-	// Hardwire CalComing
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",1);
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3510<<16)|0x0004);
-
+	  // Do configuration; ones which could have been changed
+	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
+	  
+	  // Hardwire CalComing
+	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",1);
+	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3510<<16)|0x0004);
+	}
+	
 	_configuringBCounter=0;
       }
 
@@ -75,7 +86,14 @@ namespace Hgcal10gLinkReceiver {
     
     bool configuringB(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",20+(_configuringBCounter%80));
+	RecordConfiguringB *r((RecordConfiguringB*)(_ptrFsmInterface->commandPacket().record()));
+	if(_printEnable) r->print();
+
+	_keyCfgB=r->processorKey(RunControlTcds2FsmShmKey);
+
+	if(_keyCfgA==123) {
+	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",_keyCfgB);
+	}
 	
 	_configuringBCounter++;
       }
@@ -191,6 +209,9 @@ namespace Hgcal10gLinkReceiver {
       uint32_t _superRunNumber;
       uint32_t _runNumber;
       */
+    uint32_t _keyCfgA;
+    uint32_t _keyCfgB;
+
       uint32_t _configuringBCounter;
 
       uint32_t _eventNumberInRun;

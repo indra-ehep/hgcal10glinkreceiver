@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
   RecordHaltingB     &rhb((RecordHaltingB&    )h);
   RecordHaltingA     &rha((RecordHaltingA&    )h);
   
-  _fileReader.openSuperRun(superRunNumber);
+  _fileReader.openRelay(superRunNumber);
 
   unsigned nCfgA(0);
   unsigned nCfgB(0);
@@ -136,7 +136,7 @@ int main(int argc, char** argv) {
 
       FileReader _fileReaderRun;
       _fileReaderRun.openRun(rst.runNumber(),0);
-      if(_fileReaderRun.closed()) return 1;
+      //if(_fileReaderRun.closed()) return 1;
 	 
       nRunSt=0;
       nRunPs=0;
