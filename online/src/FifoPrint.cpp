@@ -25,6 +25,7 @@ int main() {
     for(unsigned i(0);i<4;i++) {
       ptr[i]->print();
     }
+    system("df -h dat");
     usleep(1000000);
   }
   
