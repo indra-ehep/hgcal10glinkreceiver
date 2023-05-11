@@ -9,7 +9,7 @@
 #include <iostream>
 #include <cassert>
 
-#define ProcessorHardware
+//#define ProcessorHardware
 
 #include "SerenityUhal.h"
 #include "ProcessorFastControlPlusDaq.h"
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
 
   std::ifstream fin;
   fin.open("data/rx_summary.txt");
-  if(!fin) return false;
+  if(!fin) return 1;
       
   char buffer[1024];
   fin.getline(buffer,1024);

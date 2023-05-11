@@ -38,10 +38,10 @@ namespace Hgcal10gLinkReceiver {
 
       std::cout << "SHM HERE" << std::endl;
 
-      //ShmSingleton< DataFifoT<6,1024> > shm1;
-      //shm1.setup(fifoKey1);
-      //ptrFifoShm1=shm1.payload();
-      ptrFifoShm1=0;
+      ShmSingleton< DataFifoT<6,1024> > shm1;
+      shm1.setup(fifoKey1);
+      ptrFifoShm1=shm1.payload();
+      //ptrFifoShm1=0;
       
       ProcessorFastControl::setUpAll(rcKey,fifoKey2);
     }
@@ -367,7 +367,27 @@ namespace Hgcal10gLinkReceiver {
 
 	  
 	  if(ptrFifoShm1!=0) {
-	    //boe->setSourceId(ProcessorDaqLink1FifoShmKey);
+	    RecordRunning *r;
+	    while((r=(RecordRunning*)(ptrFifoShm1->getWriteRecord()))==nullptr) usleep(1);
+
+	    r->setPayloadLength(4+8);
+	    SlinkBoe *boe(r->getSlinkBoe());
+	    *boe=SlinkBoe();
+	    boe->setEventId(_eventNumberInRun);
+	    boe->setL1aSubType(rand()%256);
+	    boe->setL1aType(rand()%64);
+	    boe->setSourceId(ProcessorDaqLink1FifoShmKey);
+
+	    SlinkEoe *eoe(r->getSlinkEoe());
+	    *eoe=SlinkEoe();
+	    
+	    eoe->setEventLength(2+4);
+	    eoe->setCrc(0xdead);
+	    boe->setEventId(_eventNumberInRun);
+	    
+	    eoe->setBxId((bxNumberInRun%3564)+1);
+	    eoe->setOrbitId(bxNumberInRun/3564);
+
 	    assert(ptrFifoShm1->write(r->totalLength(),(uint64_t*)r));
 	  }
 	  

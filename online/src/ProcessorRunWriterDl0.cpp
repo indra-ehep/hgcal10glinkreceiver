@@ -9,11 +9,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "ShmKeys.h"
-
-//#define ProcessorHardware
-
-#include "ProcessorFastControlPlusDaq.h"
+#include "ProcessorRunWriter.h"
 
 using namespace Hgcal10gLinkReceiver;
 
@@ -43,15 +39,12 @@ int main(int argc, char *argv[]) {
       assertEnable=true;
     }
   }
-  
-  SerenityUhal::setUhalLogLevel();
 
-  ProcessorFastControlPlusDaq pb;
+  ProcessorRunWriter pb(0);
   pb.setPrintEnable(  printEnable);
   pb.setCheckEnable(  checkEnable);
   pb.setAssertEnable(assertEnable);
-  
-  pb.setUpAll(ProcessorFastControlFsmShmKey,ProcessorFastControlCl0FifoShmKey,
-  	      ProcessorFastControlDl0FifoShmKey,ProcessorFastControlDl1FifoShmKey);
+
+  pb.setUpAll(ProcessorDaqLink0FsmShmKey,ProcessorDaqLink0FifoShmKey);
   return 0;
 }
