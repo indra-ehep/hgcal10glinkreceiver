@@ -10,5 +10,5 @@
 using namespace Hgcal10gLinkReceiver;
 
 int main() {
-  return (ZmqRunControlFsm(ProcessorDataLink0FsmShmKey,ProcessorDataLink0FsmPort)?0:1);
+  return (ZmqRunControlFsm(ProcessorDaqLink0FsmShmKey,ProcessorDaqLink0FsmPort)?0:1);
 }
