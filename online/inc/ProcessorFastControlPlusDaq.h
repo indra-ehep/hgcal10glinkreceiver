@@ -408,7 +408,22 @@ namespace Hgcal10gLinkReceiver {
       rc.print();
       assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
     }
-   
+
+    bool ending(FsmInterface::HandshakeState s) {
+      ProcessorFastControl::ending(s);
+
+      if(s==FsmInterface::Change) {
+        std::cout << "Ending" << std::endl;
+        ptrFifoShm0->end();
+        ptrFifoShm0->print();
+        ptrFifoShm1->end();
+        ptrFifoShm1->print();
+      }
+      return true;
+    }
+
+
+    
   private:
     bool     _rxSummaryValid[8];
     uint64_t _rxSummaryData[8][4000];

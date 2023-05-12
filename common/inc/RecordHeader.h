@@ -36,9 +36,9 @@ namespace Hgcal10gLinkReceiver {
       reset();
     }
 
-    void reset() {
+    void reset(FsmState::State s=FsmState::EndOfStateEnum) {
       _header=uint64_t(Pattern)<<56;
-      setState(FsmState::EndOfStateEnum);
+      setState(s);
     }
     
     // Get values

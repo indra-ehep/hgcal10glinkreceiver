@@ -26,10 +26,10 @@
 #include "RecordPrinter.h"
 #include "ShmKeys.h"
 
-#ifdef ProcessorHardware
-#include "uhal/uhal.hpp"
-#include "uhal/ValMem.hpp"
-#endif
+//#ifdef ProcessorHardware
+//#include "uhal/uhal.hpp"
+//#include "uhal/ValMem.hpp"
+//#endif
 
 namespace Hgcal10gLinkReceiver {
 
@@ -159,6 +159,9 @@ namespace Hgcal10gLinkReceiver {
 
     bool ending(FsmInterface::HandshakeState s) {
       if(s==FsmInterface::Change) {
+        std::cout << "Ending" << std::endl;
+        ptrFifoShm2->end();
+        ptrFifoShm2->print();
       }
       return true;
     }
@@ -166,13 +169,60 @@ namespace Hgcal10gLinkReceiver {
     //////////////////////////////////////////////
 
 
+    virtual void configuredA() {
+      if(_printEnable) {
+	std::cout << "ProcessorTcds2::configuredA()" << std::endl;
+      }
+      
+      writeContinuing();
+    }
+
     virtual void configuredB() {
+      if(_printEnable) {
+	std::cout << "ProcessorTcds2::configuredB()" << std::endl;
+      }
+
       /* 
 	 SHOULD CAPTURE ALL CONFIG VALUES AND SHIP OUT?
       */
+
+      RecordConfigured *r;
+      while((r=(RecordConfigured*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
+
+      r->setHeader(12345); // FIX!
+      r->setState(FsmState::ConfiguredB);
+      r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl"));
+      r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1"));
+      r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2"));
+      r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl3"));
+
+      if(_printEnable) r->print();
+      ptrFifoShm2->writeIncrement();
+
+      writeContinuing();
+    }
+
+    void running() {
+      if(_printEnable) {
+	std::cout << "ProcessorTcds2::running()" << std::endl;
+      }
+      
+      writeContinuing();
     }
 
     void paused() {
+      if(_printEnable) {
+	std::cout << "ProcessorTcds2::paused()" << std::endl;
+      }
+
+      writeContinuing();
+    }
+
+    void writeContinuing() {
+      Record *r;
+      while((r=ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
+      r->reset(FsmState::Continuing);
+      ptrFifoShm2->writeIncrement();
     }
     
     void keyConfiguration(uint32_t key) {
