@@ -10,5 +10,5 @@
 using namespace Hgcal10gLinkReceiver;
 
 int main() {
-  return (ZmqPcProcessorFifo(ProcessorDataLink0FifoShmKey,ProcessorDataLink0FifoPort)?0:1);
+  return (ZmqPcProcessorFifo(ProcessorDaqLink0FifoShmKey,ProcessorDaqLink0FifoPort)?0:1);
 }

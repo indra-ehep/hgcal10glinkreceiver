@@ -13,6 +13,12 @@
 using namespace Hgcal10gLinkReceiver;
 
 bool ZmqPcProcessorFifo(uint32_t key, uint16_t port) {
+  std::cout << "ZmqPcProcessorFifo called with key = 0x"
+            << std::hex << std::setfill('0')
+            << std::setw(8) << key << ", port = 0x"
+            << std::setw(4) << port
+            << std::dec << std::setfill(' ')
+            << std::endl;
   
   //using namespace std::chrono_literals;
   //std::chrono::seconds asec(1);
@@ -40,7 +46,7 @@ bool ZmqPcProcessorFifo(uint32_t key, uint16_t port) {
 
   while(continueLoop) {
 
-    // Receive data from Serenity Processor
+    // Receive data from Serenity
     socket.recv(request, zmq::recv_flags::none);
     
     std::cout  << std::endl << "************ GOT DATA ******************" << std::endl << std::endl;
@@ -55,7 +61,9 @@ bool ZmqPcProcessorFifo(uint32_t key, uint16_t port) {
     prcfs->print();
 
     socket.send(zmq::buffer(&z,1), zmq::send_flags::none);
-}
+
+    if(prcfs->isEnded()) continueLoop=false;
+  }
 
   return true;
 }
