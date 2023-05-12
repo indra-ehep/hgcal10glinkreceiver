@@ -10,5 +10,5 @@
 using namespace Hgcal10gLinkReceiver;
 
 int main() {
-  return (ZmqSerenityProcessorFifo(ProcessorFastControlCl1FifoShmKey,ProcessorFastControlCl1FifoPort)?0:1);
+  return (ZmqSerenityProcessorFifo(ProcessorFastControlDl1FifoShmKey,ProcessorFastControlDl1FifoPort)?0:1);
 }

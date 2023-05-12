@@ -37,6 +37,7 @@ namespace Hgcal10gLinkReceiver {
     
   public:
     ProcessorTcds2() {
+      _fifoCounter=0;
     }
 
     virtual ~ProcessorTcds2() {
@@ -73,8 +74,10 @@ namespace Hgcal10gLinkReceiver {
 	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
 	  
 	  // Hardwire CalComing
-	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",1);
+	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",2);
 	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3500<<16)|0x0010);
+	  //_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",1);
 	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3510<<16)|0x0004);
 	}
 	
@@ -182,21 +185,33 @@ namespace Hgcal10gLinkReceiver {
 	std::cout << "ProcessorTcds2::configuredB()" << std::endl;
       }
 
-      /* 
-	 SHOULD CAPTURE ALL CONFIG VALUES AND SHIP OUT?
-      */
-
       RecordConfigured *r;
       while((r=(RecordConfigured*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
 
-      r->setHeader(12345); // FIX!
+      r->setHeader(++_fifoCounter);
       r->setState(FsmState::ConfiguredB);
+      
+      std::vector<uint32_t> v;
+      _serenityTcds2.configuration(v);
+      for(unsigned i(0);i<v.size();i++) r->addData32(v[i]);
+      if(_printEnable) r->print();
+
+      /*
       r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl"));
       r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1"));
       r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2"));
       r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl3"));
 
-      if(_printEnable) r->print();
+      // Sequencer
+      uint32_t length(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length"));
+      r->addData32(length);
+
+      _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+      for(unsigned i(0);i<length;i++) {
+	r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.seq_mem.data"));
+      }
+      */
+
       ptrFifoShm2->writeIncrement();
 
       writeContinuing();
@@ -253,16 +268,17 @@ namespace Hgcal10gLinkReceiver {
     protected:
       DataFifoT<6,1024> *ptrFifoShm2;
 
+      uint32_t _fifoCounter;
+
       /*
-      uint32_t _cfgSeqCounter;
       uint32_t _evtSeqCounter;
       uint32_t _pauseCounter;
 
       uint32_t _superRunNumber;
       uint32_t _runNumber;
       */
-    uint32_t _keyCfgA;
-    uint32_t _keyCfgB;
+      uint32_t _keyCfgA;
+      uint32_t _keyCfgB;
 
       uint32_t _configuringBCounter;
 

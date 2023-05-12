@@ -147,9 +147,11 @@ int main(int argc, char *argv[]) {
       }
       
     } else {
-      unsigned nx(0);
-      while(nx==0 || nx>1000) {
-	std::cout << "SuperRun number of runs"
+      unsigned nx(999);
+      //while(nx==0 || nx>1000) {
+      while(nx!=0 && nx!=123) {
+	//std::cout << "SuperRun number of runs"
+	std::cout << "SuperRun type (0,123)"
 		<< std::endl;
 	std::cin >> nx;
       }
@@ -174,13 +176,13 @@ int main(int argc, char *argv[]) {
       else rca.setSuperRunNumber(0xffffffff);
       uint32_t srNumber(rca.superRunNumber());
 
-      rca.setMaxNumberOfConfigurations(nx);
+      rca.setMaxNumberOfConfigurations(nx==0?1:80);
 
       // Configuration
       rca.setProcessKey(RunControlDummyFsmShmKey,0);
-      rca.setProcessKey(RunControlFrontEndFsmShmKey,123);
+      rca.setProcessKey(RunControlFrontEndFsmShmKey,nx);
       rca.setProcessKey(RunControlFastControlFsmShmKey,0);
-      rca.setProcessKey(RunControlTcds2FsmShmKey,123);
+      rca.setProcessKey(RunControlTcds2FsmShmKey,nx);
       rca.setProcessKey(RunControlRelayFsmShmKey,0);
       rca.setProcessKey(RunControlStageFsmShmKey,0);
       rca.setProcessKey(RunControlDaqLink0FsmShmKey,0);
@@ -201,7 +203,7 @@ int main(int argc, char *argv[]) {
 	rcb.setMaxNumberOfRuns(1);
 
 	// Configuration
-	rcb.setProcessKey(RunControlTcds2FsmShmKey,20+(nc%80));
+	if(nx==123) rcb.setProcessKey(RunControlTcds2FsmShmKey,20+(nc%80));
 	
 	fcp.setCommand(FsmCommand::ConfigureB);
 	fcp.setRecord(rcb);
@@ -218,7 +220,7 @@ int main(int argc, char *argv[]) {
 	  else rsa.setRunNumber(0xffffffff);
 
 	  rsa.setMaxEvents(1000000000);
-	  rsa.setMaxSeconds(600);
+	  rsa.setMaxSeconds(nx==0?1000000000:60);
 	  rsa.setMaxSpills(0);
       
 	  fcp.setCommand(FsmCommand::Start);
@@ -228,7 +230,8 @@ int main(int argc, char *argv[]) {
 	  fcp.print();
 	  engine.command(fcp);
 
-	  unsigned np(0);
+	  unsigned np(999);
+	  //unsigned np(0);
 	  uint32_t dt(time(0)-rsa.utc());
 	  while(dt<rsa.maxSeconds() && continueSuperRun) {
 	    usleep(1000);

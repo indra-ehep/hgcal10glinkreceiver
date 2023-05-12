@@ -62,6 +62,23 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }  
 
+    void configuration(std::vector<uint32_t> &v) {
+      v.resize(0);
+
+      // Control words
+      v.push_back(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl"));
+      v.push_back(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1"));
+      v.push_back(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2"));
+      v.push_back(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl3"));
+
+      // Sequencer 
+      uint32_t length(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length"));
+      uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+      for(unsigned i(0);i<length;i++) {
+        v.push_back(uhalRead("payload.fc_ctrl.tcds2_emu.seq_mem.data"));
+      }
+    }  
+
     void print(std::ostream &o=std::cout) {
       o << "SerenityTcds2::print()" << std::endl;
       o << " Current settings for " << _uhalString.size()
