@@ -25,7 +25,7 @@ namespace Hgcal10gLinkReceiver {
       return validPattern() && state()==FsmState::HaltingB;
     }
     
-    uint32_t superRunNumber() const {
+    uint32_t relayNumber() const {
       return _payload[0]&0xffffffff;
     }
 
@@ -41,7 +41,7 @@ namespace Hgcal10gLinkReceiver {
       return _payload[1]>>32;
     }
 
-    void setSuperRunNumber(uint32_t n) {
+    void setRelayNumber(uint32_t n) {
       _payload[0]&=0xffffffff00000000;
       _payload[0]|=n;
     }
@@ -72,8 +72,8 @@ namespace Hgcal10gLinkReceiver {
 	  << std::dec << std::setfill(' ') << std::endl;
       }
 
-      o << s << "  SuperRun number      = "
-	<< std::setw(10) << superRunNumber() << std::endl;
+      o << s << "  Relay number         = "
+	<< std::setw(10) << relayNumber() << std::endl;
       o << s << "  Configuration number = "
 	<< std::setw(10) << configurationNumber() << std::endl;
       o << s << "  Number of runs       = "

@@ -369,6 +369,7 @@ namespace Hgcal10gLinkReceiver {
 	  if(ptrFifoShm1!=0) {
 	    RecordRunning *r;
 	    while((r=(RecordRunning*)(ptrFifoShm1->getWriteRecord()))==nullptr) usleep(1);
+	    r->setHeader(_eventNumberInRun);
 
 	    r->setPayloadLength(4+8);
 	    SlinkBoe *boe(r->getSlinkBoe());

@@ -19,12 +19,12 @@
 
 using namespace Hgcal10gLinkReceiver;
 
-bool continueSuperRun;
+bool continueRelay;
 
 void RunControlSignalHandler(int signal) {
   std::cerr << "Process " << getpid() << " received signal " 
 	    << signal << std::endl;
-  continueSuperRun=false;
+  continueRelay=false;
 }
 
 
@@ -150,8 +150,8 @@ int main(int argc, char *argv[]) {
       unsigned nx(999);
       //while(nx==0 || nx>1000) {
       while(nx!=0 && nx!=123) {
-	//std::cout << "SuperRun number of runs"
-	std::cout << "SuperRun type (0,123)"
+	//std::cout << "Relay number of runs"
+	std::cout << "Relay type (0,123)"
 		<< std::endl;
 	std::cin >> nx;
       }
@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
 	std::cin >> x;
       }
       
-      continueSuperRun=true;
+      continueRelay=true;
 
       unsigned nc(0);
       unsigned nr(0);
@@ -172,9 +172,9 @@ int main(int argc, char *argv[]) {
       RecordConfiguringA rca;
       rca.setHeader();
 
-      if(x=='y') rca.setSuperRunNumber();
-      else rca.setSuperRunNumber(0xffffffff);
-      uint32_t srNumber(rca.superRunNumber());
+      if(x=='y') rca.setRelayNumber();
+      else rca.setRelayNumber(0xffffffff);
+      uint32_t srNumber(rca.relayNumber());
 
       rca.setMaxNumberOfConfigurations(nx==0?1:80);
 
@@ -195,10 +195,10 @@ int main(int argc, char *argv[]) {
       fcp.print();
       engine.command(fcp);
 
-      for(nc=0;nc<rca.maxNumberOfConfigurations() && continueSuperRun;nc++) {
+      for(nc=0;nc<rca.maxNumberOfConfigurations() && continueRelay;nc++) {
 	RecordConfiguringB rcb;
 	rcb.setHeader();
-	rcb.setSuperRunNumber(srNumber);
+	rcb.setRelayNumber(srNumber);
 	rcb.setConfigurationCounter(nc+1);
 	rcb.setMaxNumberOfRuns(1);
 
@@ -212,7 +212,7 @@ int main(int argc, char *argv[]) {
 	fcp.print();
 	engine.command(fcp);
 
-	for(nr=0;nr<rcb.maxNumberOfRuns() && continueSuperRun;nr++) {
+	for(nr=0;nr<rcb.maxNumberOfRuns() && continueRelay;nr++) {
 	  RecordStarting rsa;
 	  rsa.setHeader();
 
@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
 	  unsigned np(999);
 	  //unsigned np(0);
 	  uint32_t dt(time(0)-rsa.utc());
-	  while(dt<rsa.maxSeconds() && continueSuperRun) {
+	  while(dt<rsa.maxSeconds() && continueRelay) {
 	    usleep(1000);
 	    dt=time(0)-rsa.utc();
 
@@ -282,7 +282,7 @@ int main(int argc, char *argv[]) {
 	
 	RecordHaltingB rhb;
 	rhb.setHeader();
-	rhb.setSuperRunNumber(srNumber);
+	rhb.setRelayNumber(srNumber);
 	rhb.setConfigurationNumber(nc+1);
 	rhb.setNumberOfRuns(nr);
 	rhb.setNumberOfEvents(0xffffffff);
@@ -297,7 +297,7 @@ int main(int argc, char *argv[]) {
     
       RecordHaltingA rha;
       rha.setHeader();
-      rha.setSuperRunNumber(srNumber);
+      rha.setRelayNumber(srNumber);
       rha.setNumberOfConfigurations(nc);
       rha.setNumberOfRuns(nrt);
       rha.setNumberOfEvents(0xffffffff);

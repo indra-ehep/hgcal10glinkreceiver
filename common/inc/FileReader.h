@@ -5,8 +5,8 @@
 #include <fstream>
 #include <sstream>
 
-#include "FileContinuationCloseRecord.h"
-#include "FileContinuationOpenRecord.h"
+//#include "FileContinuationCloseRecord.h"
+//#include "FileContinuationOpenRecord.h"
 //#include "FileNamer.h"
 #include "RecordPrinter.h"
 
@@ -39,8 +39,8 @@ namespace Hgcal10gLinkReceiver {
       if(_relay) _fileName=setRelayFileName(_runNumber);
       else       _fileName=setRunFileName(_runNumber,_linkNumber,_fileNumber);
 
-      std::cout << "FileReader::open() opening file "
-		<< _fileName.c_str() << std::endl;
+      std::cout << "FileReader::open()  opening file "
+		<< _directory+_fileName << std::endl;
 
       _inputFile.open((_directory+_fileName).c_str(),std::ios::binary);
       return (_inputFile?true:false);
@@ -58,7 +58,7 @@ namespace Hgcal10gLinkReceiver {
       if(h->state()==FsmState::Continuing) {
 	RecordContinuing rc;
 	rc.deepCopy(h);
-	rc.print();
+	//rc.print();
 	
 	std::cout << "FileReader::close() closing file "
 		  << _fileName.c_str() << std::endl;
@@ -96,7 +96,7 @@ namespace Hgcal10gLinkReceiver {
     bool close() {
       if(_inputFile.is_open()) {
 	std::cout << "FileReader::close() closing file "
-		  << _fileName.c_str() << std::endl;
+		  << _directory+_fileName << std::endl;
 	_inputFile.close();
       }
       return true;

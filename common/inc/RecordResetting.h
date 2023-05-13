@@ -15,6 +15,10 @@ namespace Hgcal10gLinkReceiver {
     RecordResetting() {
     }
     
+    bool valid() const {
+      return validPattern() && state()==FsmState::Resetting;
+    }
+    
     void setHeader(uint32_t t=time(0)) {
       setState(FsmState::Resetting);
       setPayloadLength(0);

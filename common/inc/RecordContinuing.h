@@ -21,6 +21,10 @@ namespace Hgcal10gLinkReceiver {
       setUtc(t);
     }
 
+    bool valid() const {
+      return validPattern() && state()==FsmState::Continuing;
+    }
+    
     uint32_t runNumber() const {
       return _payload[0]&0xffffffff;
     }

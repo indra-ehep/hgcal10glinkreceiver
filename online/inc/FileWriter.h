@@ -63,12 +63,12 @@ namespace Hgcal10gLinkReceiver {
       _numberOfBytesInFile+=8*h->totalLength();
 
       if(_numberOfBytesInFile>MaximumBytesPerFile) {
-	FileContinuationCloseRecord fccr;
+	RecordContinuing fccr;
 	//fccr.setRunNumber(_runNumber);
 	//fccr.setFileNumber(_fileNumber);
 
 	if(_writeEnable) {
-	  _outputFile.write((char*)(&fccr),sizeof(FileContinuationCloseRecord));
+	  _outputFile.write((char*)(&fccr),sizeof(RecordContinuing));
 	  std::cout << "FileWrite::write() closing file "
 		    << _fileName.c_str() << std::endl;
 	  _outputFile.close();
@@ -81,7 +81,7 @@ namespace Hgcal10gLinkReceiver {
 	_fileNumber++;
 	_fileName=FileReader::setRunFileName(_runNumber,_linkNumber,_fileNumber);
 	  
-	FileContinuationOpenRecord fcor;
+	RecordContinuing fcor;
 	//fcor.setRunNumber(_runNumber);
 	//fcor.setFileNumber(_fileNumber);
 
@@ -89,11 +89,11 @@ namespace Hgcal10gLinkReceiver {
 	std::cout << "FileWrite::write() opening file "
 		  << _fileName.c_str() << std::endl;
 	  _outputFile.open(_fileName.c_str(),std::ios::binary);
-	  _outputFile.write((char*)(&fcor),sizeof(FileContinuationOpenRecord));
+	  _outputFile.write((char*)(&fcor),sizeof(RecordContinuing));
 	_outputFile.flush();
 	}
 
-	_numberOfBytesInFile=sizeof(FileContinuationOpenRecord);
+	_numberOfBytesInFile=sizeof(RecordContinuing);
       }
       
       return true;

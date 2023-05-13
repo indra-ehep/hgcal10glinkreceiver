@@ -59,7 +59,7 @@ namespace Hgcal10gLinkReceiver {
       if(s==FsmInterface::Change) {
 	RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->commandPacket().record()));
 
-	_fileWriter.openRelay(r.superRunNumber());
+	_fileWriter.openRelay(r.relayNumber());
 	_fileWriter.write(&r);
 
 
@@ -124,7 +124,7 @@ namespace Hgcal10gLinkReceiver {
       if(s==FsmInterface::Change) {
 	_fileWriter.write(&(_ptrFsmInterface->commandPacket().record()));
 
-	_eventNumberInSuperRun+=_eventNumberInConfiguration;
+	_eventNumberInRelay+=_eventNumberInConfiguration;
       }
       return true;
     }
@@ -219,7 +219,7 @@ namespace Hgcal10gLinkReceiver {
 
       for(unsigned i(0);i<_ptrFifoShm.size();i++) {
 
-	std::cout << "configuredB() super run = " << _superRunNumber << std::endl;
+	std::cout << "configuredB() relay = " << _relayNumber << std::endl;
 
 	//RecordConfiguredB *r;
 	RecordConfigured *r;
@@ -344,7 +344,7 @@ namespace Hgcal10gLinkReceiver {
 	   h.setHeader(_cfgSeqCounter++);
 	   //h.setState(FsmState::ConfiguredB);
 	   //h.setPayloadLength(1);
-	   h.setSuperRunNumber(_superRunNumber);
+	   h.setRelayNumber(_RelayNumber);
 	   h.setConfigurationCounter(_cfgSeqCounter++);
 	
 	   std::string s("HGROC_");
@@ -394,14 +394,14 @@ namespace Hgcal10gLinkReceiver {
     uint32_t _evtSeqCounter;
     uint32_t _pauseCounter;
 
-    uint32_t _superRunNumber;
+    uint32_t _relayNumber;
     uint32_t _runNumber;
 
-    uint32_t _runNumberInSuperRun;
+    uint32_t _runNumberInRelay;
 
     uint32_t _eventNumberInRun;
     uint32_t _eventNumberInConfiguration;
-    uint32_t _eventNumberInSuperRun;
+    uint32_t _eventNumberInRelay;
   };
 
 }
