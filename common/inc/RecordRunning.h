@@ -2,11 +2,12 @@
 #define Hgcal10gLinkReceiver_RecordRunning_h
 
 #include <iostream>
+#include <cstdint>
 
 #include "BePacketHeader.h"
 #include "SlinkBoe.h"
 #include "SlinkEoe.h"
-#include "RecordHeader.h"
+#include "Record.h"
 
 namespace Hgcal10gLinkReceiver {
 

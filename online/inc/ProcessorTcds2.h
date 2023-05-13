@@ -1,5 +1,5 @@
-#ifndef ProcessorTcds2_h
-#define ProcessorTcds2_h
+#ifndef Hgcal10gLinkReceiver_ProcessorTcds2_h
+#define Hgcal10gLinkReceiver_ProcessorTcds2_h
 
 #include <iostream>
 #include <iomanip>

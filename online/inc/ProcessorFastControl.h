@@ -1,5 +1,5 @@
-#ifndef ProcessorFastControl_h
-#define ProcessorFastControl_h
+#ifndef Hgcal10gLinkReceiver_ProcessorFastControl_h
+#define Hgcal10gLinkReceiver_ProcessorFastControl_h
 
 #include <iostream>
 #include <iomanip>

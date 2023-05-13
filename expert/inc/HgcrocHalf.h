@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <cassert>
 
+#include "TRandom3.h"
+
 #include "HgcrocWord.h"
 
 namespace Hgcal10gLinkReceiver {

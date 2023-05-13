@@ -1,5 +1,5 @@
-#ifndef RunControlResponse_h
-#define RunControlResponse_h
+#ifndef Hgcal10gLinkReceiver_RunControlResponse_h
+#define Hgcal10gLinkReceiver_RunControlResponse_h
 
 #include <iostream>
 #include <iomanip>

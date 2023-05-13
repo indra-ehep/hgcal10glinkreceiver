@@ -1,5 +1,5 @@
-#ifndef ProcessorRelay_h
-#define ProcessorRelay_h
+#ifndef Hgcal10gLinkReceiver_ProcessorRelay_h
+#define Hgcal10gLinkReceiver_ProcessorRelay_h
 
 #include <iostream>
 #include <iomanip>

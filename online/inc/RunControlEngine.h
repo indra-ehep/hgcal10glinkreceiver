@@ -1,5 +1,5 @@
-#ifndef RunControlEngine_h
-#define RunControlEngine_h
+#ifndef Hgcal10gLinkReceiver_RunControlEngine_h
+#define Hgcal10gLinkReceiver_RunControlEngine_h
 
 #include <iostream>
 #include <iomanip>

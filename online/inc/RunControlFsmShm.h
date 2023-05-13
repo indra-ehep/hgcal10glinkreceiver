@@ -1,5 +1,5 @@
-#ifndef RunControlFsmShm_h
-#define RunControlFsmShm_h
+#ifndef Hgcal10gLinkReceiver_RunControlFsmShm_h
+#define Hgcal10gLinkReceiver_RunControlFsmShm_h
 
 #include <iostream>
 #include <iomanip>

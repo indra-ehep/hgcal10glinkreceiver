@@ -1,5 +1,5 @@
-#ifndef ProcessorBase_h
-#define ProcessorBase_h
+#ifndef Hgcal10gLinkReceiver_ProcessorBase_h
+#define Hgcal10gLinkReceiver_ProcessorBase_h
 
 #include <iostream>
 #include <iomanip>

@@ -1,5 +1,5 @@
-#ifndef Average_h
-#define Average_h
+#ifndef Hgcal10gLinkReceiver_Average_h
+#define Hgcal10gLinkReceiver_Average_h
 
 #include <iostream>
 #include <cmath>

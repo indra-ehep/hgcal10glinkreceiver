@@ -1,5 +1,5 @@
-#ifndef ProcessorDummy_h
-#define ProcessorDummy_h
+#ifndef Hgcal10gLinkReceiver_ProcessorDummy_h
+#define Hgcal10gLinkReceiver_ProcessorDummy_h
 
 #include <iostream>
 #include <iomanip>

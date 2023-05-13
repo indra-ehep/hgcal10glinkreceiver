@@ -1,5 +1,5 @@
-#ifndef SerenityEncoder_h
-#define SerenityEncoder_h
+#ifndef Hgcal10gLinkReceiver_SerenityEncoder_h
+#define Hgcal10gLinkReceiver_SerenityEncoder_h
 
 #include <iostream>
 #include <iomanip>

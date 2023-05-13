@@ -1,5 +1,5 @@
-#ifndef ProcessorRunWriter_h
-#define ProcessorRunWriter_h
+#ifndef Hgcal10gLinkReceiver_ProcessorRunWriter_h
+#define Hgcal10gLinkReceiver_ProcessorRunWriter_h
 
 #include <iostream>
 #include <iomanip>

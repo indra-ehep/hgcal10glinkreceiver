@@ -1,5 +1,5 @@
-#ifndef SerenityTcds2_h
-#define SerenityTcds2_h
+#ifndef Hgcal10gLinkReceiver_SerenityTcds2_h
+#define Hgcal10gLinkReceiver_SerenityTcds2_h
 
 #include <iostream>
 #include <iomanip>

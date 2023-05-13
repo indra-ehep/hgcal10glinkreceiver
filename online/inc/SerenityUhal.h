@@ -1,5 +1,5 @@
-#ifndef SerenityUhal_h
-#define SerenityUhal_h
+#ifndef Hgcal10gLinkReceiver_SerenityUhal_h
+#define Hgcal10gLinkReceiver_SerenityUhal_h
 
 #include <iostream>
 #include <iomanip>

@@ -1,5 +1,5 @@
-#ifndef DataFifo_h
-#define DataFifo_h
+#ifndef Hgcal10gLinkReceiver_DataFifo_h
+#define Hgcal10gLinkReceiver_DataFifo_h
 
 #include <iostream>
 #include <iomanip>

@@ -1,5 +1,5 @@
-#ifndef FsmCommandPacket_h
-#define FsmCommandPacket_h
+#ifndef Hgcal10gLinkReceiver_FsmCommandPacket_h
+#define Hgcal10gLinkReceiver_FsmCommandPacket_h
 
 #include <iostream>
 #include <iomanip>

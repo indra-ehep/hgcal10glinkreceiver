@@ -1,5 +1,5 @@
-#ifndef ProcessorDaqLink0_h
-#define ProcessorDaqLink0_h
+#ifndef Hgcal10gLinkReceiver_ProcessorDaqLink0_h
+#define Hgcal10gLinkReceiver_ProcessorDaqLink0_h
 
 #include <iostream>
 #include <iomanip>

@@ -1,5 +1,5 @@
-#ifndef ProcessorFastControlPlusDaq_h
-#define ProcessorFastControlPlusDaq_h
+#ifndef Hgcal10gLinkReceiver_ProcessorFastControlPlusDaq_h
+#define Hgcal10gLinkReceiver_ProcessorFastControlPlusDaq_h
 
 #include <iostream>
 #include <iomanip>

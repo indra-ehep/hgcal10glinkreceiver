@@ -1,5 +1,5 @@
-#ifndef FsmInterface_h
-#define FsmInterface_h
+#ifndef Hgcal10gLinkReceiver_FsmInterface_h
+#define Hgcal10gLinkReceiver_FsmInterface_h
 
 #include <iostream>
 #include <iomanip>

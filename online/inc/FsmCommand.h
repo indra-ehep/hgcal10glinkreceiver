@@ -1,5 +1,5 @@
-#ifndef FsmCommand_h
-#define FsmCommand_h
+#ifndef Hgcal10gLinkReceiver_FsmCommand_h
+#define Hgcal10gLinkReceiver_FsmCommand_h
 
 #include <string>
 

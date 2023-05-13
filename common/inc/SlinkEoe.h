@@ -2,6 +2,7 @@
 #define Hgcal10gLinkReceiver_SlinkEoe_h
 
 #include <iostream>
+#include <iomanip>
 #include <cstdint>
 
 namespace Hgcal10gLinkReceiver {
