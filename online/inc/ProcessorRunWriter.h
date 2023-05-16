@@ -30,26 +30,26 @@ namespace Hgcal10gLinkReceiver {
 
     void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
       ShmSingleton< DataFifoT<6,1024> > shmU;
-      shmU.setup(fifoKey);
-      ptrRunFileShm=shmU.payload();
+      ptrRunFileShm=shmU.setup(fifoKey);
+      //ptrRunFileShm=shmU.payload();
+
+      ptrRunFileShm->coldStart();
+
       startFsm(rcKey);
     }
 
-    bool initializing(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
-	ptrRunFileShm->ColdStart();
-      }
+    bool initializing() {
       return true;
     }
     
-    bool starting(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
+    bool starting(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
 	_eventNumber=0;
 	
-	assert(_ptrFsmInterface->commandPacket().record().state()==FsmState::Starting);
+	assert(_ptrFsmInterface->record().state()==FsmState::Starting);
 	RecordStarting r;
 	std::cout << "HERE0 starting" << std::endl;
-	r.deepCopy(_ptrFsmInterface->commandPacket().record());
+	r.deepCopy(_ptrFsmInterface->record());
 	r.print();
 	_fileWriter.openRun(r.runNumber(),_linkNumber);
 	_fileWriter.write(&r);
@@ -65,37 +65,37 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool pausing(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
+    bool pausing(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
 	
-	RecordPrinter(&(_ptrFsmInterface->commandPacket().record()));
+	RecordPrinter(&(_ptrFsmInterface->record()));
 	RecordPausing r;
 	std::cout << "HERE2 pausing" << std::endl;
-	r.deepCopy(_ptrFsmInterface->commandPacket().record());
+	r.deepCopy(_ptrFsmInterface->record());
 	r.print();
 	//_fileWriter.write(&r); NO!
       }
       return true;
     }
     
-    bool resuming(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
-	assert(_ptrFsmInterface->commandPacket().record().state()==FsmState::Resuming);
+    bool resuming(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
+	assert(_ptrFsmInterface->record().state()==FsmState::Resuming);
 	RecordResuming r;
 	std::cout << "HERE2 starting" << std::endl;
-	r.deepCopy(_ptrFsmInterface->commandPacket().record());
+	r.deepCopy(_ptrFsmInterface->record());
 	r.print();
 	//_fileWriter.write(&r); NO!
       }
       return true;
     }
     
-    bool stopping(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
-	assert(_ptrFsmInterface->commandPacket().record().state()==FsmState::Stopping);
+    bool stopping(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
+	assert(_ptrFsmInterface->record().state()==FsmState::Stopping);
 	RecordStopping r;
 	std::cout << "HERE2 stopping" << std::endl;
-	r.deepCopy(_ptrFsmInterface->commandPacket().record());
+	r.deepCopy(_ptrFsmInterface->record());
 	r.setNumberOfEvents(_eventNumber);
 	r.print();
 	_fileWriter.write(&r);
@@ -104,8 +104,8 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }    
 
-    bool resetting(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
+    bool resetting(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
 	RecordResetting r;
 	r.print();
 	_fileWriter.write(&r);

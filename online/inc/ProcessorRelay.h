@@ -44,19 +44,18 @@ namespace Hgcal10gLinkReceiver {
       ShmSingleton< DataFifoT<6,1024> > shm1;
       _ptrFifoShm.push_back(shm1.setup(fifoKey1));
 
+      for(unsigned i(0);i<_ptrFifoShm.size();i++) _ptrFifoShm[i]->coldStart();
+
       startFsm(rcKey);
     }
   
-    virtual bool initializing(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
-	for(unsigned i(0);i<_ptrFifoShm.size();i++) _ptrFifoShm[i]->ColdStart();
-      }
+    virtual bool initializing() {
       return true;
     }
 
-    bool configuringA(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
-	RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->commandPacket().record()));
+    bool configuringA(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
+	RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->record()));
 
 	_fileWriter.openRelay(r.relayNumber());
 	_fileWriter.write(&r);
@@ -69,18 +68,18 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool configuringB(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
-	_fileWriter.write(&(_ptrFsmInterface->commandPacket().record()));
+    bool configuringB(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
+	_fileWriter.write(&(_ptrFsmInterface->record()));
 
 	_eventNumberInConfiguration=0;
       }
       return true;
     }
 
-    bool starting(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
-	_fileWriter.write(&(_ptrFsmInterface->commandPacket().record()));
+    bool starting(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
+	_fileWriter.write(&(_ptrFsmInterface->record()));
 
 	_pauseCounter=0;
 	_eventNumberInRun=0;
@@ -89,24 +88,24 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool pausing(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
-	_fileWriter.write(&(_ptrFsmInterface->commandPacket().record()));
+    bool pausing(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
+	_fileWriter.write(&(_ptrFsmInterface->record()));
       }
       return true;
     }
     
-    bool resuming(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
-	_fileWriter.write(&(_ptrFsmInterface->commandPacket().record()));
+    bool resuming(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
+	_fileWriter.write(&(_ptrFsmInterface->record()));
       }
       return true;
     }
     
-    bool stopping(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
+    bool stopping(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
 	RecordStopping r;
-	r.deepCopy((_ptrFsmInterface->commandPacket().record()));
+	r.deepCopy((_ptrFsmInterface->record()));
 
 	_eventNumberInConfiguration+=_eventNumberInRun;
 
@@ -119,32 +118,32 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool haltingB(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
-	_fileWriter.write(&(_ptrFsmInterface->commandPacket().record()));
+    bool haltingB(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
+	_fileWriter.write(&(_ptrFsmInterface->record()));
 
 	_eventNumberInRelay+=_eventNumberInConfiguration;
       }
       return true;
     }
     
-    bool haltingA(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
-	_fileWriter.write(&(_ptrFsmInterface->commandPacket().record()));
+    bool haltingA(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
+	_fileWriter.write(&(_ptrFsmInterface->record()));
 	_fileWriter.close();
       }
       return true;
     }
     
-    bool resetting(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
+    bool resetting(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
 	_fileWriter.close();
       }
       return true;
     }
 
-    bool ending(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
+    bool ending(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
 	_fileWriter.close();
       }
       return true;

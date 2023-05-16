@@ -66,9 +66,9 @@ namespace Hgcal10gLinkReceiver {
       startFsm(rcKey);
     }
 
-    virtual bool initializing(FsmInterface::HandshakeState s) {
+    virtual bool initializing() {
       std::cout << "HEREI !!!" << std::endl;
-      if(s==FsmInterface::Change) {
+
 	_serenityUhal.setDefaults();
 	_serenityUhal.print();
 	_serenityLpgbt.setDefaults();
@@ -206,28 +206,28 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 	_uhalString.push_back("tcds2_emu.ctrl_stat.ctrl.seq_length"); 
 #endif
 #endif
-      }
+
 	
       return true;
     }
 
-    bool configuringA(FsmInterface::HandshakeState s) {
+    bool configuringA(FsmInterface::Handshake s) {
       if(_printEnable) {
 	std::cout << "ConfiguringA with Handshake = "
 		  << FsmInterface::handshakeName(s) << std::endl;
-	RecordPrinter(_ptrFsmInterface->commandPacket().record());
+	RecordPrinter(_ptrFsmInterface->record());
 	std::cout << std::endl;
       }
 
       if(_checkEnable) {
-	if(_ptrFsmInterface->commandPacket().record().state()!=FsmState::ConfiguringA) {
+	if(_ptrFsmInterface->record().state()!=FsmState::ConfiguringA) {
 	  std::cerr << "State does not match" << std::endl;
 	  std::cout << "State does not match" << std::endl;
 	  if(_assertEnable) assert(false);
 	}
       }
       
-      if(s==FsmInterface::Change) {
+      if(s==FsmInterface::GoToTransient) {
 	//assert(_ptrFsmInterface->commandPacket().record().state()==FsmState::ConfiguringA);
 
 	_cfgSeqCounter=1;
@@ -282,8 +282,8 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       return true;
     }
     
-    bool configuringB(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
+    bool configuringB(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
 	/*
 	RecordConfiguringB rcb;
 	rcb.deepCopy(_ptrFsmInterface->commandPacket().record());
@@ -299,8 +299,8 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       return true;
     }
 
-    bool starting(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
+    bool starting(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
 	/*
 	_pauseCounter=0;
 	_eventNumberInRun=0;
@@ -321,9 +321,9 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       return true;
     }
 
-    bool pausing(FsmInterface::HandshakeState s) {
+    bool pausing(FsmInterface::Handshake s) {
       /* NOT FOR Shm2
-	 if(s==FsmInterface::Change) {
+	 if(s==FsmInterface::GoToTransient) {
 	 RecordPausing rr;
 	 rr.deepCopy(_ptrFsmInterface->commandPacket().record());
 	 rr.print();
@@ -334,9 +334,9 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       return true;
     }
     
-    bool resuming(FsmInterface::HandshakeState s) {
+    bool resuming(FsmInterface::Handshake s) {
       /* NOT FOR Shm2
-	 if(s==FsmInterface::Change) {
+	 if(s==FsmInterface::GoToTransient) {
 	 RecordResuming rr;
 	 rr.deepCopy(_ptrFsmInterface->commandPacket().record());
 	 rr.print();
@@ -347,8 +347,8 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       return true;
     }
     
-    bool stopping(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
+    bool stopping(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
 	/*
 	_eventNumberInConfiguration+=_eventNumberInRun;
 
@@ -373,8 +373,8 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       return true;
     }
     
-    bool haltingB(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
+    bool haltingB(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
 	/*
 	_eventNumberInSuperRun+=_eventNumberInConfiguration;
 
@@ -389,8 +389,8 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       return true;
     }
     
-    bool haltingA(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
+    bool haltingA(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
 	/*
 	RecordHaltingA rr;
 	rr.deepCopy(_ptrFsmInterface->commandPacket().record());
@@ -404,14 +404,14 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       return true;
     }
     
-    bool resetting(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
+    bool resetting(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
       }
       return true;
     }
 
-    bool ending(FsmInterface::HandshakeState s) {
-      if(s==FsmInterface::Change) {
+    bool ending(FsmInterface::Handshake s) {
+      if(s==FsmInterface::GoToTransient) {
 	std::cout << "Ending" << std::endl;
 	ptrFifoShm2->end();
 	ptrFifoShm2->print();

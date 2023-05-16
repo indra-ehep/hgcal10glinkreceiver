@@ -36,7 +36,7 @@ public:
     return _writePtr==0xffffffff && _readPtr==0xffffffff;
   }
   
-  void ColdStart() {
+  void coldStart() {
     _writePtr=0;
     _readPtr=0;
   }

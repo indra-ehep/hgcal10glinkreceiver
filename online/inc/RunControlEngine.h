@@ -19,6 +19,7 @@ namespace Hgcal10gLinkReceiver {
 
     void setPrintEnable(bool p) {
       _printEnable=p;
+      _printLevel=(p?1:0);
     }
 
     void setCheckEnable(bool c) {
@@ -30,354 +31,227 @@ namespace Hgcal10gLinkReceiver {
     }
 
     void add(FsmInterface *p) {
-      _allFsmInterface.push_back(p);
+      _goodFsmInterface.push_back(p);
       _alive.push_back(false);
     }
 
     bool coldStart() {
       unsigned n(0);
-      std::cout << "Coldstarting " << n << std::endl;
-      for(unsigned i(0);i<_allFsmInterface.size();i++) {
-	//_allFsmInterface[i]->initialize(); // DONE BY DOWNSTREAM
-	_allFsmInterface[i]->print();
-      
-	_allFsmInterface[i]->ping();
-	_allFsmInterface[i]->print();
-	sleep(1);
-	_allFsmInterface[i]->print();
-	_alive[i]=_allFsmInterface[i]->isIdle();
+      for(unsigned i(0);i<_goodFsmInterface.size();i++) {
+	if(_printLevel>0) std::cout << "Coldstarting " << i << std::endl;
+
+	if(_printLevel>0) _goodFsmInterface[i]->print();
+
+	//if(_goodFsmInterface[i]->systemState() ==FsmState::Initial &&
+	// _goodFsmInterface[i]->processState()==FsmState::Initial &&
+	// _goodFsmInterface[i]->handshake()==FsmInterface::Idle)
+	
+	_goodFsmInterface[i]->ping();
+	if(_printLevel>0) _goodFsmInterface[i]->print();
+	usleep(200000);
+	//usleep(1000);
+	//if(_printLevel>0) _goodFsmInterface[i]->print();
+	_alive[i]=_goodFsmInterface[i]->isIdle();
 
 	if(_alive[i]) {
-	  _goodFsmInterface.push_back(_allFsmInterface[i]);
+	  //_goodFsmInterface.push_back(_goodFsmInterface[i]);
+	  if(_printLevel>0) std::cout << "Found " << i << " alive" << std::endl;
 	  n++;
 	}
       }
-      for(unsigned i(0);i<_goodFsmInterface.size() && i<1;i++) {
-	/*	
-		unsigned timeout(0);
-		_goodFsmInterface[i]->commandPacket().setCommand(FsmCommand::Reset);
 
-		_goodFsmInterface[i]->print();
-		if(command(_goodFsmInterface[i]->commandPacket())) n++;
-		_goodFsmInterface[i]->print();
+      std::cout << "Coldstart found " << n << " processors alive" << std::endl;
 
-		assert(_goodFsmInterface[i]->propose());
-
-		while(!_goodFsmInterface[i]->isAccepted() &&
-		!_goodFsmInterface[i]->isRejected() &&
-		timeout<_timeoutLimit) {
-		timeout++;
-		usleep(1);
-		}
-
-		if(_goodFsmInterface[i]->isAccepted()) n++;
-	*/
+      std::vector<FsmInterface*> temp(_goodFsmInterface);
+      _goodFsmInterface.resize(0);
+      for(unsigned i(0);i<temp.size();i++) {
+	if(_alive[i]) _goodFsmInterface.push_back(temp[i]);
       }
-      std::cout << "Coldstart found " << n << std::endl;
+
+      std::cout << "Vecotr formed of " << _goodFsmInterface.size() << " processors" << std::endl;
+
       return true;
     }
 
-    bool command(FsmCommandPacket c) {
-      c.print();
-      //uint64_t srn(time(0));
-      //_goodFsmInterface[i]->setCommandData(1,&srn);
-          
-      //std::cout << std::endl << "Sending propose" << std::endl;
+    bool command(FsmState::State s, uint32_t number=time(0), uint32_t key=0) {
+      if(!FsmState::transientState(s)) return false;
+      
+      //std::cout << std::endl << "Sending Prepare" << std::endl;
       for(unsigned i(0);i<_goodFsmInterface.size();i++) {
-	_goodFsmInterface[i]->setCommandPacket(c);
+	_goodFsmInterface[i]->setPrepareRecord(s);
 
 	if(_printLevel>0) {
-	  std::cout << std::endl << "Shm" << i << " sending propose" << std::endl;
+	  std::cout << std::endl << "Shm" << i << " sending Prepare"
+		    << std::endl;
 	  _goodFsmInterface[i]->print();
 	}
 
-	assert(_goodFsmInterface[i]->propose());
+	assert(_goodFsmInterface[i]->prepare());
 
 	if(_printLevel>0) {
-	  std::cout << std::endl << "Shm" << i << " sent propose" << std::endl;
+	  std::cout << std::endl << "Shm" << i << " sent Prepare" << std::endl;
 	  _goodFsmInterface[i]->print();
 	}
       }
 
-      //std::cout << std::endl << "Waiting for ready" << std::endl;
-      std::vector<bool> accepted(_goodFsmInterface.size());
-      bool allAccepted(true);
-
+      //std::cout << std::endl << "Waiting for Ready" << std::endl;
+      bool allReady(true);
+      
       for(unsigned i(0);i<_goodFsmInterface.size();i++) {
 	unsigned timeout(0);
-	accepted[i]=false;
       
 	if(_printLevel>0) {
-	  std::cout << std::endl << "Shm" << i << " waiting for accept" << std::endl;
+	  std::cout << std::endl << "Shm" << i << " waiting for Ready"
+		    << std::endl;
 	  _goodFsmInterface[i]->print();
 	}
 
-	while(!_goodFsmInterface[i]->isAccepted() &&
-	      !_goodFsmInterface[i]->isRejected() &&
+	while(!_goodFsmInterface[i]->isReady() &&
 	      timeout<_timeoutLimit) {
 	  timeout++;
 	  usleep(10);
 	}
 
-	accepted[i]=_goodFsmInterface[i]->isAccepted();
-	if(!accepted[i]) allAccepted=false;
-      
 	if(timeout>=_timeoutLimit) {
-	  std::cerr << "Shm" << i << " timed out waiting for accepted/rejected" << std::endl;
-	} else {
-	  assert(accepted[i]!=_goodFsmInterface[i]->isRejected());
-	  assert(_goodFsmInterface[i]->matchingStates());
+	  std::cerr << "Shm" << i << " timed out waiting for Ready"
+		    << std::endl;
+	  allReady=false;
 	}
       
 	if(_printLevel>0) {
-	  if(accepted[i]) {
-	    std::cout << std::endl << "Shm" << i << " received accepted" << std::endl;
-	  } else if(timeout<_timeoutLimit) {
-	    std::cout << std::endl << "Shm" << i << " received rejected" << std::endl;
+	  if(timeout<_timeoutLimit) {
+	    std::cout << std::endl << "Shm" << i << " received Ready" << std::endl;
 	  } else {
-	    std::cout << std::endl << "Shm" << i << " timed out waiting for accepted/rejected" << std::endl;
+	    std::cout << std::endl << "Shm" << i << " timed out waiting for Ready"
+		      << std::endl;
 	  }
 	  _goodFsmInterface[i]->print();
 	}
       }
 
-      if(!allAccepted) {
-	for(unsigned i(0);i<_goodFsmInterface.size();i++) {
-	  if(_printLevel>0) {
-	    std::cout << std::endl << "Shm" << i << " sending repair" << std::endl;
-	    _goodFsmInterface[i]->print();
-	  }
-
-	  // May fail if timed out???
-	  assert(_goodFsmInterface[i]->repair());
-
-	  if(_printLevel>0) {
-	    std::cout << std::endl << "Shm" << i << " sent repair" << std::endl;
-	    _goodFsmInterface[i]->print();
-	  }
-	}
-
-	for(unsigned i(0);i<_goodFsmInterface.size();i++) {
-	  unsigned timeout(0);
-
-	  if(_printLevel>0) {
-	    std::cout << std::endl << "Shm" << i << " waiting for idle" << std::endl;
-	    _goodFsmInterface[i]->print();
-	  }
-	
-	  while(!_goodFsmInterface[i]->isIdle() &&
-		timeout<_timeoutLimit) {
-	    timeout++;
-	    usleep(10);
-	  }
-	
-	  if(timeout>=_timeoutLimit) {
-	    std::cerr << "Shm" << i << " timed out waiting for idle" << std::endl;
-	  } else {
-	    assert(_goodFsmInterface[i]->matchingStates());
-	  }
+      if(!allReady) return false;
       
-	  // MORE HERE
-	  if(_printLevel>0) {
-	    std::cout << std::endl << "Shm" << i << " sent repair" << std::endl;
-	    _goodFsmInterface[i]->print();
-	  }
+      //std::cout << std::endl << "Sending change to transient" << std::endl;
+      for(unsigned i(0);i<_goodFsmInterface.size();i++) {
+	if(_printLevel>0) {
+	  std::cout << std::endl << "Shm" << i << " sending GoToTransient" << std::endl;
+	  _goodFsmInterface[i]->print();
 	}
-
-      } else {
-	for(unsigned i(0);i<_goodFsmInterface.size();i++) {
-	  if(_printLevel>0) {
-	    std::cout << std::endl << "Shm" << i << " sending change" << std::endl;
-	    _goodFsmInterface[i]->print();
-	  }
 	
-	  //_goodFsmInterface[i]->changeSystemState();
-	  assert(_goodFsmInterface[i]->change());
+	_goodFsmInterface[i]->setGoToRecord(s,number,key);
+	assert(_goodFsmInterface[i]->goToTransient());
 	
-	  if(_printLevel>0) {
-	    std::cout << std::endl << "Shm" << i << " sent change" << std::endl;
-	    _goodFsmInterface[i]->print();
-	  }
+	if(_printLevel>0) {
+	  std::cout << std::endl << "Shm" << i << " sent GoToTransient" << std::endl;
+	  _goodFsmInterface[i]->print();
 	}
-
-	//std::cout << std::endl << "Waiting for changed" << std::endl;
-	for(unsigned i(0);i<_goodFsmInterface.size();i++) {
-	  unsigned timeout(0);
-	  if(_printLevel>0) {
-	    std::cout << std::endl << "Shm" << i << " waiting for changed" << std::endl;
-	    _goodFsmInterface[i]->print();
-	  }
+      }
 	
-	  while(!_goodFsmInterface[i]->isChanged() &&
-		timeout<1000000) {
-	    timeout++;
-	    usleep(10);
-	  }
-
-	  if(timeout>=_timeoutLimit) {
-	    std::cerr << "Shm" << i << " timed out waiting for changed" << std::endl;
-	  } else {
-	    _goodFsmInterface[i]->print();
-	    assert(_goodFsmInterface[i]->matchingStates());
-	  }
+      //std::cout << std::endl << "Waiting for Completed" << std::endl;
+      bool allCompleted(true);
       
-	  // MORE HERE
-	  if(_printLevel>0) {
-	    std::cout << std::endl << "Shm" << i << " received changed" << std::endl;
-	    _goodFsmInterface[i]->print();
-	  }
-	}
-
-	for(unsigned i(0);i<_goodFsmInterface.size();i++) {
-	  if(_printLevel>0) {
-	    std::cout << std::endl << "Shm" << i << " sending startstatic" << std::endl;
-	    _goodFsmInterface[i]->print();
-	  }
-
-	  // May fail if timed out???
-	  assert(_goodFsmInterface[i]->startStatic());
-
-	  if(_printLevel>0) {
-	    std::cout << std::endl << "Shm" << i << " sent startstatic" << std::endl;
-	    _goodFsmInterface[i]->print();
-	  }
-	}
-
-	for(unsigned i(0);i<_goodFsmInterface.size();i++) {
-	  unsigned timeout(0);
-
-	  if(_printLevel>0) {
-	    std::cout << std::endl << "Shm" << i << " waiting for idle" << std::endl;
-	    _goodFsmInterface[i]->print();
-	  }
+      for(unsigned i(0);i<_goodFsmInterface.size();i++) {
+	unsigned timeout(0);
 	
-	  while(!_goodFsmInterface[i]->isIdle() &&
-		timeout<_timeoutLimit) {
-	    timeout++;
-	    usleep(10);
-	  }
+	if(_printLevel>0) {
+	  std::cout << std::endl << "Shm" << i << " waiting for Completed" << std::endl;
+	  _goodFsmInterface[i]->print();
+	}
 	
-	  if(timeout>=_timeoutLimit) {
-	    std::cerr << "Shm" << i << " timed out waiting for idle" << std::endl;
+	while(!_goodFsmInterface[i]->isCompleted() &&
+	      timeout<1000000) {
+	  timeout++;
+	  usleep(10);
+	}
+	
+	if(timeout>=_timeoutLimit) {
+	  std::cerr << "Shm" << i << " timed out waiting for Completed" << std::endl;
+	  allCompleted=false;
+	}
+	
+	if(_printLevel>0) {
+	  if(timeout<_timeoutLimit) {
+	    std::cout << std::endl << "Shm" << i << " received Completed" << std::endl;
 	  } else {
-	    assert(_goodFsmInterface[i]->matchingStates());
-	    //_goodFsmInterface[i]->commandPacket().initialize();
+	    std::cout << std::endl << "Shm" << i << " timed out waiting for Completed"
+		      << std::endl;
 	  }
-      
-	  // MORE HERE
-	  if(_printLevel>0) {
-	    std::cout << std::endl << "Shm" << i << " back in Static" << std::endl;
-	    _goodFsmInterface[i]->commandPacket().resetRecord();
-	    _goodFsmInterface[i]->print();
-	  }
+	  _goodFsmInterface[i]->print();
 	}
       }
 
-      /*
-	std::cout << std::endl << "Checking transients" << std::endl;
-	for(unsigned i(0);i<_goodFsmInterface.size();i++) {
+      if(!allCompleted) return false;
+
+      //std::cout << std::endl << "Sending change to static" << std::endl;
+      for(unsigned i(0);i<_goodFsmInterface.size();i++) {
 	if(_printLevel>0) {
-	std::cout << "Shm" << i << " sending propose" << std::endl;
-	_goodFsmInterface[i]->print();
+	  std::cout << std::endl << "Shm" << i << " sending GoToStatic"
+		    << std::endl;
+	  _goodFsmInterface[i]->print();
 	}
-	std::cout << "Proc" << i << ": ";_goodFsmInterface[i]->print();
-	//while(!_goodFsmInterface[i]->matchingStates());
-	std::cout << "Proc" << i << ": ";_goodFsmInterface[i]->print();
-        }
-	}
-	std::cout << std::endl << "Going back to static" << std::endl;
-	for(unsigned i(0);i<_goodFsmInterface.size();i++) {
+	
+	_goodFsmInterface[i]->setGoToRecord(FsmState::staticStateAfterTransient(s));
+	assert(_goodFsmInterface[i]->goToStatic());
+	
 	if(_printLevel>0) {
-	std::cout << "Shm" << i << " sending propose" << std::endl;
-	_goodFsmInterface[i]->print();
+	  std::cout << std::endl << "Shm" << i << " sent GoToStatic"
+		    << std::endl;
+	  _goodFsmInterface[i]->print();
 	}
-	std::cout << "Proc" << i << ": ";_goodFsmInterface[i]->print();
-	assert(_goodFsmInterface[i]->startStatic());
-	std::cout << "Proc" << i << ": ";_goodFsmInterface[i]->print();
-        }
-	}
-	std::cout << std::endl << "Waiting for statics" << std::endl;
-	for(unsigned i(0);i<_goodFsmInterface.size();i++) {
+      }
+      
+      //std::cout << std::endl << "Waiting for Idle" << std::endl;
+      bool allIdle(true);
+
+      for(unsigned i(0);i<_goodFsmInterface.size();i++) {
+	unsigned timeout(0);
+	
 	if(_printLevel>0) {
-	std::cout << "Shm" << i << " sending propose" << std::endl;
-	_goodFsmInterface[i]->print();
+	  std::cout << std::endl << "Shm" << i << " waiting for Idle"
+		    << std::endl;
+	  _goodFsmInterface[i]->print();
 	}
-	std::cout << "Proc" << i << ": ";_goodFsmInterface[i]->print();
-	while(!_goodFsmInterface[i]->isStaticState());
-	std::cout << "Proc" << i << ": ";_goodFsmInterface[i]->print();
-        }
+	
+	while(!_goodFsmInterface[i]->isIdle() &&
+	      timeout<_timeoutLimit) {
+	  timeout++;
+	  usleep(10);
 	}
-	std::cout << std::endl << "Checking statics" << std::endl;
+	
+	if(timeout>=_timeoutLimit) {
+	  std::cerr << "Shm" << i << " timed out waiting for Idle" << std::endl;
+	  allIdle=false;
+	}
+	  
+	// MORE HERE
 	if(_printLevel>0) {
-	std::cout << "Shm" << i << " sending propose" << std::endl;
-	_goodFsmInterface[i]->print();
+	  if(timeout<_timeoutLimit) {
+	    std::cout << std::endl << "Shm" << i << " received Idle" << std::endl;
+	  } else {
+	    std::cout << std::endl << "Shm" << i << " timed out waiting for Idle"
+		      << std::endl;
+	  }
+	  _goodFsmInterface[i]->print();
 	}
-	for(unsigned i(0);i<_goodFsmInterface.size();i++) {
-	std::cout << "Proc" << i << ": ";_goodFsmInterface[i]->print();
-	while(!_goodFsmInterface[i]->matchingStates());
-	std::cout << "Proc" << i << ": ";_goodFsmInterface[i]->print();
-        }
-	}
-      */
+      }
+    
+      if(!allIdle) return false;
+
       return true;
     }
-    /*
-      bool reset(unsigned n) {
     
-      goodFsmInterface.resize(1);
-      std::vector<bool> good(allFsmInterface.size());
-    
-      for(unsigned i(0);i<allFsmInterface.size();i++) {
-      goodFsmInterface.back()=allFsmInterface[i];
-      if(command(RunControlFsmEnums::Reset)) {
-      }
-      }
-      }
-  
-      void ColdStart() {
-      _writePtr=0;
-      _readPtr=0;
-      }
+ private:
+  bool _printEnable;
+  bool _checkEnable;
+  bool _assertEnable;
 
-      bool write(uint16_t n, const uint64_t *p) {
-      if(_writePtr==_readPtr+BufferDepth) return false;
-      //std::memcpy(_buffer[_writePtr%BufferDepth],p,8*n);
-      std::memcpy(_buffer[_writePtr&BufferDepthMask],p,8*n);
-      _writePtr++;
-      return true;
-      }
+  std::vector<bool> _alive;
+  std::vector<FsmInterface*> _allFsmInterface;
+  std::vector<FsmInterface*> _goodFsmInterface;
 
-      uint16_t read(uint64_t *p) {
-      if(_writePtr==_readPtr) return 0;
-      RecordHeader *h((RecordHeader*)_buffer[_readPtr&BufferDepthMask]);
-      uint16_t n(h->totalLength());
-      std::memcpy(p,h,8*n);
-      _readPtr++;
-      return n;
-      }
-  
-      void print(std::ostream &o=std::cout) {
-      o << "RunControlEngineT<" << PowerOfTwo << "," << Width << ">::print()" << std::endl;
-      o << " Write pointer to memory  = " << std::setw(10) << _writePtr << std::endl
-      << " Read pointer from memory = " << std::setw(10) << _readPtr << std::endl;    
-      uint32_t diff(_writePtr>_readPtr?_writePtr-_readPtr:0);
-      o << " Difference               = " << std::setw(10) << diff << std::endl;
-      }
-    */
-    
-  private:
-    bool _printEnable;
-    bool _checkEnable;
-    bool _assertEnable;
-
-
-    std::vector<bool> _alive;
-    std::vector<FsmInterface*> _allFsmInterface;
-    std::vector<FsmInterface*> _goodFsmInterface;
-
-    unsigned _printLevel;
-    unsigned _timeoutLimit;
-  };
+  unsigned _printLevel;
+  unsigned _timeoutLimit;
+};
 
 }
 #endif

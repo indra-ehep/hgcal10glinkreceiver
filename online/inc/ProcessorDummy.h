@@ -18,52 +18,52 @@ namespace Hgcal10gLinkReceiver {
     ProcessorDummy() {
     }
 
-    bool initializing(FsmInterface::HandshakeState s) {
+    bool initializing() {
       sleep(1);
       return true;
     }
     
-    bool configuringA(FsmInterface::HandshakeState s) {
+    bool configuringA(FsmInterface::Handshake s) {
       sleep(1);
       return true;
     }
     
-    bool configuringB(FsmInterface::HandshakeState s) {
+    bool configuringB(FsmInterface::Handshake s) {
       sleep(1);
       return true;
     }
     
-    bool starting(FsmInterface::HandshakeState s) {
+    bool starting(FsmInterface::Handshake s) {
       sleep(1);
       return true;
     }
     
-    bool pausing(FsmInterface::HandshakeState s) {
+    bool pausing(FsmInterface::Handshake s) {
       sleep(1);
       return true;
     }
     
-    bool resuming(FsmInterface::HandshakeState s) {
+    bool resuming(FsmInterface::Handshake s) {
       sleep(1);
       return true;
     }
     
-    bool stopping(FsmInterface::HandshakeState s) {
+    bool stopping(FsmInterface::Handshake s) {
       sleep(1);
       return true;
     }
     
-    bool haltingB(FsmInterface::HandshakeState s) {
+    bool haltingB(FsmInterface::Handshake s) {
       sleep(1);
       return true;
     }
     
-    bool haltingA(FsmInterface::HandshakeState s) {
+    bool haltingA(FsmInterface::Handshake s) {
       sleep(1);
       return true;
     }
     
-    bool resetting(FsmInterface::HandshakeState s) {
+    bool resetting(FsmInterface::Handshake s) {
       sleep(1);
       return true;
     }

@@ -1,5 +1,5 @@
-#ifndef Hgcal10gLinkReceiver_ProcessorTcds2_h
-#define Hgcal10gLinkReceiver_ProcessorTcds2_h
+#ifndef Hgcal10gLinkReceiver_Processor10g_h
+#define Hgcal10gLinkReceiver_Processor10g_h
 
 #include <iostream>
 #include <iomanip>
@@ -10,7 +10,7 @@
 #include <string>
 #include <cstring>
 
-#include "SerenityTcds2.h"
+#include "Serenity10g.h"
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
@@ -32,28 +32,25 @@
 
 namespace Hgcal10gLinkReceiver {
 
-  class ProcessorTcds2 : public ProcessorBase {
+  class Processor10g : public ProcessorBase {
     
   public:
-    ProcessorTcds2() {
+    Processor10g() {
       _fifoCounter=0;
     }
 
-    virtual ~ProcessorTcds2() {
+    virtual ~Processor10g() {
     }
   
-    void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
-      _serenityTcds2.makeTable();
-
-      ShmSingleton< DataFifoT<6,1024> > shm2;
-      ptrFifoShm2=shm2.setup(fifoKey);
+    void setUpAll(uint32_t rcKey) {
+      _serenity10g.makeTable();
 
       startFsm(rcKey);
     }
 
     virtual bool initializing() {
-      _serenityTcds2.setDefaults();
-      _serenityTcds2.print();
+      _serenity10g.setDefaults();
+      _serenity10g.print();
       return true;
     }
 
@@ -62,19 +59,20 @@ namespace Hgcal10gLinkReceiver {
 	RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->record()));
 	if(_printEnable) r.print();
 
-	_keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
+	_keyCfgA=r.processorKey(RunControlDummyFsmShmKey);
 	
 	if(_keyCfgA==123) {
-
+	  /*
 	  // Do configuration; ones which could have been changed
-	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
+	  _serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
 	  
 	  // Hardwire CalComing
-	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",2);
-	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
-	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3500<<16)|0x0010);
-	  //_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",1);
-	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3510<<16)|0x0004);
+	  _serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",2);
+	  _serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+	  _serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3500<<16)|0x0010);
+	  //_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",1);
+	  _serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3510<<16)|0x0004);
+	  */
 	}
 	
 	_configuringBCounter=0;
@@ -88,10 +86,10 @@ namespace Hgcal10gLinkReceiver {
 	RecordConfiguringB &r((RecordConfiguringB&)(_ptrFsmInterface->record()));
 	if(_printEnable) r.print();
 
-	_keyCfgB=r.processorKey(RunControlTcds2FsmShmKey);
+	_keyCfgB=r.processorKey(RunControlDummyFsmShmKey);
 
 	if(_keyCfgA==123) {
-	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",_keyCfgB);
+	  //_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",_keyCfgB);
 	}
 	
 	_configuringBCounter++;
@@ -103,10 +101,10 @@ namespace Hgcal10gLinkReceiver {
       if(s==FsmInterface::GoToTransient) {
 
 	// Enable sequencer (even if masked)
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",3);
+	//_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",3);
 
 	// Release throttle
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",1);
+	//_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",1);
       }
 
       return true;
@@ -129,10 +127,10 @@ namespace Hgcal10gLinkReceiver {
 	_eventNumberInConfiguration+=_eventNumberInRun;
 
 	// Impose throttle
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0);
+	//_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0);
 	
 	// Disable sequencer
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",0);
+	//_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",0);
 
       }
       return true;
@@ -170,7 +168,7 @@ namespace Hgcal10gLinkReceiver {
 
     virtual void configuredA() {
       if(_printEnable) {
-	std::cout << "ProcessorTcds2::configuredA()" << std::endl;
+	std::cout << "Processor10g::configuredA()" << std::endl;
       }
       
       writeContinuing();
@@ -178,7 +176,7 @@ namespace Hgcal10gLinkReceiver {
 
     virtual void configuredB() {
       if(_printEnable) {
-	std::cout << "ProcessorTcds2::configuredB()" << std::endl;
+	std::cout << "Processor10g::configuredB()" << std::endl;
       }
 
       RecordConfigured *r;
@@ -188,23 +186,23 @@ namespace Hgcal10gLinkReceiver {
       r->setState(FsmState::ConfiguredB);
       
       std::vector<uint32_t> v;
-      _serenityTcds2.configuration(v);
+      _serenity10g.configuration(v);
       for(unsigned i(0);i<v.size();i++) r->addData32(v[i]);
       if(_printEnable) r->print();
 
       /*
-      r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl"));
-      r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1"));
-      r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2"));
-      r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl3"));
+      r->addData32(_serenity10g.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl"));
+      r->addData32(_serenity10g.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1"));
+      r->addData32(_serenity10g.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2"));
+      r->addData32(_serenity10g.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl3"));
 
       // Sequencer
-      uint32_t length(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length"));
+      uint32_t length(_serenity10g.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length"));
       r->addData32(length);
 
-      _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+      _serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
       for(unsigned i(0);i<length;i++) {
-	r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.seq_mem.data"));
+	r->addData32(_serenity10g.uhalRead("payload.fc_ctrl.tcds2_emu.seq_mem.data"));
       }
       */
 
@@ -215,7 +213,7 @@ namespace Hgcal10gLinkReceiver {
 
     void running() {
       if(_printEnable) {
-	std::cout << "ProcessorTcds2::running()" << std::endl;
+	std::cout << "Processor10g::running()" << std::endl;
       }
       
       writeContinuing();
@@ -223,7 +221,7 @@ namespace Hgcal10gLinkReceiver {
 
     void paused() {
       if(_printEnable) {
-	std::cout << "ProcessorTcds2::paused()" << std::endl;
+	std::cout << "Processor10g::paused()" << std::endl;
       }
 
       writeContinuing();
@@ -245,7 +243,7 @@ namespace Hgcal10gLinkReceiver {
       }
 	
       case 123: {
-	//_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",20+(_runNumberInSuperRun%50));
+	//_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",20+(_runNumberInSuperRun%50));
 
 				 break;
 				 }
@@ -282,7 +280,7 @@ namespace Hgcal10gLinkReceiver {
       uint32_t _eventNumberInConfiguration;
       uint32_t _eventNumberInSuperRun;
 
-      SerenityTcds2 _serenityTcds2;
+      Serenity10g _serenity10g;
 
     };
 

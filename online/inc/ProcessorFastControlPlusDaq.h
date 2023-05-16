@@ -409,10 +409,10 @@ namespace Hgcal10gLinkReceiver {
       assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
     }
 
-    bool ending(FsmInterface::HandshakeState s) {
+    bool ending(FsmInterface::Handshake s) {
       ProcessorFastControl::ending(s);
 
-      if(s==FsmInterface::Change) {
+      if(s==FsmInterface::GoToTransient) {
         std::cout << "Ending" << std::endl;
         ptrFifoShm0->end();
         ptrFifoShm0->print();
