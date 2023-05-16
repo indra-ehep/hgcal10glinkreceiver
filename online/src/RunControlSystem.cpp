@@ -7,8 +7,8 @@
 #include <csignal>
 #include <unistd.h>
 
+#include "SystemParameters.h"
 #include "FsmInterface.h"
-#include "ShmKeys.h"
 #include "ShmSingleton.h"
 #include "RunControlEngine.h"
 #include "RecordConfiguringA.h"

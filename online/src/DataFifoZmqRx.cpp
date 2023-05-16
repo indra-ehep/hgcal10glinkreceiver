@@ -7,7 +7,7 @@
 #include <zmq.hpp>
 
 #include "DataFifo.h"
-#include "ShmKeys.h"
+#include "SystemParameters.h"
 #include "ShmSingleton.h"
 
 using namespace Hgcal10gLinkReceiver;

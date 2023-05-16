@@ -1,5 +1,5 @@
-#ifndef Hgcal10gLinkReceiver_ShmKeys_h
-#define Hgcal10gLinkReceiver_ShmKeys_h
+#ifndef Hgcal10gLinkReceiver_SystemParameters_h
+#define Hgcal10gLinkReceiver_SystemParameters_h
 
 #include <cstdint>
 

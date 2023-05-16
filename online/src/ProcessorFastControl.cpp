@@ -9,8 +9,6 @@
 #include <iostream>
 #include <cassert>
 
-#include "ShmKeys.h"
-
 //#define ProcessorHardware
 
 #include "ProcessorFastControl.h"

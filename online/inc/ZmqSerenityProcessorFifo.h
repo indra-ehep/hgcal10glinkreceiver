@@ -8,8 +8,8 @@
 
 #include <zmq.hpp>
 
+#include "SystemParameters.h"
 #include "DataFifo.h"
-#include "ShmKeys.h"
 #include "ShmSingleton.h"
 
 using namespace Hgcal10gLinkReceiver;

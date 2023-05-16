@@ -12,7 +12,6 @@
 #include "ShmSingleton.h"
 #include "DataFifo.h"
 #include "RecordPrinter.h"
-#include "ShmKeys.h"
 #include "SlinkBoe.h"
 #include "SlinkEoe.h"
 

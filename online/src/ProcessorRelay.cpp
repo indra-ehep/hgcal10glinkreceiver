@@ -9,8 +9,6 @@
 #include <iostream>
 #include <cassert>
 
-#include "ShmKeys.h"
-
 #include "ProcessorRelay.h"
 
 using namespace Hgcal10gLinkReceiver;

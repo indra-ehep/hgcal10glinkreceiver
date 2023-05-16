@@ -8,7 +8,7 @@
 #include <zmq.hpp>
 
 #include "FsmInterface.h"
-#include "ShmKeys.h"
+#include "SystemParameters.h"
 #include "ShmSingleton.h"
 
 using namespace Hgcal10gLinkReceiver;
