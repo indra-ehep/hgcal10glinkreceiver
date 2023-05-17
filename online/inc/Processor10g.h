@@ -44,12 +44,15 @@ namespace Hgcal10gLinkReceiver {
   
     void setUpAll(uint32_t rcKey) {
       _serenity10g.makeTable();
-
+      ptrFifoShm2=nullptr;
       startFsm(rcKey);
     }
 
     virtual bool initializing() {
       _serenity10g.setDefaults();
+      _serenity10g.uhalWrite("payload.ctrl.reg.en",0);
+      _serenity10g.uhalWrite("payload.ctrl.reg.duty_cycle",0);
+      _serenity10g.uhalWrite("eth10g.quad.channel.ctrl.reg.heartbeat",1);
       _serenity10g.print();
       return true;
     }
@@ -73,8 +76,11 @@ namespace Hgcal10gLinkReceiver {
 	  //_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",1);
 	  _serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3510<<16)|0x0004);
 	  */
+	} else {
+
 	}
-	
+
+	_serenity10g.print();
 	_configuringBCounter=0;
       }
 
@@ -106,23 +112,23 @@ namespace Hgcal10gLinkReceiver {
 	// Release throttle
 	//_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",1);
       }
+      _serenity10g.uhalWrite("payload.ctrl.reg.en",1);
 
       return true;
     }
 
     bool pausing(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-      }
+      _serenity10g.uhalWrite("payload.ctrl.reg.en",0);
       return true;
     }
     
     bool resuming(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-      }
+      _serenity10g.uhalWrite("payload.ctrl.reg.en",1);
       return true;
     }
     
     bool stopping(FsmInterface::Handshake s) {
+      _serenity10g.uhalWrite("payload.ctrl.reg.en",0);
       if(s==FsmInterface::GoToTransient) {
 	_eventNumberInConfiguration+=_eventNumberInRun;
 
@@ -157,8 +163,10 @@ namespace Hgcal10gLinkReceiver {
     bool ending(FsmInterface::Handshake s) {
       if(s==FsmInterface::GoToTransient) {
         std::cout << "Ending" << std::endl;
-        ptrFifoShm2->end();
-        ptrFifoShm2->print();
+        if(ptrFifoShm2!=nullptr) {
+	  ptrFifoShm2->end();
+	  ptrFifoShm2->print();
+	}
       }
       return true;
     }
@@ -178,6 +186,8 @@ namespace Hgcal10gLinkReceiver {
       if(_printEnable) {
 	std::cout << "Processor10g::configuredB()" << std::endl;
       }
+
+        if(ptrFifoShm2!=nullptr) {
 
       RecordConfigured *r;
       while((r=(RecordConfigured*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
@@ -207,7 +217,7 @@ namespace Hgcal10gLinkReceiver {
       */
 
       ptrFifoShm2->writeIncrement();
-
+	}
       writeContinuing();
     }
 
@@ -228,10 +238,12 @@ namespace Hgcal10gLinkReceiver {
     }
 
     void writeContinuing() {
+        if(ptrFifoShm2!=nullptr) {
       Record *r;
       while((r=ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
       r->reset(FsmState::Continuing);
       ptrFifoShm2->writeIncrement();
+    }
     }
     
     void keyConfiguration(uint32_t key) {

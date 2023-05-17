@@ -154,7 +154,7 @@ namespace Hgcal10gLinkReceiver {
       return _processState==systemState();
     }
     
-    const RecordT<1>& record() const {
+    const RecordT<15>& record() const {
       return _record;
     }
 
@@ -168,7 +168,8 @@ namespace Hgcal10gLinkReceiver {
       _record.reset(s);
     }
 
-    void setGoToRecord(FsmState::State s, uint32_t number=time(0), uint32_t key=0) {
+    void setGoToRecord(const Record *r) {
+      /*
       _record.reset(s);
       _record.setUtc();
       _record.setPayloadLength(1);
@@ -176,6 +177,8 @@ namespace Hgcal10gLinkReceiver {
       uint32_t *p((uint32_t*)(_record.getPayload()));
       p[0]=key;
       p[1]=number;
+      */
+      _record.deepCopy(r);
     }
 
     void changeProcessState() {
@@ -213,7 +216,7 @@ namespace Hgcal10gLinkReceiver {
     }
   
   private:
-    RecordT<1> _record;
+    RecordT<15> _record;
     FsmState::State _processState;
     Handshake _handshake;
 

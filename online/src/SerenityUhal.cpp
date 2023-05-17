@@ -31,14 +31,14 @@ int main(int argc, char *argv[]) {
   SerenityUhal::setUhalLogLevel();
 
   SerenityUhal su;
-  su.makeTable();
+  su.makeTable("eth10g");
   //su.setDefaults();
   //su.uhalWrite("BLAH",0xdead);
-
-  su.uhalWrite("lpgbt1.lpgbt_frame.shift_elink4",57&0xff);
+  su.uhalWrite("payload.reg_320.ctrl3",0xaccccccc);
+  //  su.uhalWrite("lpgbt1.lpgbt_frame.shift_elink4",57&0xff);
   su.print();
 
-  su.uhalWrite("fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+  // su.uhalWrite("fc_ctrl.tcds2_emu.seq_mem.pointer",0);
   //su.uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",3);
 
   // 0x0040 = L1A, 0x0010 = ECR

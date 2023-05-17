@@ -42,20 +42,18 @@ bool ZmqRunControlFsm(uint32_t key, uint16_t port) {
     prcfs->coldStart();
     prcfs->print();
 
-    FsmInterface::HandshakeState hsOld(FsmInterface::Idle);
+    FsmInterface::Handshake hsOld(FsmInterface::Idle);
       
     bool continueLoop(true);
 
     while(continueLoop) {
 
       assert(hsOld==FsmInterface::Idle ||
-	     hsOld==FsmInterface::Accepted ||
-	     hsOld==FsmInterface::Rejected ||
-	     hsOld==FsmInterface::Changed ||
-	     hsOld==FsmInterface::Repaired);
+	     hsOld==FsmInterface::Ready ||
+	     hsOld==FsmInterface::Completed);
 
       // Wait for change from Run Control
-      while(hsOld==prcfs->commandHandshake()) usleep(10);
+      while(hsOld==prcfs->handshake()) usleep(10);
 
 	std::cout  << std::endl << "************ FOUND TRANS ******************" << std::endl << std::endl;
 	prcfs->print();
@@ -78,7 +76,7 @@ bool ZmqRunControlFsm(uint32_t key, uint16_t port) {
 	  continueLoop=false;
 	}
 
-	hsOld=local.commandHandshake();
+	hsOld=local.handshake();
 
 	// Copy reply to shared memory
 	std::memcpy(prcfs,&local,sizeof(FsmInterface));

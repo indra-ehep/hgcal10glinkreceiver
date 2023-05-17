@@ -65,7 +65,7 @@ namespace Hgcal10gLinkReceiver {
 	    //if(temp[i].substr(8,17)!="tcds2_emu") {
 	    std::cout << "UHAL string " << std::setw(3) << " = " 
 		      << temp[i] << std::endl;
-	    _uhalString.push_back(temp[i]);
+	    _uhalString.push_back(s+"."+temp[i]);
 	    //}
 	  }
 	} else {
@@ -75,7 +75,7 @@ namespace Hgcal10gLinkReceiver {
     
       if(_printEnable) {
 	for(unsigned i(0);i<_uhalString.size();i++) {
-	  std::cout << "UHAL string " << std::setw(3) << " = " 
+	  std::cout << "RO UHAL string " << std::setw(3) << " = " 
 		    << _uhalString[i] << std::endl;
 	
 	  const uhal::Node& lNode = lHW.getNode(_uhalString[i]);
