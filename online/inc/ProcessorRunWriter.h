@@ -117,7 +117,8 @@ namespace Hgcal10gLinkReceiver {
     void running() {
       RecordT<1024> r;
       RecordRunning *rr((RecordRunning*)&r);
-
+      const Record *rrr;
+      
       while(_ptrFsmInterface->isIdle()) {
 	if(_printEnable) ptrRunFileShm->print();
 	if(ptrRunFileShm->read((uint64_t*)(&r))==0) {
@@ -132,21 +133,27 @@ namespace Hgcal10gLinkReceiver {
       ptrRunFileShm->print();
       std::cout << "Finished loop, checking for other events" << std::endl;
 	
-      while(ptrRunFileShm->_writePtr>ptrRunFileShm->_readPtr) {
+      //while(ptrRunFileShm->_writePtr>ptrRunFileShm->_readPtr) {
+      while(ptrRunFileShm->readable()>0) {
 	if(_printEnable) ptrRunFileShm->print();
-	assert(ptrRunFileShm->read((uint64_t*)(&r))>0);
-	if(_printEnable) rr->RecordHeader::print();
-	_fileWriter.write(&r);
+	
+	//assert(ptrRunFileShm->read((uint64_t*)(&r))>0);
+	rrr=ptrRunFileShm->readRecord();
+	if(_printEnable) rrr->RecordHeader::print();
+
+	_fileWriter.write(rrr);
 	_eventNumber++;
       }
 	
       usleep(1000);
 	
-      while(ptrRunFileShm->_writePtr>ptrRunFileShm->_readPtr) {
+      while(ptrRunFileShm->readable()>0) {
 	if(_printEnable) ptrRunFileShm->print();
-	assert(ptrRunFileShm->read((uint64_t*)(&r))>0);
-	if(_printEnable) rr->RecordHeader::print();
-	_fileWriter.write(&r);
+	
+	rrr=ptrRunFileShm->readRecord();
+	if(_printEnable) rrr->RecordHeader::print();
+
+	_fileWriter.write(rrr);
 	_eventNumber++;
       }
     }

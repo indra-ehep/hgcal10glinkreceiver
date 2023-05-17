@@ -35,8 +35,8 @@ bool ZmqProcessorFsm(uint32_t key, uint16_t port) {
   FsmInterface *prcfs=shmU.payload();
   prcfs->print();
   
-  FsmInterface::HandshakeState hsOld(prcfs->commandHandshake());
-  FsmInterface::HandshakeState hsNew(prcfs->commandHandshake());
+  FsmInterface::Handshake hsOld(prcfs->handshake());
+  FsmInterface::Handshake hsNew(prcfs->handshake());
   
   prcfs->print();
   
@@ -54,19 +54,18 @@ bool ZmqProcessorFsm(uint32_t key, uint16_t port) {
     std::memcpy(&local,request.data(),sizeof(FsmInterface));
     local.print();
     
-    hsOld=local.commandHandshake();
+    hsOld=local.handshake();
     assert(hsOld==FsmInterface::Ping ||
-	   hsOld==FsmInterface::Propose ||
-	   hsOld==FsmInterface::Change ||
-	   hsOld==FsmInterface::Repair ||
-	   hsOld==FsmInterface::StartStatic);
+	   hsOld==FsmInterface::Prepare ||
+	   hsOld==FsmInterface::GoToTransient ||
+	   hsOld==FsmInterface::GoToStatic);
 
     // Copy change to local shared memory
     std::memcpy(prcfs,&local,sizeof(FsmInterface));
     prcfs->print();
 
     // Wait for the processor to respond
-    while(hsOld==prcfs->commandHandshake()) usleep(10);
+    while(hsOld==prcfs->handshake()) usleep(10);
 
     std::cout  << std::endl << "************ FOUND TRANS ******************" << std::endl << std::endl;
     prcfs->print();
