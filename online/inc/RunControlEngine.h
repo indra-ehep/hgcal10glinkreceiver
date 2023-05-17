@@ -73,12 +73,13 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool command(FsmState::State s, uint32_t number=time(0), uint32_t key=0) {
-      if(!FsmState::transientState(s)) return false;
+    //bool command(FsmState::State s, uint32_t number=time(0), uint32_t key=0) {
+    bool command(const Record *r) {
+      if(!FsmState::transientState(r->state())) return false;
       
       //std::cout << std::endl << "Sending Prepare" << std::endl;
       for(unsigned i(0);i<_goodFsmInterface.size();i++) {
-	_goodFsmInterface[i]->setPrepareRecord(s);
+	_goodFsmInterface[i]->setPrepareRecord(r->state());
 
 	if(_printLevel>0) {
 	  std::cout << std::endl << "Shm" << i << " sending Prepare"
@@ -138,7 +139,7 @@ namespace Hgcal10gLinkReceiver {
 	  _goodFsmInterface[i]->print();
 	}
 	
-	_goodFsmInterface[i]->setGoToRecord(s,number,key);
+	_goodFsmInterface[i]->setGoToRecord(r);
 	assert(_goodFsmInterface[i]->goToTransient());
 	
 	if(_printLevel>0) {
@@ -190,7 +191,10 @@ namespace Hgcal10gLinkReceiver {
 	  _goodFsmInterface[i]->print();
 	}
 	
-	_goodFsmInterface[i]->setGoToRecord(FsmState::staticStateAfterTransient(s));
+	RecordT<15> rr;
+	rr.deepCopy(r);
+	rr.setState(FsmState::staticStateAfterTransient(r->state()));
+	_goodFsmInterface[i]->setGoToRecord(&rr);
 	assert(_goodFsmInterface[i]->goToStatic());
 	
 	if(_printLevel>0) {

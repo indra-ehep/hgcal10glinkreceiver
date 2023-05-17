@@ -32,7 +32,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool makeTable() {
-      SerenityUhal::makeTable("payload");
+      SerenityUhal::makeTable("eth10g");
       return true;
     }
   

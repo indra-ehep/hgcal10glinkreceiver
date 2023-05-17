@@ -40,7 +40,7 @@ bool ZmqSerenityProcessorFifo(uint32_t key, uint16_t port) {
     ShmSingleton< DataFifoT<6,1024> > shmU;
     shmU.setup(key);
     DataFifoT<6,1024> *prcfs=shmU.payload();
-    prcfs->ColdStart();
+    prcfs->coldStart();
     prcfs->print();
 
     uint64_t buffer[1024];

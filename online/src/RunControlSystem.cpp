@@ -80,14 +80,14 @@ int main(int argc, char *argv[]) {
 
   FsmCommandPacket fcp;
   Record r;
-  /*
-  r.setState(
+
+  r.setState(FsmState::Initializing);
   r.setPayloadLength(0);
   fcp.setCommand(FsmCommand::Initialize);
   fcp.setRecord(r);
   fcp.print();
-  */
-  engine.command(FsmState::Initializing);
+
+  engine.command(&r);
 
   bool continueLoop(true);
 
@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
       fcp.setCommand(FsmCommand::Reset);
       fcp.setRecord(rr);
       fcp.print();
-      engine.command(FsmState::Resetting);
+      engine.command(&rr);
       
       if(x=='x') {
 	return 0;
@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
 	fcp.setCommand(FsmCommand::Initialize);
 	fcp.setRecord(ri);
 	fcp.print();
-	engine.command(FsmState::Initializing);
+	engine.command(&ri);
 
       } else {
 	RecordEnding re;
@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
 	fcp.setCommand(FsmCommand::End);
 	fcp.setRecord(re);
 	fcp.print();
-	engine.command(FsmState::Ending);
+	engine.command(&re);
 	
 	continueLoop=false;
       }
@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) {
       std::cout  << std::endl << "HEREA!" << std::endl << std::endl;
       rca.print();
       fcp.print();
-      engine.command(FsmState::ConfiguringA,time(0),nx);
+      engine.command(&rca);
 
       for(nc=0;nc<rca.maxNumberOfConfigurations() && continueRelay;nc++) {
 	RecordConfiguringB rcb;
@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
 	std::cout  << std::endl << "HEREB!" << std::endl << std::endl;
 	rcb.print();
 	fcp.print();
-	engine.command(FsmState::ConfiguringB);
+	engine.command(&rcb);
 
 	for(nr=0;nr<rcb.maxNumberOfRuns() && continueRelay;nr++) {
 	  RecordStarting rsa;
@@ -211,7 +211,7 @@ int main(int argc, char *argv[]) {
 	  std::cout  << std::endl << "HERES!" << std::endl << std::endl;
 	  rsa.print();
 	  fcp.print();
-	  engine.command(FsmState::Starting);
+	  engine.command(&rsa);
 
 	  signal(SIGINT,RunControlSignalHandler);
 
@@ -232,7 +232,7 @@ int main(int argc, char *argv[]) {
 	      std::cout  << std::endl << "HEREP!" << std::endl << std::endl;
 	      rp.print();
 	      fcp.print();
-	      engine.command(FsmState::Pausing);
+	      engine.command(&rp);
 
 	      RecordResuming rr;
 	      rr.setHeader();
@@ -241,7 +241,7 @@ int main(int argc, char *argv[]) {
 	      std::cout  << std::endl << "HEREP!" << std::endl << std::endl;
 	      rr.print();
 	      fcp.print();
-	      engine.command(FsmState::Resuming);
+	      engine.command(&rr);
 
 	      np++;
 	    }
@@ -263,7 +263,7 @@ int main(int argc, char *argv[]) {
 	  std::cout  << std::endl << "HERES!" << std::endl << std::endl;
 	  rsb.print();
 	  fcp.print();
-	  engine.command(FsmState::Stopping);
+	  engine.command(&rsb);
 	}
 
 	nrt+=nr;
@@ -280,7 +280,7 @@ int main(int argc, char *argv[]) {
 	std::cout  << std::endl << "HEREB!" << std::endl << std::endl;
 	rhb.print();
 	fcp.print();
-	engine.command(FsmState::HaltingB);
+	engine.command(&rhb);
       }
     
       RecordHaltingA rha;
@@ -295,7 +295,7 @@ int main(int argc, char *argv[]) {
       std::cout  << std::endl << "HEREA!" << std::endl << std::endl;
       rha.print();
       fcp.print();
-      engine.command(FsmState::HaltingA);
+      engine.command(&rha);
     }
   }
 
