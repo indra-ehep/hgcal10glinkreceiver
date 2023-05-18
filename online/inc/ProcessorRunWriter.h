@@ -23,6 +23,7 @@ namespace Hgcal10gLinkReceiver {
   public:
     ProcessorRunWriter(unsigned l) {
       _linkNumber=l;
+      _dummyReader=false;
     }
 
     virtual ~ProcessorRunWriter() {
@@ -38,6 +39,10 @@ namespace Hgcal10gLinkReceiver {
       startFsm(rcKey);
     }
 
+    void setDummyReader(bool b) {
+      _dummyReader=b;
+    }
+    
     bool initializing() {
       return true;
     }
@@ -46,6 +51,8 @@ namespace Hgcal10gLinkReceiver {
       if(s==FsmInterface::GoToTransient) {
 	_eventNumber=0;
 	
+	ptrRunFileShm->starting();
+
 	assert(_ptrFsmInterface->record().state()==FsmState::Starting);
 	RecordStarting r;
 	std::cout << "HERE0 starting" << std::endl;
@@ -115,8 +122,8 @@ namespace Hgcal10gLinkReceiver {
     }
 
     void running() {
-      RecordT<1024> r;
-      RecordRunning *rr((RecordRunning*)&r);
+      //RecordT<1024> r;
+      //RecordRunning *rr((RecordRunning*)&r);
       const Record *rrr;
 
       _ptrFsmInterface->idle();
@@ -125,6 +132,7 @@ namespace Hgcal10gLinkReceiver {
 	//if(_printEnable) ptrRunFileShm->print();
 	
 	if(ptrRunFileShm->readable()==0) {
+	  if(_dummyReader) ptrRunFileShm->writeIncrement();
 	  //if(ptrRunFileShm->read((uint64_t*)(&r))==0) {
 	  usleep(10);
 	} else {
@@ -133,6 +141,7 @@ namespace Hgcal10gLinkReceiver {
 
 	  _fileWriter.write(rrr);
 	  ptrRunFileShm->readIncrement();
+	  if(_dummyReader) ptrRunFileShm->writeIncrement();
 	  _eventNumber++;
 	}
       }
@@ -151,10 +160,11 @@ namespace Hgcal10gLinkReceiver {
 
 	_fileWriter.write(rrr);
 	ptrRunFileShm->readIncrement();
+	//if(_dummyReader) ptrRunFileShm->writeIncrement();
 	_eventNumber++;
       }
 	
-      usleep(1000);
+      usleep(100000);
 	
       while(ptrRunFileShm->readable()>0) {
 	//if(_printEnable) ptrRunFileShm->print();
@@ -163,7 +173,8 @@ namespace Hgcal10gLinkReceiver {
 	//if(_printEnable) rrr->RecordHeader::print();
 
 	_fileWriter.write(rrr);
-	ptrRunFileShm->readIncrement();
+	ptrRunFileShm->readIncrement();	
+	//if(_dummyReader) ptrRunFileShm->writeIncrement();
 	_eventNumber++;
       }
     }
@@ -173,6 +184,8 @@ namespace Hgcal10gLinkReceiver {
     FileWriter _fileWriter;
     unsigned _linkNumber;
     unsigned _eventNumber;
+
+    bool _dummyReader;
   };
 
 }

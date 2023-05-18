@@ -63,7 +63,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     uint16_t payloadLength() const {
-      return (_header>>32)&0xffff;
+      return (_header>>32)&0x00ff; // LIMIT TO 255 FOR NOW
     }
 
     uint32_t totalLength() const {

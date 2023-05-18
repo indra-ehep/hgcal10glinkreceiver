@@ -20,7 +20,7 @@ namespace Hgcal10gLinkReceiver {
     bool read(Record *r) {
       if(!_runActive) {
 	if(!FileReader::read(r)) return false;
-
+	
 	if(r->state()==FsmState::Starting) {
 	  _runActive=true;
 	  _runRecord=0;

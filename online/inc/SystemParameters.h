@@ -55,6 +55,8 @@ namespace Hgcal10gLinkReceiver {
   const uint16_t ProcessorDaqLink1FsmPort(   RunControlDaqLink1FsmPort);
   //const uint32_t ProcessorDaqLink2FsmPort(RunControlDaqLink2FsmPort);
 
+  const uint16_t UdpProcessorDaqLink0FifoPort(1234);
+  const uint16_t UdpProcessorDaqLink1FifoPort(1235);
 
 
   // Junk

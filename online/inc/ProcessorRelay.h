@@ -39,10 +39,10 @@ namespace Hgcal10gLinkReceiver {
   
     void setUpAll(uint32_t rcKey, uint32_t fifoKey0, uint32_t fifoKey1) {
       ShmSingleton< DataFifoT<6,1024> > shm0;
-      _ptrFifoShm.push_back(shm0.setup(fifoKey0));
+      //_ptrFifoShm.push_back(shm0.setup(fifoKey0)); // HACK
 
       ShmSingleton< DataFifoT<6,1024> > shm1;
-      _ptrFifoShm.push_back(shm1.setup(fifoKey1));
+      //_ptrFifoShm.push_back(shm1.setup(fifoKey1)); // HACK
 
       for(unsigned i(0);i<_ptrFifoShm.size();i++) _ptrFifoShm[i]->coldStart();
 
