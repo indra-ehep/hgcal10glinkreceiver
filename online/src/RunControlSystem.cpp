@@ -131,12 +131,19 @@ int main(int argc, char *argv[]) {
       
     } else {
       unsigned nx(999);
+      unsigned nt(1000000000);
       //while(nx==0 || nx>1000) {
-      while(nx!=0 && nx!=123) {
+      while(nx!=0 && nx!=123 && nx!=124) {
 	//std::cout << "Relay number of runs"
-	std::cout << "Relay type (0,123)"
+	std::cout << "Relay type (0,123,124)"
 		<< std::endl;
 	std::cin >> nx;
+      }
+
+      while(nt>1000001) {
+	std::cout << "Time per run (secs)"
+		<< std::endl;
+	std::cin >> nt;
       }
 
       x='z';
@@ -159,10 +166,12 @@ int main(int argc, char *argv[]) {
       else rca.setRelayNumber(0xffffffff);
       uint32_t srNumber(rca.relayNumber());
 
-      rca.setMaxNumberOfConfigurations(nx==0?1:80);
+      if(nx==  0) rca.setMaxNumberOfConfigurations( 1);
+      if(nx==123) rca.setMaxNumberOfConfigurations(80);
+      if(nx==124) rca.setMaxNumberOfConfigurations( 4);
 
       // Configuration
-      rca.setProcessKey(RunControlDummyFsmShmKey,0);
+      rca.setProcessKey(RunControlDummyFsmShmKey,nx);
       rca.setProcessKey(RunControlFrontEndFsmShmKey,nx);
       rca.setProcessKey(RunControlFastControlFsmShmKey,0);
       rca.setProcessKey(RunControlTcds2FsmShmKey,nx);
@@ -203,7 +212,8 @@ int main(int argc, char *argv[]) {
 	  else rsa.setRunNumber(0xffffffff);
 
 	  rsa.setMaxEvents(1000000000);
-	  rsa.setMaxSeconds(nx==0?1000000000:60);
+	  //rsa.setMaxSeconds(nx==0?1000000000:60);
+	  rsa.setMaxSeconds(nt);
 	  rsa.setMaxSpills(0);
       
 	  fcp.setCommand(FsmCommand::Start);

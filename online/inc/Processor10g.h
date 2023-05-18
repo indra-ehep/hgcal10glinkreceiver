@@ -98,6 +98,10 @@ namespace Hgcal10gLinkReceiver {
 	  //_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",_keyCfgB);
 	}
 	
+	if(_keyCfgA==124) {
+	  _serenity10g.uhalWrite("payload.ctrl.reg.duty_cycle",_configuringBCounter%4);
+	}
+
 	_configuringBCounter++;
       }
       return true;
