@@ -53,7 +53,7 @@ bool ZmqRunControlFsm(uint32_t key, uint16_t port) {
 	     hsOld==FsmInterface::Completed);
 
       // Wait for change from Run Control
-      while(hsOld==prcfs->handshake()) usleep(10);
+      while(hsOld==prcfs->handshake()) usleep(1000);
 
 	std::cout  << std::endl << "************ FOUND TRANS ******************" << std::endl << std::endl;
 	prcfs->print();
