@@ -102,6 +102,8 @@ namespace Hgcal10gLinkReceiver {
     void running() {
       _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",1);
 
+      _ptrFsmInterface->idle();
+
       while(_ptrFsmInterface->isIdle()) {
 
 	if(!ptrFifoShm2->backPressure()) {
