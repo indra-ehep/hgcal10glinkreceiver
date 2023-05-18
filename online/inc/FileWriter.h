@@ -86,13 +86,13 @@ namespace Hgcal10gLinkReceiver {
 	//fcor.setFileNumber(_fileNumber);
 
 	if(_writeEnable) {
-	std::cout << "FileWrite::write() opening file "
-		  << _fileName.c_str() << std::endl;
-	  _outputFile.open(_fileName.c_str(),std::ios::binary);
+	  std::cout << "FileWrite::write() opening file "
+		    << _fileName.c_str() << std::endl;
+	  _outputFile.open(_directory+_fileName.c_str(),std::ios::binary);
 	  _outputFile.write((char*)(&fcor),sizeof(RecordContinuing));
-	_outputFile.flush();
+	  _outputFile.flush();
 	}
-
+	
 	_numberOfBytesInFile=sizeof(RecordContinuing);
       }
       
