@@ -16,6 +16,7 @@ using namespace Hgcal10gLinkReceiver;
 int main(int argc, char *argv[]) {
 
   // Turn off printing
+  bool dummyReader(false);
   bool printEnable(false);
   bool checkEnable(false);
   bool assertEnable(false);
@@ -38,12 +39,19 @@ int main(int argc, char *argv[]) {
       std::cout << "Setting assertEnable to true" << std::endl;
       assertEnable=true;
     }
+    
+    if(std::string(argv[i])=="-r" ||
+       std::string(argv[i])=="--dummyReader") {
+      std::cout << "Setting dummyReader to true" << std::endl;
+      dummyReader=true;
+    }
   }
 
   ProcessorRunWriter pb(0);
   pb.setPrintEnable(  printEnable);
   pb.setCheckEnable(  checkEnable);
   pb.setAssertEnable(assertEnable);
+  pb.setDummyReader(  dummyReader);
 
   pb.setUpAll(ProcessorDaqLink0FsmShmKey,ProcessorDaqLink0FifoShmKey);
   return 0;

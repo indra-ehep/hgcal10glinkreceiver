@@ -20,6 +20,12 @@ public:
   DataFifoT() {
   }
 
+  // To be called by reading processors
+  void coldStart() {
+    _writePtr=0;
+    _readPtr=0;
+  }
+
   void initialize() {
     _backPressure=false;
     _writePtr=0;
@@ -27,6 +33,11 @@ public:
     // RESET ALL RECORDHEADERS?
   }
   
+  void starting() {
+    _writePtr=0;
+    _readPtr=0;
+  }
+
   void end() {
     _writePtr=0xffffffff;
     _readPtr=0xffffffff;
@@ -36,11 +47,6 @@ public:
     return _writePtr==0xffffffff && _readPtr==0xffffffff;
   }
   
-  void coldStart() {
-    _writePtr=0;
-    _readPtr=0;
-  }
-
   // Processor writing into FIFO
   Record* getWriteRecord() {
     if(!writeable()) return nullptr;

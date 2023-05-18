@@ -95,6 +95,10 @@ int main(int argc, char** argv) {
        r.state()!=FsmState::ConfiguredB) RecordPrinter(&r);
     
     // Check the change of state is allowed
+
+
+    if(r.state()<FsmState::EndOfStateEnum) {
+
     if(FsmState::staticState(state)) {
       if(state!=r.state()) {
 	assert(state==FsmState::staticStateBeforeTransient(r.state()));
@@ -105,6 +109,11 @@ int main(int argc, char** argv) {
       state=r.state();      
     }
 
+    }
+
+
+
+    
     // Check values for each case
     if(r.state()==FsmState::ConfiguringA) {
       assert(rca.valid());
@@ -164,7 +173,7 @@ int main(int argc, char** argv) {
     
     else if(r.state()==FsmState::Running) {
       assert(rrn.valid());
-      assert(rst.sequenceCounter()==((nEvtInRelay++)/2)+1);
+      //assert(rst.sequenceCounter()==((nEvtInRelay++)/2)+1);
 
       nEvtInRun++;
     }

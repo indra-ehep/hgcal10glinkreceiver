@@ -60,7 +60,7 @@ namespace Hgcal10gLinkReceiver {
 	rc.deepCopy(h);
 	//rc.print();
 	
-	std::cout << "FileReader::close() closing file "
+	std::cout << "FileReader::read() closing file "
 		  << _fileName.c_str() << std::endl;
 	
 	_inputFile.close();
@@ -68,7 +68,7 @@ namespace Hgcal10gLinkReceiver {
 	_fileNumber++;
 	_fileName=setRunFileName(_runNumber,_linkNumber,_fileNumber);
 	
-	std::cout << "FileReader::open() opening file "
+	std::cout << "FileReader::read() opening file "
 		  << _fileName.c_str() << std::endl;
 	
 	_inputFile.open(_fileName.c_str(),std::ios::binary);
