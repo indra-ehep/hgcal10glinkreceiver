@@ -115,23 +115,23 @@ namespace Hgcal10gLinkReceiver {
 	// Release throttle
 	//_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",1);
       }
-      _serenity10g.uhalWrite("payload.ctrl.reg.en",1);
+      //_serenity10g.uhalWrite("payload.ctrl.reg.en",1);
 
       return true;
     }
 
     bool pausing(FsmInterface::Handshake s) {
-      _serenity10g.uhalWrite("payload.ctrl.reg.en",0);
+      //_serenity10g.uhalWrite("payload.ctrl.reg.en",0);
       return true;
     }
     
     bool resuming(FsmInterface::Handshake s) {
-      _serenity10g.uhalWrite("payload.ctrl.reg.en",1);
+      //_serenity10g.uhalWrite("payload.ctrl.reg.en",1);
       return true;
     }
     
     bool stopping(FsmInterface::Handshake s) {
-      _serenity10g.uhalWrite("payload.ctrl.reg.en",0);
+      //_serenity10g.uhalWrite("payload.ctrl.reg.en",0);
       if(s==FsmInterface::GoToTransient) {
 	_eventNumberInConfiguration+=_eventNumberInRun;
 
@@ -226,6 +226,13 @@ namespace Hgcal10gLinkReceiver {
       if(_printEnable) {
 	std::cout << "Processor10g::running()" << std::endl;
       }
+
+      _serenity10g.uhalWrite("payload.ctrl.reg.en",1);
+
+      _ptrFsmInterface->idle();
+      while(_ptrFsmInterface->isIdle()) usleep(1000);
+
+      _serenity10g.uhalWrite("payload.ctrl.reg.en",0);
       
       writeContinuing();
     }
