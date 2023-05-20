@@ -98,6 +98,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool stopping(FsmInterface::Handshake s) {
+      _ptrFifoShm->print();
       if(s==FsmInterface::GoToTransient) {
 	assert(_ptrFsmInterface->record().state()==FsmState::Stopping);
 	RecordStopping r;
@@ -108,15 +109,55 @@ namespace Hgcal10gLinkReceiver {
 	_fileWriter.write(&r);
 	_fileWriter.close();
       }
+      _ptrFifoShm->print();
+      return true;
+    }    
+
+    bool haltingB(FsmInterface::Handshake s) {
+      _ptrFifoShm->print();
+      return true;
+    }    
+
+    bool haltingA(FsmInterface::Handshake s) {
+      _ptrFifoShm->print();
       return true;
     }    
 
     bool resetting() {
+      _ptrFifoShm->print();
       RecordResetting r;
       if(_printEnable) r.print();
       _fileWriter.write(&r);
       _fileWriter.close();
+      _ptrFifoShm->print();
       return true;
+    }
+
+    void configuredB() {
+      _ptrFifoShm->print();
+    }
+
+    void configuredA() {
+      _ptrFifoShm->print();
+    }
+
+    void halted() {
+      _ptrFifoShm->print();
+      _ptrFsmInterface->idle();
+      
+      
+      while(_ptrFsmInterface->isIdle()) {
+	_ptrFifoShm->print();
+	usleep(1000);
+      }
+      _ptrFifoShm->print();
+
+      if(_ptrFifoShm->readable()>0) {
+      const Record *rrr;
+	std::cout << "HALTED" << std::endl;
+	rrr=_ptrFifoShm->readRecord();
+	rrr->print();
+      }
     }
 
     void running() {
@@ -144,10 +185,12 @@ namespace Hgcal10gLinkReceiver {
 	}
       }
 
+      std::cout << std::endl << "Finished loop, checking for other events, currently "
+		<< _eventNumber << std::endl;
       _ptrFsmInterface->print();
       _ptrFifoShm->print();
-      std::cout << "Finished loop, checking for other events" << std::endl;
-	
+
+#ifdef FIRST_ATTEMPT
       //while(_ptrFifoShm->_writePtr>_ptrFifoShm->_readPtr) {
       while(_ptrFifoShm->readable()>0) {
 	//if(_printEnable) _ptrFifoShm->print();
@@ -162,8 +205,14 @@ namespace Hgcal10gLinkReceiver {
 	_eventNumber++;
       }
 	
-      usleep(100000);
+      std::cout << std::endl << "Finished loop 1, re-checking for other events, currently "
+		<< _eventNumber << std::endl;
+      _ptrFsmInterface->print();
 	
+      //usleep(100000);
+      //usleep(1000000);
+      sleep(10);
+      
       while(_ptrFifoShm->readable()>0) {
 	//if(_printEnable) _ptrFifoShm->print();
 	
@@ -175,6 +224,32 @@ namespace Hgcal10gLinkReceiver {
 	//if(_dummyReader) _ptrFifoShm->writeIncrement();
 	_eventNumber++;
       }
+
+      std::cout << std::endl << "Finished loop 2, no more checking for other events, currently "
+		<< _eventNumber << std::endl;
+      _ptrFsmInterface->print();
+#endif
+
+      usleep(10000);
+
+      unsigned nLoop(0);
+      while(_ptrFifoShm->readable()>0) {
+	while(_ptrFifoShm->readable()>0) {
+	  rrr=_ptrFifoShm->readRecord();
+	  _fileWriter.write(rrr);
+	  _ptrFifoShm->readIncrement();
+	  _eventNumber++;
+	}
+
+	nLoop++;
+	_ptrFifoShm->print();
+	usleep(1000);
+      }
+
+      std::cout << std::endl << "Finished loop " << nLoop
+		<< ", no more checking for other events, currently "
+		<< _eventNumber << std::endl;
+      _ptrFifoShm->print();
     }
    
   private:
