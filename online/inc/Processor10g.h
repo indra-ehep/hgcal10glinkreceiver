@@ -16,7 +16,6 @@
 #include "DataFifo.h"
 
 
-
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
 #include "RecordConfigured.h"
@@ -158,17 +157,15 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool resetting(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-      }
+    bool resetting() {
       return true;
     }
 
-    bool ending(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-        std::cout << "Ending" << std::endl;
-        if(ptrFifoShm2!=nullptr) {
-	  ptrFifoShm2->end();
+    bool ending() {
+      if(ptrFifoShm2!=nullptr) {
+	ptrFifoShm2->end();
+	if(_printEnable) {
+	  std::cout << "Ending" << std::endl;
 	  ptrFifoShm2->print();
 	}
       }
@@ -276,9 +273,8 @@ namespace Hgcal10gLinkReceiver {
       }
     
     protected:
-      DataFifoT<6,1024> *ptrFifoShm2;
-
-      uint32_t _fifoCounter;
+    RelayWriterDataFifo *ptrFifoShm2;
+    uint32_t _fifoCounter;
 
       /*
       uint32_t _evtSeqCounter;

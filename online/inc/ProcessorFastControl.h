@@ -60,7 +60,7 @@ namespace Hgcal10gLinkReceiver {
       _serenityLpgbt.makeTable();
       
 
-      ShmSingleton< DataFifoT<6,1024> > shm2;
+      ShmSingleton<RelayWriterDataFifo> shm2;
       ptrFifoShm2=shm2.setup(fifoKey);
       //ptrFifoShm2=shm2.payload();
       startFsm(rcKey);
@@ -404,16 +404,14 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
       return true;
     }
     
-    bool resetting(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-      }
+    bool resetting() {
       return true;
     }
 
-    bool ending(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
+    bool ending() {
+      ptrFifoShm2->end();
+      if(_printEnable) {
 	std::cout << "Ending" << std::endl;
-	ptrFifoShm2->end();
 	ptrFifoShm2->print();
       }
       return true;
@@ -600,7 +598,7 @@ fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
 
     
   protected:
-    DataFifoT<6,1024> *ptrFifoShm2;
+    RelayWriterDataFifo *ptrFifoShm2;
 
     uint32_t _cfgSeqCounter;
     uint32_t _evtSeqCounter;

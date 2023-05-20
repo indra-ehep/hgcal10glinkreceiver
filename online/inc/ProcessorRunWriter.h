@@ -30,11 +30,11 @@ namespace Hgcal10gLinkReceiver {
     }
 
     void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
-      ShmSingleton< DataFifoT<6,1024> > shmU;
-      ptrRunFileShm=shmU.setup(fifoKey);
-      //ptrRunFileShm=shmU.payload();
+      ShmSingleton<RunWriterDataFifo> shmU;
+      _ptrFifoShm=shmU.setup(fifoKey);
+      //_ptrFifoShm=shmU.payload();
 
-      ptrRunFileShm->coldStart();
+      _ptrFifoShm->coldStart();
 
       startFsm(rcKey);
     }
@@ -51,7 +51,7 @@ namespace Hgcal10gLinkReceiver {
       if(s==FsmInterface::GoToTransient) {
 	_eventNumber=0;
 	
-	ptrRunFileShm->starting();
+	_ptrFifoShm->starting();
 
 	assert(_ptrFsmInterface->record().state()==FsmState::Starting);
 	RecordStarting r;
@@ -62,7 +62,7 @@ namespace Hgcal10gLinkReceiver {
 	_fileWriter.write(&r);
 
 	/*
-	  while(ptrRunFileShm->read((uint64_t*)(&r))==0) usleep(10);
+	  while(_ptrFifoShm->read((uint64_t*)(&r))==0) usleep(10);
 	  std::cout << "HERE1 starting" << std::endl;
 	  r.print();
 	  _fileWriter.open(r.runNumber(),0,false,true);
@@ -111,13 +111,11 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }    
 
-    bool resetting(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-	RecordResetting r;
-	r.print();
-	_fileWriter.write(&r);
-	_fileWriter.close();
-      }
+    bool resetting() {
+      RecordResetting r;
+      if(_printEnable) r.print();
+      _fileWriter.write(&r);
+      _fileWriter.close();
       return true;
     }
 
@@ -129,58 +127,58 @@ namespace Hgcal10gLinkReceiver {
       _ptrFsmInterface->idle();
       
       while(_ptrFsmInterface->isIdle()) {
-	//if(_printEnable) ptrRunFileShm->print();
+	//if(_printEnable) _ptrFifoShm->print();
 	
-	if(ptrRunFileShm->readable()==0) {
-	  if(_dummyReader) ptrRunFileShm->writeIncrement();
-	  //if(ptrRunFileShm->read((uint64_t*)(&r))==0) {
+	if(_ptrFifoShm->readable()==0) {
+	  if(_dummyReader) _ptrFifoShm->writeIncrement();
+	  //if(_ptrFifoShm->read((uint64_t*)(&r))==0) {
 	  usleep(10);
 	} else {
-	  rrr=ptrRunFileShm->readRecord();
+	  rrr=_ptrFifoShm->readRecord();
 	  //if(_printEnable) rrr->RecordHeader::print();
 
 	  _fileWriter.write(rrr);
-	  ptrRunFileShm->readIncrement();
-	  if(_dummyReader) ptrRunFileShm->writeIncrement();
+	  _ptrFifoShm->readIncrement();
+	  if(_dummyReader) _ptrFifoShm->writeIncrement();
 	  _eventNumber++;
 	}
       }
 
       _ptrFsmInterface->print();
-      ptrRunFileShm->print();
+      _ptrFifoShm->print();
       std::cout << "Finished loop, checking for other events" << std::endl;
 	
-      //while(ptrRunFileShm->_writePtr>ptrRunFileShm->_readPtr) {
-      while(ptrRunFileShm->readable()>0) {
-	//if(_printEnable) ptrRunFileShm->print();
+      //while(_ptrFifoShm->_writePtr>_ptrFifoShm->_readPtr) {
+      while(_ptrFifoShm->readable()>0) {
+	//if(_printEnable) _ptrFifoShm->print();
 	
-	//assert(ptrRunFileShm->read((uint64_t*)(&r))>0);
-	rrr=ptrRunFileShm->readRecord();
+	//assert(_ptrFifoShm->read((uint64_t*)(&r))>0);
+	rrr=_ptrFifoShm->readRecord();
 	//if(_printEnable) rrr->RecordHeader::print();
 
 	_fileWriter.write(rrr);
-	ptrRunFileShm->readIncrement();
-	//if(_dummyReader) ptrRunFileShm->writeIncrement();
+	_ptrFifoShm->readIncrement();
+	//if(_dummyReader) _ptrFifoShm->writeIncrement();
 	_eventNumber++;
       }
 	
       usleep(100000);
 	
-      while(ptrRunFileShm->readable()>0) {
-	//if(_printEnable) ptrRunFileShm->print();
+      while(_ptrFifoShm->readable()>0) {
+	//if(_printEnable) _ptrFifoShm->print();
 	
-	rrr=ptrRunFileShm->readRecord();
+	rrr=_ptrFifoShm->readRecord();
 	//if(_printEnable) rrr->RecordHeader::print();
 
 	_fileWriter.write(rrr);
-	ptrRunFileShm->readIncrement();	
-	//if(_dummyReader) ptrRunFileShm->writeIncrement();
+	_ptrFifoShm->readIncrement();	
+	//if(_dummyReader) _ptrFifoShm->writeIncrement();
 	_eventNumber++;
       }
     }
    
   private:
-    DataFifoT<6,1024> *ptrRunFileShm;
+    RunWriterDataFifo *_ptrFifoShm;
     FileWriter _fileWriter;
     unsigned _linkNumber;
     unsigned _eventNumber;

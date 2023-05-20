@@ -150,16 +150,14 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool resetting(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-      }
+    bool resetting() {
       return true;
     }
 
-    bool ending(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-        std::cout << "Ending" << std::endl;
-        ptrFifoShm2->end();
+    bool ending() {
+      ptrFifoShm2->end();
+      if(_printEnable) {
+	std::cout << "Ending" << std::endl;
         ptrFifoShm2->print();
       }
       return true;

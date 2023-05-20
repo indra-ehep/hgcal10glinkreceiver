@@ -78,11 +78,11 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    virtual bool resetting(FsmInterface::Handshake s) {
+    virtual bool resetting() {
       return true;
     }
 
-    virtual bool ending(FsmInterface::Handshake s) {
+    virtual bool ending() {
       return true;
     }
 
@@ -235,8 +235,8 @@ namespace Hgcal10gLinkReceiver {
 	else if(_ptrFsmInterface->processState()==FsmState::Stopping    ) this->stopping(_ptrFsmInterface->handshake());
 	else if(_ptrFsmInterface->processState()==FsmState::HaltingB    ) this->haltingB(_ptrFsmInterface->handshake());
 	else if(_ptrFsmInterface->processState()==FsmState::HaltingA    ) this->haltingA(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->processState()==FsmState::Resetting   ) this->resetting(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->processState()==FsmState::Ending      ) this->ending(_ptrFsmInterface->handshake());
+	else if(_ptrFsmInterface->processState()==FsmState::Resetting   ) this->resetting();
+	else if(_ptrFsmInterface->processState()==FsmState::Ending      ) this->ending();
 	else {
 	  if(_printEnable) {
 	    std::cout << "Unknown transient state" << std::endl;

@@ -39,10 +39,10 @@ namespace Hgcal10gLinkReceiver {
   
     void setUpAll(uint32_t rcKey, uint32_t fifoKey0, uint32_t fifoKey1) {
       ShmSingleton< DataFifoT<6,1024> > shm0;
-      //_ptrFifoShm.push_back(shm0.setup(fifoKey0)); // HACK
+      _ptrFifoShm.push_back(shm0.setup(fifoKey0));
 
       ShmSingleton< DataFifoT<6,1024> > shm1;
-      //_ptrFifoShm.push_back(shm1.setup(fifoKey1)); // HACK
+      _ptrFifoShm.push_back(shm1.setup(fifoKey1));
 
       for(unsigned i(0);i<_ptrFifoShm.size();i++) _ptrFifoShm[i]->coldStart();
 
@@ -135,17 +135,13 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool resetting(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-	_fileWriter.close();
-      }
+    bool resetting() {
+      _fileWriter.close();
       return true;
     }
 
-    bool ending(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-	_fileWriter.close();
-      }
+    bool ending() {
+      _fileWriter.close();
       return true;
     }
 

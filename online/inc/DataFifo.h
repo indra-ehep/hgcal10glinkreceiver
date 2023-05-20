@@ -138,5 +138,8 @@ public:
   uint64_t _buffer[BufferDepth][BufferWidth];
 };
 
+ typedef DataFifoT<6,1024> RelayWriterDataFifo;
+ typedef DataFifoT<6,1024> RunWriterDataFifo;
+ 
 }
 #endif

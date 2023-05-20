@@ -63,7 +63,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     uint16_t payloadLength() const {
-      return (_header>>32)&0x00ff; // LIMIT TO 255 FOR NOW
+      return (_header>>32)&0x0fff; // LIMIT TO 4k FOR NOW
     }
 
     uint32_t totalLength() const {
@@ -105,7 +105,7 @@ namespace Hgcal10gLinkReceiver {
     }
 
     void setState(FsmState::State s) {
-      _header&=0xff80ffffffffffff;
+      _header&=0xff00ffffffffffff;
       _header|=(uint64_t(s)<<48);
       setIdentifier(StateData);
     }

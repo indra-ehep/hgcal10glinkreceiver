@@ -102,7 +102,6 @@ namespace Hgcal10gLinkReceiver {
   // Junk
   //const uint32_t ProcessorDaqLink2FifoShmKey(ProcessorFastControlDl2FifoShmKey);
   //const uint32_t ProcessorDaqLink2FifoShmKey(ProcessorFastControlDl2FifoShmKey | 0x00010000); // Local testing
-
 }
 
 #endif

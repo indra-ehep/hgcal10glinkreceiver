@@ -63,7 +63,12 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool resetting(FsmInterface::Handshake s) {
+    bool resetting() {
+      sleep(1);
+      return true;
+    }
+
+    bool ending() {
       sleep(1);
       return true;
     }

@@ -31,15 +31,13 @@ namespace Hgcal10gLinkReceiver {
     void setUpAll(uint32_t rcKey, uint32_t fifoKey2,
                   uint32_t fifoKey0, uint32_t fifoKey1) {
 
-      ShmSingleton< DataFifoT<6,1024> > shm0;
-      shm0.setup(fifoKey0);
-      ptrFifoShm0=shm0.payload();
+      ShmSingleton<RunWriterDataFifo> shm0;
+      ptrFifoShm0=shm0.setup(fifoKey0);
 
       std::cout << "SHM HERE" << std::endl;
 
-      ShmSingleton< DataFifoT<6,1024> > shm1;
-      shm1.setup(fifoKey1);
-      ptrFifoShm1=shm1.payload();
+      ShmSingleton<RunWriterDataFifo> shm1;
+      ptrFifoShm1=shm1.setup(fifoKey1);
       //ptrFifoShm1=0;
       
       ProcessorFastControl::setUpAll(rcKey,fifoKey2);
@@ -411,14 +409,13 @@ namespace Hgcal10gLinkReceiver {
       assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
     }
 
-    bool ending(FsmInterface::Handshake s) {
-      ProcessorFastControl::ending(s);
-
-      if(s==FsmInterface::GoToTransient) {
+    bool ending() {
+      ProcessorFastControl::ending();
+      ptrFifoShm0->end();
+      ptrFifoShm1->end();
+      if(_printEnable) {
         std::cout << "Ending" << std::endl;
-        ptrFifoShm0->end();
         ptrFifoShm0->print();
-        ptrFifoShm1->end();
         ptrFifoShm1->print();
       }
       return true;
@@ -431,9 +428,8 @@ namespace Hgcal10gLinkReceiver {
     uint64_t _rxSummaryData[8][4000];
     unsigned _rxBitShift;
 
-    DataFifoT<6,1024> *ptrFifoShm0;
-    DataFifoT<6,1024> *ptrFifoShm1;
-
+    RunWriterDataFifo *ptrFifoShm0;
+    RunWriterDataFifo *ptrFifoShm1;
   };
 
 }
