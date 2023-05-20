@@ -42,7 +42,11 @@ namespace Hgcal10gLinkReceiver {
       std::cout << "FileReader::open()  opening file "
 		<< _directory+_fileName << std::endl;
 
-      _inputFile.open((_directory+_fileName).c_str(),std::ios::binary);
+      return open(_directory+_fileName);
+    }
+
+    bool open(const std::string &f) {
+      _inputFile.open(f.c_str(),std::ios::binary);
       return (_inputFile?true:false);
     }
 
@@ -58,7 +62,7 @@ namespace Hgcal10gLinkReceiver {
       if(h->state()==FsmState::Continuing) {
 	RecordContinuing rc;
 	rc.deepCopy(h);
-	//rc.print();
+	rc.print();
 	
 	std::cout << "FileReader::read() closing file "
 		  << _fileName.c_str() << std::endl;
@@ -71,19 +75,19 @@ namespace Hgcal10gLinkReceiver {
 	std::cout << "FileReader::read() opening file "
 		  << _fileName.c_str() << std::endl;
 	
-	_inputFile.open(_fileName.c_str(),std::ios::binary);
+	_inputFile.open(_directory+_fileName.c_str(),std::ios::binary);
 	
 	_inputFile.read((char*)h,8);
 	if(!_inputFile) return false;
+
+	_inputFile.read((char*)(h+1),8*h->payloadLength());
 	
-	//assert(h->identifier()==RecordHeader::FileContinuationBof);
+	h->print();
 	assert(h->state()==FsmState::Continuing);
 	assert(((RecordContinuing*)h)->runNumber()     ==rc.runNumber());
 	assert(((RecordContinuing*)h)->fileNumber()    ==rc.fileNumber()+1);
 	assert(((RecordContinuing*)h)->numberOfEvents()==rc.numberOfEvents());
 
-	_inputFile.read((char*)(h+1),8*h->payloadLength());
-	
 	_inputFile.read((char*)h,8);
 	if(!_inputFile) return false;
 	

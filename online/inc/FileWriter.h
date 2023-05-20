@@ -17,7 +17,7 @@ namespace Hgcal10gLinkReceiver {
       //MaximumBytesPerFile=2000
     };
     
-  FileWriter() : _directory("dat/"), _protectFiles(false) {
+    FileWriter() : _directory("dat/"), _protectFiles(false), _flushRecords(true) {
     }
 
     void setDirectory(const std::string &s) {
@@ -57,18 +57,24 @@ namespace Hgcal10gLinkReceiver {
     bool write(const Record* h) {
       if(_writeEnable) {
 	_outputFile.write((char*)h,8*h->totalLength());
-	_outputFile.flush();
+	if(_flushRecords) _outputFile.flush();
       }
 
       _numberOfBytesInFile+=8*h->totalLength();
 
       if(_numberOfBytesInFile>MaximumBytesPerFile) {
-	RecordContinuing fccr;
-	//fccr.setRunNumber(_runNumber);
-	//fccr.setFileNumber(_fileNumber);
+	RecordContinuing rc;
+	rc.setHeader();
+	rc.setRunNumber(_runNumber);
+	rc.setNumberOfEvents(0xffffffff);
+
+	_numberOfBytesInFile+=sizeof(RecordContinuing);
+
+	rc.setFileNumber(_fileNumber);
+	rc.setNumberOfBytes(_numberOfBytesInFile);
 
 	if(_writeEnable) {
-	  _outputFile.write((char*)(&fccr),sizeof(RecordContinuing));
+	  _outputFile.write((char*)(&rc),sizeof(RecordContinuing));
 	  std::cout << "FileWrite::write() closing file "
 		    << _fileName.c_str() << std::endl;
 	  _outputFile.close();
@@ -80,20 +86,20 @@ namespace Hgcal10gLinkReceiver {
 
 	_fileNumber++;
 	_fileName=FileReader::setRunFileName(_runNumber,_linkNumber,_fileNumber);
-	  
-	RecordContinuing fcor;
-	//fcor.setRunNumber(_runNumber);
-	//fcor.setFileNumber(_fileNumber);
+		
+	_numberOfBytesInFile=sizeof(RecordContinuing);
+
+	rc.setFileNumber(_fileNumber);
+	rc.setNumberOfBytes(_numberOfBytesInFile);
 
 	if(_writeEnable) {
 	  std::cout << "FileWrite::write() opening file "
 		    << _fileName.c_str() << std::endl;
 	  _outputFile.open(_directory+_fileName.c_str(),std::ios::binary);
-	  _outputFile.write((char*)(&fcor),sizeof(RecordContinuing));
-	  _outputFile.flush();
+
+	  _outputFile.write((char*)(&rc),sizeof(RecordContinuing));
+	  if(_flushRecords) _outputFile.flush();
 	}
-	
-	_numberOfBytesInFile=sizeof(RecordContinuing);
       }
       
       return true;
@@ -122,6 +128,7 @@ namespace Hgcal10gLinkReceiver {
 
     bool _writeEnable;
     bool _protectFiles;
+    bool _flushRecords;
 
     bool _relay;
     unsigned _runNumber;

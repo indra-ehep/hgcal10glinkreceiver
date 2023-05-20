@@ -31,7 +31,7 @@ namespace Hgcal10gLinkReceiver {
     
   public:
 
-    ProcessorRelay() {
+    ProcessorRelay() : _ignoreInputs(true) {
     }
 
     virtual ~ProcessorRelay() {
@@ -152,7 +152,7 @@ namespace Hgcal10gLinkReceiver {
 
       const Record *r;
 
-      for(unsigned i(0);i<_ptrFifoShm.size();i++) {
+      for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
 	bool done(false);
 	while(!done) {
 	  while((r=_ptrFifoShm[i]->readRecord())==nullptr) usleep(10);
@@ -173,7 +173,7 @@ namespace Hgcal10gLinkReceiver {
 
       const Record *r;
 
-      for(unsigned i(0);i<_ptrFifoShm.size();i++) {
+      for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
 	bool done(false);
 	while(!done) {
 	  while((r=_ptrFifoShm[i]->readRecord())==nullptr) usleep(10);
@@ -194,7 +194,7 @@ namespace Hgcal10gLinkReceiver {
 
       const Record *r;
 
-      for(unsigned i(0);i<_ptrFifoShm.size();i++) {
+      for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
 	bool done(false);
 	while(!done) {
 	  while((r=_ptrFifoShm[i]->readRecord())==nullptr) usleep(10);
@@ -211,7 +211,7 @@ namespace Hgcal10gLinkReceiver {
 #ifdef NOT_YET
 
 
-      for(unsigned i(0);i<_ptrFifoShm.size();i++) {
+      for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
 
 	std::cout << "configuredB() relay = " << _relayNumber << std::endl;
 
@@ -361,7 +361,7 @@ namespace Hgcal10gLinkReceiver {
 
       const Record *r;
 
-      for(unsigned i(0);i<_ptrFifoShm.size();i++) {
+      for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
 	bool done(false);
 	while(!done) {
 	  while((r=_ptrFifoShm[i]->readRecord())==nullptr) usleep(10);
@@ -383,6 +383,8 @@ namespace Hgcal10gLinkReceiver {
     std::vector< DataFifoT<6,1024>* > _ptrFifoShm;
 
     FileWriter _fileWriter;
+
+    bool _ignoreInputs;
     
     uint32_t _cfgSeqCounter;
     uint32_t _evtSeqCounter;

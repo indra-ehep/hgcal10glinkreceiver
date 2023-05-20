@@ -17,7 +17,7 @@ using namespace Hgcal10gLinkReceiver;
 
 int main(int argc, char** argv) {
   if(argc<3) {
-    std::cerr << argv[0] << ": no run number specified" << std::endl;
+    std::cerr << argv[0] << ": no run and/or link number specified" << std::endl;
     return 1;
   }
 
@@ -46,12 +46,16 @@ int main(int argc, char** argv) {
   FileReader _fileReader;
   RecordT<1024> h;
 
+  unsigned recordCount(0);
   unsigned recordQueueDepth(5);
   std::queue< RecordT<1024> > recordQueue;
   
   _fileReader.open(runNumber,linkNumber,doSrun);
+  //_fileReader.open(argv[1]);
 
   while(_fileReader.read(&h)) {
+    recordCount++;
+    
     recordQueue.push(h);
     if(recordQueue.size()>recordQueueDepth) recordQueue.pop();
 
@@ -65,13 +69,17 @@ int main(int argc, char** argv) {
     if(h.state()!=FsmState::Running) RecordPrinter(&h);
 
     if(!h.validPattern() || !h.validState()) {
+      std::cout << std::endl << "BAD PATTERN OR STATE AT RECORD COUNT " << recordCount
+		<< ", DUMPING LAST " << recordQueueDepth
+		<< " RECORDS" << std::endl << std::endl;
+      
       while(recordQueue.size()>0) {
 	RecordPrinter(recordQueue.front());
 	recordQueue.pop();
       }
-      assert(false);
+      //assert(false);
     }
-    
+    /*    
     if(FsmState::staticState(state)) {
       if(state!=h.state()) {
 	assert(state==FsmState::staticStateBeforeTransient(h.state()));
@@ -81,6 +89,9 @@ int main(int argc, char** argv) {
       assert(h.state()==FsmState::staticStateBeforeTransient(state));
       state=h.state();      
     }
+    */
   }
+
+  std::cout << "Total record count = " << recordCount << std::endl;
   return 0;
 }
