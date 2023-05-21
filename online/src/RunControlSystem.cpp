@@ -81,8 +81,9 @@ int main(int argc, char *argv[]) {
   FsmCommandPacket fcp;
   Record r;
 
-  r.setState(FsmState::Initializing);
+  r.reset(FsmState::Initializing);
   r.setPayloadLength(0);
+  r.setUtc();
   fcp.setCommand(FsmCommand::Initialize);
   fcp.setRecord(r);
   fcp.print();

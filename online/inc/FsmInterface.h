@@ -31,9 +31,11 @@ namespace Hgcal10gLinkReceiver {
     }
 
     void coldStart() {
-      _record.reset(FsmState::Initial);
+      //_record.reset(FsmState::Initial);
+      _record.reset(FsmState::Resetting);
       _handshake=Idle;
-      _processState=FsmState::Initial;
+      //_processState=FsmState::Initial;
+      _processState=FsmState::Resetting;
     }
 
     // Run Controller: normal operation ///////////////
@@ -168,6 +170,14 @@ namespace Hgcal10gLinkReceiver {
       _record.reset(s);
     }
 
+    void setRecord(const Record &r) {
+      _record.deepCopy(r);
+    }
+
+    RecordT<15>& getRecord() {
+      return _record;
+    }
+
     void setGoToRecord(const Record *r) {
       /*
       _record.reset(s);
@@ -183,6 +193,10 @@ namespace Hgcal10gLinkReceiver {
 
     void changeProcessState() {
       _processState=_record.state();
+    }
+
+    void setProcessState(FsmState::State s) {
+      _processState=s;
     }
 
     void forceProcessState(FsmState::State s) {

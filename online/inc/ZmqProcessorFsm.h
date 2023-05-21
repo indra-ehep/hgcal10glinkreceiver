@@ -37,7 +37,13 @@ bool ZmqProcessorFsm(uint32_t key, uint16_t port) {
   
   FsmInterface::Handshake hsOld(prcfs->handshake());
   FsmInterface::Handshake hsNew(prcfs->handshake());
-  
+
+
+  Record *r((Record*)&(prcfs->getRecord()));
+
+  FsmState::State *pState(prcfs->getProcessState());
+  FsmState::State psOld(*pState);
+
   prcfs->print();
   
   zmq::message_t request;
@@ -51,21 +57,23 @@ bool ZmqProcessorFsm(uint32_t key, uint16_t port) {
     
     std::cout  << std::endl << "************ GOT REQUEST ******************" << std::endl << std::endl;
 
-    std::memcpy(&local,request.data(),sizeof(FsmInterface));
-    local.print();
-    
+    std::memcpy(r,request.data(),request.size());
+    //local.print();
+    /*
     hsOld=local.handshake();
     assert(hsOld==FsmInterface::Ping ||
 	   hsOld==FsmInterface::Prepare ||
 	   hsOld==FsmInterface::GoToTransient ||
 	   hsOld==FsmInterface::GoToStatic);
-
+    */
     // Copy change to local shared memory
-    std::memcpy(prcfs,&local,sizeof(FsmInterface));
+    //std::memcpy(prcfs,&local,sizeof(FsmInterface));
     prcfs->print();
 
     // Wait for the processor to respond
-    while(hsOld==prcfs->handshake()) usleep(10);
+    //while(hsOld==prcfs->handshake()) usleep(1000);
+    while(psOld==(*pState)) usleep(1000);
+    psOld=(*pState);
 
     std::cout  << std::endl << "************ FOUND TRANS ******************" << std::endl << std::endl;
     prcfs->print();
@@ -76,7 +84,8 @@ bool ZmqProcessorFsm(uint32_t key, uint16_t port) {
     }
     
     // Send processor response back to Run Control
-    socket.send(zmq::buffer(prcfs,sizeof(FsmInterface)), zmq::send_flags::none);
+    //socket.send(zmq::buffer(prcfs,sizeof(FsmInterface)), zmq::send_flags::none);
+    socket.send(zmq::buffer(pState,sizeof(FsmState::State)), zmq::send_flags::none);
   }
 
   return false;

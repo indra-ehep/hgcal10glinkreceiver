@@ -126,78 +126,76 @@ namespace Hgcal10gLinkReceiver {
 
       // Wait for Ping from Run Control
       if(_printEnable) {
-      std::cout << "Waiting for initial Ping" << std::endl;
+	std::cout << "Waiting for initial Ping" << std::endl;
       }
 
       unsigned counter(0);
-      while(!_ptrFsmInterface->pong()) {
-      usleep(100000);
-      if(_printEnable) {
-	std::cout << "Initial Ping not seen after " << 0.1*(++counter)
-		  << " seconds, sleeping" << std::endl;
-	_ptrFsmInterface->print();
+      //while(!_ptrFsmInterface->pong()) {
+      while(_ptrFsmInterface->systemState()!=FsmState::Initial) {
+	usleep(100000);
+	if(_printEnable) {
+	  std::cout << "Initial Ping not seen after " << 0.1*(++counter)
+		    << " seconds, sleeping" << std::endl;
+	  _ptrFsmInterface->print();
+	}
       }
+
+      // Do initial tasks
+      this->initial();      
+
+      // Reply if not already done
+      if(_ptrFsmInterface->processState()==FsmState::Resetting) {
+	_ptrFsmInterface->setProcessState(FsmState::Initial);
       }
 
       if(_printEnable) {
-      std::cout << "Handled initial Ping" << std::endl;
-      _ptrFsmInterface->print();
+	std::cout << "Handled initial Ping" << std::endl;
+	_ptrFsmInterface->print();
       }
+
+
+      /////////////////////////////////////////////////////////////////////
+
       
       bool continueLoop(true);
       
       while(continueLoop) {
 	if(_printEnable) {
-	  std::cout << "At top of processing loop" << std::endl;
+	  std::cout << "At top of processing loop: checking if still in static state" << std::endl;
 	  _ptrFsmInterface->print();
 	}
 
-	// Check if left in Ready
-	if(!_ptrFsmInterface->ready()) {
-
-	  // If not left in Prepare, wait for Prepare
+	if(FsmState::staticState(_ptrFsmInterface->processState())) {
 	
 	  if(_printEnable) {
-	    std::cout << "Waiting for handshake to be Prepare" << std::endl;
+	    std::cout << "Waiting for pre-transient system state" << std::endl;
+	    _ptrFsmInterface->print();
 	  }
 	  
-	  while(!_ptrFsmInterface->isPrepare()) usleep(_usSleepWait);
-	  
+	  while(!FsmState::transientState(_ptrFsmInterface->systemState())) usleep(_usSleepWait);
+
 	  if(_checkEnable) {
-	    if(_ptrFsmInterface->handshake()!=FsmInterface::Prepare) {
-	      std::cout << "Handshake is not Prepare" << std::endl;
+	    if(_ptrFsmInterface->processState()!=FsmState::staticStateBeforeTransient(_ptrFsmInterface->systemState())) {
+	      std::cout << "Processor state is not state before system transient" << std::endl;
 	      _ptrFsmInterface->print();
 	      if(_assertEnable) assert(false);
 	    }
-	  }
-	  
-	  if(_printEnable) {
-	    std::cout << "Handshake is Prepare; entering transition" << std::endl;
-	    _ptrFsmInterface->print();
 	  }
 
 	  if(_printEnable) {
-	    std::cout << "Setting handshake to Ready" << std::endl;
+	    std::cout << "Pre-transition state seen, immediately setting Continuing" << std::endl;
 	    _ptrFsmInterface->print();
 	  }
-	  
-	  if(!_ptrFsmInterface->ready()) {
-	    if(_checkEnable) {
-	      std::cout << "Ready return false" << std::endl;
-	      _ptrFsmInterface->print();
-	      if(_assertEnable) assert(false);
-	    }
-	  }
+
+	  _ptrFsmInterface->setProcessState(FsmState::Continuing);
 	}
       	  
 	if(_printEnable) {
-	  std::cout << "Waiting for handshake to be GoToTransient" << std::endl;
+	  std::cout << "Check or wait for Transient" << std::endl;
 	  _ptrFsmInterface->print();
 	}
 
-	while(!_ptrFsmInterface->isGoToTransient()) usleep(_usSleepWait);///////////////////////////////////////
-			
-	_ptrFsmInterface->changeProcessState();
+	while(_ptrFsmInterface->record().utc()==0) usleep(_usSleepWait);///////////////////////////////////////
 
 	if(_checkEnable) {
 	  if(!FsmState::transientState(_ptrFsmInterface->systemState())) {
@@ -206,37 +204,29 @@ namespace Hgcal10gLinkReceiver {
 	    if(_assertEnable) assert(false);
 	  }
 
-	  if(!FsmState::transientState(_ptrFsmInterface->processState())) {
-	    std::cout << "Processor is not in a transient state" << std::endl;
-	    _ptrFsmInterface->print();
-	    if(_assertEnable) assert(false);
-	  }
-	    
-	  if(!_ptrFsmInterface->matchingStates()) {
-	    std::cout << "System and processor state do not match" << std::endl;
+	  if(_ptrFsmInterface->processState()!=FsmState::Continuing) {
+	    std::cout << "Processor is not in Continuing state" << std::endl;
 	    _ptrFsmInterface->print();
 	    if(_assertEnable) assert(false);
 	  }
 	}
 
 	if(_printEnable) {
-	  std::cout << "Starting processing transient state" << std::endl;
+	  std::cout << "Transient seen, starting processing transient state" << std::endl;
 	  _ptrFsmInterface->print();
 	}
 	    
-	//assert(_ptrFsmInterface->matchingStates());
-
-	if(     _ptrFsmInterface->processState()==FsmState::Initializing) this->initializing();
-	else if(_ptrFsmInterface->processState()==FsmState::ConfiguringA) this->configuringA(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->processState()==FsmState::ConfiguringB) this->configuringB(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->processState()==FsmState::Starting    ) this->starting(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->processState()==FsmState::Pausing     ) this->pausing(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->processState()==FsmState::Resuming    ) this->resuming(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->processState()==FsmState::Stopping    ) this->stopping(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->processState()==FsmState::HaltingB    ) this->haltingB(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->processState()==FsmState::HaltingA    ) this->haltingA(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->processState()==FsmState::Resetting   ) this->resetting();
-	else if(_ptrFsmInterface->processState()==FsmState::Ending      ) this->ending();
+	if(     _ptrFsmInterface->systemState()==FsmState::Initializing) this->initializing();
+	else if(_ptrFsmInterface->systemState()==FsmState::ConfiguringA) this->configuringA(_ptrFsmInterface->handshake());
+	else if(_ptrFsmInterface->systemState()==FsmState::ConfiguringB) this->configuringB(_ptrFsmInterface->handshake());
+	else if(_ptrFsmInterface->systemState()==FsmState::Starting    ) this->starting(_ptrFsmInterface->handshake());
+	else if(_ptrFsmInterface->systemState()==FsmState::Pausing     ) this->pausing(_ptrFsmInterface->handshake());
+	else if(_ptrFsmInterface->systemState()==FsmState::Resuming    ) this->resuming(_ptrFsmInterface->handshake());
+	else if(_ptrFsmInterface->systemState()==FsmState::Stopping    ) this->stopping(_ptrFsmInterface->handshake());
+	else if(_ptrFsmInterface->systemState()==FsmState::HaltingB    ) this->haltingB(_ptrFsmInterface->handshake());
+	else if(_ptrFsmInterface->systemState()==FsmState::HaltingA    ) this->haltingA(_ptrFsmInterface->handshake());
+	else if(_ptrFsmInterface->systemState()==FsmState::Resetting   ) this->resetting();
+	else if(_ptrFsmInterface->systemState()==FsmState::Ending      ) this->ending();
 	else {
 	  if(_printEnable) {
 	    std::cout << "Unknown transient state" << std::endl;
@@ -246,70 +236,32 @@ namespace Hgcal10gLinkReceiver {
 	  if(_assertEnable) assert(false);
 	}
 	      
-	//assert(_ptrFsmInterface->matchingStates());
-	      
 	if(_printEnable) {
-	  std::cout << "Finished processing transient state" << std::endl;
+	  std::cout << "Finished processing transient state, change to Trnasient state" << std::endl;
 	  _ptrFsmInterface->print();
 	}
 	  
-	if(!_ptrFsmInterface->completed()) {
-	  if(_checkEnable) {
-	    std::cout << "Completed return false" << std::endl;
-	    _ptrFsmInterface->print();
-	    if(_assertEnable) assert(false);
-	  }
-	}
-	  
-	if(_printEnable) {
-	  std::cout << "Waiting for handshake to be GoToStatic" << std::endl;
-	}
-      
-	while(!_ptrFsmInterface->isGoToStatic()) usleep(_usSleepWait);///////////////////////////////////////
-	    
 	_ptrFsmInterface->changeProcessState();
 
-	  
-	assert(_ptrFsmInterface->matchingStates());
-	  
 	if(_printEnable) {
-	  std::cout << "Entering static state" << std::endl;
+	  std::cout << "Waiting to move to static state" << std::endl;
 	  _ptrFsmInterface->print();
 	}
-	  
-	assert(_ptrFsmInterface->matchingStates());
-	if(_checkEnable) {
-	  //if(!FsmState::staticState(_ptrFsmInterface->systemState())) {
-	  //std::cout << "System is not in a static state" << std::endl;
-	  //_ptrFsmInterface->print();
-	  //if(_assertEnable) assert(false);
-	  //}
-
-	  if(!FsmState::staticState(_ptrFsmInterface->processState())) {
-	    std::cout << "Processor is not in a static state" << std::endl;
-	    _ptrFsmInterface->print();
-	    if(_assertEnable) assert(false);
-	  }
-
-	  //if(!_ptrFsmInterface->matchingStates()) {
-	  //std::cout << "System and processor state do not match" << std::endl;
-	  //_ptrFsmInterface->print();
-	  //if(_assertEnable) assert(false);
-	  //}
-	}
-
+      
+	while(!FsmState::staticState(_ptrFsmInterface->systemState())) usleep(_usSleepWait);
+	    
 	if(_printEnable) {
-	  std::cout << "Starting processing static state" << std::endl;
+	  std::cout << "Seen static state, starting static processing" << std::endl;
 	  _ptrFsmInterface->print();
 	}
-	
-	if(     _ptrFsmInterface->processState()==FsmState::Initial    ) this->initial();
-	else if(_ptrFsmInterface->processState()==FsmState::Halted     ) this->halted();
-	else if(_ptrFsmInterface->processState()==FsmState::ConfiguredA) this->configuredA();
-	else if(_ptrFsmInterface->processState()==FsmState::ConfiguredB) this->configuredB();
-	else if(_ptrFsmInterface->processState()==FsmState::Running    ) this->running();
-	else if(_ptrFsmInterface->processState()==FsmState::Paused     ) this->paused();
-	else if(_ptrFsmInterface->processState()==FsmState::Shutdown   );
+
+	if(     _ptrFsmInterface->systemState()==FsmState::Initial    ) this->initial();
+	else if(_ptrFsmInterface->systemState()==FsmState::Halted     ) this->halted();
+	else if(_ptrFsmInterface->systemState()==FsmState::ConfiguredA) this->configuredA();
+	else if(_ptrFsmInterface->systemState()==FsmState::ConfiguredB) this->configuredB();
+	else if(_ptrFsmInterface->systemState()==FsmState::Running    ) this->running();
+	else if(_ptrFsmInterface->systemState()==FsmState::Paused     ) this->paused();
+	else if(_ptrFsmInterface->systemState()==FsmState::Shutdown   );
 	else {
 	  if(_printEnable) {
 	    std::cout << "Unknown static state" << std::endl;
@@ -320,14 +272,34 @@ namespace Hgcal10gLinkReceiver {
 	}
 	
 	if(_printEnable) {
-	  std::cout << "Finished processing of static state" << std::endl;
+	  std::cout << "Finished processing of static state, change to Static state if not already" << std::endl;
 	  _ptrFsmInterface->print();
 	}
 
-	// If left in GoToStatic, bring to Idle
-	_ptrFsmInterface->idle();
-	
-	
+	if(FsmState::staticState(_ptrFsmInterface->systemState())) {
+	  _ptrFsmInterface->setProcessState(_ptrFsmInterface->systemState());
+	}
+
+	if(_checkEnable) {
+	  if(!FsmState::staticState(_ptrFsmInterface->systemState())) {
+	    std::cout << "System is not in a static state" << std::endl;
+	    _ptrFsmInterface->print();
+	    if(_assertEnable) assert(false);
+	  }
+
+	  if(!FsmState::staticState(_ptrFsmInterface->processState())) {
+	    std::cout << "Processor is not in a static state" << std::endl;
+	    _ptrFsmInterface->print();
+	    if(_assertEnable) assert(false);
+	  }
+
+	  if(!_ptrFsmInterface->matchingStates()) {
+	    std::cout << "System and processor state do not match" << std::endl;
+	    _ptrFsmInterface->print();
+	    if(_assertEnable) assert(false);
+	  }
+	}
+		
 	if(_ptrFsmInterface->processState()==FsmState::Shutdown) continueLoop=false;
 	
 	if(_printEnable) {

@@ -46,12 +46,21 @@ namespace Hgcal10gLinkReceiver {
 	// _goodFsmInterface[i]->processState()==FsmState::Initial &&
 	// _goodFsmInterface[i]->handshake()==FsmInterface::Idle)
 	
-	_goodFsmInterface[i]->ping();
+	//_goodFsmInterface[i]->ping();
+	//_goodFsmInterface[i]->setProcessState(FsmState::Shutdown);
+	_goodFsmInterface[i]->getRecord().reset(FsmState::Initial);
+	_goodFsmInterface[i]->getRecord().setUtc();
+
 	if(_printLevel>0) _goodFsmInterface[i]->print();
-	usleep(200000);
+
+	//usleep(200000);
+	sleep(2);
+
+	if(_printLevel>0) _goodFsmInterface[i]->print();
+
 	//usleep(1000);
 	//if(_printLevel>0) _goodFsmInterface[i]->print();
-	_alive[i]=_goodFsmInterface[i]->isIdle();
+	_alive[i]=(_goodFsmInterface[i]->processState()==FsmState::Initial);
 
 	if(_alive[i]) {
 	  //_goodFsmInterface.push_back(_goodFsmInterface[i]);
@@ -68,7 +77,7 @@ namespace Hgcal10gLinkReceiver {
 	if(_alive[i]) _goodFsmInterface.push_back(temp[i]);
       }
 
-      std::cout << "Vecotr formed of " << _goodFsmInterface.size() << " processors" << std::endl;
+      std::cout << "Vector formed of " << _goodFsmInterface.size() << " processors" << std::endl;
 
       return true;
     }
@@ -79,15 +88,19 @@ namespace Hgcal10gLinkReceiver {
       
       //std::cout << std::endl << "Sending Prepare" << std::endl;
       for(unsigned i(0);i<_goodFsmInterface.size();i++) {
-	_goodFsmInterface[i]->setPrepareRecord(r->state());
+	RecordT<15> h;
+	h.deepCopy(r);
+	h.setUtc(0);
+	//_goodFsmInterface[i]->setPrepareRecord(r->state());
 
 	if(_printLevel>0) {
-	  std::cout << std::endl << "Shm" << i << " sending Prepare"
+	  std::cout << std::endl << "Shm" << i << " sending pre-Transient"
 		    << std::endl;
 	  _goodFsmInterface[i]->print();
 	}
 
-	assert(_goodFsmInterface[i]->prepare());
+	_goodFsmInterface[i]->setRecord(h);
+	//assert(_goodFsmInterface[i]->prepare());
 
 	if(_printLevel>0) {
 	  std::cout << std::endl << "Shm" << i << " sent Prepare" << std::endl;
@@ -102,28 +115,29 @@ namespace Hgcal10gLinkReceiver {
 	unsigned timeout(0);
       
 	if(_printLevel>0) {
-	  std::cout << std::endl << "Shm" << i << " waiting for Ready"
+	  std::cout << std::endl << "Shm" << i << " waiting for Continuing"
 		    << std::endl;
 	  _goodFsmInterface[i]->print();
 	}
 
-	while(!_goodFsmInterface[i]->isReady() &&
+	//while(!_goodFsmInterface[i]->isReady() &&
+	while(_goodFsmInterface[i]->processState()!=FsmState::Continuing &&
 	      timeout<_timeoutLimit) {
 	  timeout++;
 	  usleep(10);
 	}
 
 	if(timeout>=_timeoutLimit) {
-	  std::cerr << "Shm" << i << " timed out waiting for Ready"
+	  std::cerr << "Shm" << i << " timed out waiting for Continuing"
 		    << std::endl;
 	  allReady=false;
 	}
       
 	if(_printLevel>0) {
 	  if(timeout<_timeoutLimit) {
-	    std::cout << std::endl << "Shm" << i << " received Ready" << std::endl;
+	    std::cout << std::endl << "Shm" << i << " received Continuing" << std::endl;
 	  } else {
-	    std::cout << std::endl << "Shm" << i << " timed out waiting for Ready"
+	    std::cout << std::endl << "Shm" << i << " timed out waiting for Continuing"
 		      << std::endl;
 	  }
 	  _goodFsmInterface[i]->print();
@@ -135,15 +149,15 @@ namespace Hgcal10gLinkReceiver {
       //std::cout << std::endl << "Sending change to transient" << std::endl;
       for(unsigned i(0);i<_goodFsmInterface.size();i++) {
 	if(_printLevel>0) {
-	  std::cout << std::endl << "Shm" << i << " sending GoToTransient" << std::endl;
+	  std::cout << std::endl << "Shm" << i << " sending Transient" << std::endl;
 	  _goodFsmInterface[i]->print();
 	}
 	
 	_goodFsmInterface[i]->setGoToRecord(r);
-	assert(_goodFsmInterface[i]->goToTransient());
+	//assert(_goodFsmInterface[i]->goToTransient());
 	
 	if(_printLevel>0) {
-	  std::cout << std::endl << "Shm" << i << " sent GoToTransient" << std::endl;
+	  std::cout << std::endl << "Shm" << i << " sent Transient" << std::endl;
 	  _goodFsmInterface[i]->print();
 	}
       }
@@ -155,26 +169,27 @@ namespace Hgcal10gLinkReceiver {
 	unsigned timeout(0);
 	
 	if(_printLevel>0) {
-	  std::cout << std::endl << "Shm" << i << " waiting for Completed" << std::endl;
+	  std::cout << std::endl << "Shm" << i << " waiting for Transient state change" << std::endl;
 	  _goodFsmInterface[i]->print();
 	}
 	
-	while(!_goodFsmInterface[i]->isCompleted() &&
+	//while(!_goodFsmInterface[i]->isCompleted() &&
+	while(_goodFsmInterface[i]->processState()!=_goodFsmInterface[i]->systemState() &&
 	      timeout<1000000) {
 	  timeout++;
 	  usleep(10);
 	}
 	
 	if(timeout>=_timeoutLimit) {
-	  std::cerr << "Shm" << i << " timed out waiting for Completed" << std::endl;
+	  std::cerr << "Shm" << i << " timed out waiting for Transient state change" << std::endl;
 	  allCompleted=false;
 	}
 	
 	if(_printLevel>0) {
 	  if(timeout<_timeoutLimit) {
-	    std::cout << std::endl << "Shm" << i << " received Completed" << std::endl;
+	    std::cout << std::endl << "Shm" << i << " received Transient state change" << std::endl;
 	  } else {
-	    std::cout << std::endl << "Shm" << i << " timed out waiting for Completed"
+	    std::cout << std::endl << "Shm" << i << " timed out waiting for Transient state change"
 		      << std::endl;
 	  }
 	  _goodFsmInterface[i]->print();
@@ -186,7 +201,7 @@ namespace Hgcal10gLinkReceiver {
       //std::cout << std::endl << "Sending change to static" << std::endl;
       for(unsigned i(0);i<_goodFsmInterface.size();i++) {
 	if(_printLevel>0) {
-	  std::cout << std::endl << "Shm" << i << " sending GoToStatic"
+	  std::cout << std::endl << "Shm" << i << " sending Static"
 		    << std::endl;
 	  _goodFsmInterface[i]->print();
 	}
@@ -195,7 +210,7 @@ namespace Hgcal10gLinkReceiver {
 	rr.deepCopy(r);
 	rr.setState(FsmState::staticStateAfterTransient(r->state()));
 	_goodFsmInterface[i]->setGoToRecord(&rr);
-	assert(_goodFsmInterface[i]->goToStatic());
+	//assert(_goodFsmInterface[i]->goToStatic());
 	
 	if(_printLevel>0) {
 	  std::cout << std::endl << "Shm" << i << " sent GoToStatic"
@@ -211,28 +226,29 @@ namespace Hgcal10gLinkReceiver {
 	unsigned timeout(0);
 	
 	if(_printLevel>0) {
-	  std::cout << std::endl << "Shm" << i << " waiting for Idle"
+	  std::cout << std::endl << "Shm" << i << " waiting for Static state change"
 		    << std::endl;
 	  _goodFsmInterface[i]->print();
 	}
 	
-	while(!_goodFsmInterface[i]->isIdle() &&
+	//while(!_goodFsmInterface[i]->isIdle() &&
+	while(_goodFsmInterface[i]->processState()!=_goodFsmInterface[i]->systemState() &&
 	      timeout<_timeoutLimit) {
 	  timeout++;
 	  usleep(10);
 	}
 	
 	if(timeout>=_timeoutLimit) {
-	  std::cerr << "Shm" << i << " timed out waiting for Idle" << std::endl;
+	  std::cerr << "Shm" << i << " timed out waiting for Static state change" << std::endl;
 	  allIdle=false;
 	}
 	  
 	// MORE HERE
 	if(_printLevel>0) {
 	  if(timeout<_timeoutLimit) {
-	    std::cout << std::endl << "Shm" << i << " received Idle" << std::endl;
+	    std::cout << std::endl << "Shm" << i << " received Static state change" << std::endl;
 	  } else {
-	    std::cout << std::endl << "Shm" << i << " timed out waiting for Idle"
+	    std::cout << std::endl << "Shm" << i << " timed out waiting for Static state change"
 		      << std::endl;
 	  }
 	  _goodFsmInterface[i]->print();

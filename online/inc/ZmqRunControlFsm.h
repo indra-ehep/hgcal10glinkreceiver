@@ -42,6 +42,13 @@ bool ZmqRunControlFsm(uint32_t key, uint16_t port) {
     prcfs->coldStart();
     prcfs->print();
 
+    const Record *r((const Record*)&(prcfs->record()));
+    const RecordHeader *rh((const RecordHeader*)&(prcfs->record()));
+
+    RecordHeader rhOld(*rh);
+
+    FsmState::State pState;
+
     FsmInterface::Handshake hsOld(FsmInterface::Idle);
       
     bool continueLoop(true);
@@ -53,33 +60,36 @@ bool ZmqRunControlFsm(uint32_t key, uint16_t port) {
 	     hsOld==FsmInterface::Completed);
 
       // Wait for change from Run Control
-      while(hsOld==prcfs->handshake()) usleep(1000);
+      //while(hsOld==prcfs->handshake()) usleep(1000);
+      while(rhOld==(*rh)) usleep(1000);
+      rhOld=(*rh);
+      
+      std::cout  << std::endl << "************ FOUND TRANS ******************" << std::endl << std::endl;
+      prcfs->print();
 
-	std::cout  << std::endl << "************ FOUND TRANS ******************" << std::endl << std::endl;
-	prcfs->print();
-
-	// Send change to Processor
-        socket.send(zmq::buffer(prcfs,sizeof(FsmInterface)), zmq::send_flags::none);
-        
-        // wait for reply from Processor
-        zmq::message_t reply{};
-        socket.recv(reply, zmq::recv_flags::none);
-
-	std::cout  << std::endl << "************ GOT REPLY ******************" << std::endl << std::endl;
-
-	// Copy reply to local cache
-	std::memcpy(&local,reply.data(),sizeof(FsmInterface));
-	local.print();
-
-	if(local.processState()==FsmState::Shutdown) {
-	  std::cout  << std::endl << "************ SEEN SHUTDOWN ******************" << std::endl << std::endl;
-	  continueLoop=false;
-	}
-
-	hsOld=local.handshake();
-
-	// Copy reply to shared memory
-	std::memcpy(prcfs,&local,sizeof(FsmInterface));
+      // Send change to Processor
+      //socket.send(zmq::buffer(prcfs,sizeof(FsmInterface)), zmq::send_flags::none);
+      socket.send(zmq::buffer(r,r->totalLengthInBytes()), zmq::send_flags::none);
+      
+      // wait for reply from Processor
+      zmq::message_t reply{};
+      socket.recv(reply, zmq::recv_flags::none);
+      
+      std::cout  << std::endl << "************ GOT REPLY ******************" << std::endl << std::endl;
+      
+      // Copy reply to local cache
+      //std::memcpy(&local,reply.data(),sizeof(FsmInterface));
+      std::memcpy(&pState,reply.data(),sizeof(FsmState::State));
+            
+      if(pState==FsmState::Shutdown) {
+	std::cout  << std::endl << "************ SEEN SHUTDOWN ******************" << std::endl << std::endl;
+	continueLoop=false;
+      }
+      
+      // Copy reply to shared memory
+      prcfs->setProcessState(pState);
+      //std::memcpy(prcfs,&local,sizeof(FsmInterface));
+      prcfs->print();
     }
     return true;
 }

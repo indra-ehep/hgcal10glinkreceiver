@@ -125,6 +125,10 @@ namespace Hgcal10gLinkReceiver {
       _header&=0xffffffff00000000;
       _header|=c;
     }
+
+    bool operator==(const RecordHeader &h) const {
+      return _header==h._header;
+    }
   
     void print(std::ostream &o=std::cout, std::string s="") const {
       o << s << "RecordHeader::print()  Data = 0x"
