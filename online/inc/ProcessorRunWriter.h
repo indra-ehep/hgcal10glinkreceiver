@@ -145,7 +145,7 @@ namespace Hgcal10gLinkReceiver {
       _ptrFifoShm->print();
       _ptrFsmInterface->idle();
       
-      
+      /*      
       while(_ptrFsmInterface->isIdle()) {
 	usleep(1000);
       }
@@ -157,6 +157,7 @@ namespace Hgcal10gLinkReceiver {
 	rrr=_ptrFifoShm->readRecord();
 	rrr->print();
       }
+      */
     }
 
     void running() {
@@ -164,9 +165,10 @@ namespace Hgcal10gLinkReceiver {
       //RecordRunning *rr((RecordRunning*)&r);
       const Record *rrr;
 
-      _ptrFsmInterface->idle();
+      _ptrFsmInterface->setProcessState(FsmState::Running);
       
-      while(_ptrFsmInterface->isIdle()) {
+      //while(_ptrFsmInterface->isIdle()) {
+      while(_ptrFsmInterface->systemState()==FsmState::Running) {
 	//if(_printEnable) _ptrFifoShm->print();
 	
 	if(_ptrFifoShm->readable()==0) {

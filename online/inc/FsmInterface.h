@@ -203,6 +203,10 @@ namespace Hgcal10gLinkReceiver {
       _processState=s;
     }
   
+    FsmState::State* getProcessState() {
+      return &_processState;
+    }
+  
     const std::string& systemStateName() const {
       return FsmState::stateName(systemState());
     }
