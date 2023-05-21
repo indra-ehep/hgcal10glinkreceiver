@@ -46,35 +46,35 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    virtual bool configuringA(FsmInterface::Handshake s) {
+    virtual bool configuringA() {
       return true;
     }
     
-    virtual bool configuringB(FsmInterface::Handshake s) {
+    virtual bool configuringB() {
       return true;
     }
     
-    virtual bool starting(FsmInterface::Handshake s) {
+    virtual bool starting() {
       return true;
     }
     
-    virtual bool pausing(FsmInterface::Handshake s) {
+    virtual bool pausing() {
       return true;
     }
     
-    virtual bool resuming(FsmInterface::Handshake s) {
+    virtual bool resuming() {
       return true;
     }
     
-    virtual bool stopping(FsmInterface::Handshake s) {
+    virtual bool stopping() {
       return true;
     }
     
-    virtual bool haltingB(FsmInterface::Handshake s) {
+    virtual bool haltingB() {
       return true;
     }
     
-    virtual bool haltingA(FsmInterface::Handshake s) {
+      virtual bool haltingA() {
       return true;
     }
     
@@ -217,14 +217,14 @@ namespace Hgcal10gLinkReceiver {
 	}
 	    
 	if(     _ptrFsmInterface->systemState()==FsmState::Initializing) this->initializing();
-	else if(_ptrFsmInterface->systemState()==FsmState::ConfiguringA) this->configuringA(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->systemState()==FsmState::ConfiguringB) this->configuringB(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->systemState()==FsmState::Starting    ) this->starting(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->systemState()==FsmState::Pausing     ) this->pausing(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->systemState()==FsmState::Resuming    ) this->resuming(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->systemState()==FsmState::Stopping    ) this->stopping(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->systemState()==FsmState::HaltingB    ) this->haltingB(_ptrFsmInterface->handshake());
-	else if(_ptrFsmInterface->systemState()==FsmState::HaltingA    ) this->haltingA(_ptrFsmInterface->handshake());
+	else if(_ptrFsmInterface->systemState()==FsmState::ConfiguringA) this->configuringA();
+	else if(_ptrFsmInterface->systemState()==FsmState::ConfiguringB) this->configuringB();
+	else if(_ptrFsmInterface->systemState()==FsmState::Starting    ) this->starting();
+	else if(_ptrFsmInterface->systemState()==FsmState::Pausing     ) this->pausing();
+	else if(_ptrFsmInterface->systemState()==FsmState::Resuming    ) this->resuming();
+	else if(_ptrFsmInterface->systemState()==FsmState::Stopping    ) this->stopping();
+	else if(_ptrFsmInterface->systemState()==FsmState::HaltingB    ) this->haltingB();
+	else if(_ptrFsmInterface->systemState()==FsmState::HaltingA    ) this->haltingA();
 	else if(_ptrFsmInterface->systemState()==FsmState::Resetting   ) this->resetting();
 	else if(_ptrFsmInterface->systemState()==FsmState::Ending      ) this->ending();
 	else {
@@ -276,27 +276,27 @@ namespace Hgcal10gLinkReceiver {
 	  _ptrFsmInterface->print();
 	}
 
-	if(FsmState::staticState(_ptrFsmInterface->systemState())) {
+	if(FsmState::staticStateAfterTransient(_ptrFsmInterface->processState())==_ptrFsmInterface->systemState()) {
 	  _ptrFsmInterface->setProcessState(_ptrFsmInterface->systemState());
-	}
-
-	if(_checkEnable) {
-	  if(!FsmState::staticState(_ptrFsmInterface->systemState())) {
-	    std::cout << "System is not in a static state" << std::endl;
-	    _ptrFsmInterface->print();
-	    if(_assertEnable) assert(false);
-	  }
-
-	  if(!FsmState::staticState(_ptrFsmInterface->processState())) {
-	    std::cout << "Processor is not in a static state" << std::endl;
-	    _ptrFsmInterface->print();
-	    if(_assertEnable) assert(false);
-	  }
-
-	  if(!_ptrFsmInterface->matchingStates()) {
-	    std::cout << "System and processor state do not match" << std::endl;
-	    _ptrFsmInterface->print();
-	    if(_assertEnable) assert(false);
+	  
+	  if(_checkEnable) {
+	    if(!FsmState::staticState(_ptrFsmInterface->systemState())) {
+	      std::cout << "System is not in a static state" << std::endl;
+	      _ptrFsmInterface->print();
+	      if(_assertEnable) assert(false);
+	    }
+	    
+	    if(!FsmState::staticState(_ptrFsmInterface->processState())) {
+	      std::cout << "Processor is not in a static state" << std::endl;
+	      _ptrFsmInterface->print();
+	      if(_assertEnable) assert(false);
+	    }
+	    
+	    if(!_ptrFsmInterface->matchingStates()) {
+	      std::cout << "System and processor state do not match" << std::endl;
+	      _ptrFsmInterface->print();
+	      if(_assertEnable) assert(false);
+	    }
 	  }
 	}
 		

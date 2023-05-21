@@ -56,8 +56,7 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool configuringA(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
+    bool configuringA() {
 	RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->record()));
 	if(_printEnable) r.print();
 
@@ -81,13 +80,12 @@ namespace Hgcal10gLinkReceiver {
 
 	_serenity10g.print();
 	_configuringBCounter=0;
-      }
+
 
       return true;
     }
     
-    bool configuringB(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
+    bool configuringB() {
 	RecordConfiguringB &r((RecordConfiguringB&)(_ptrFsmInterface->record()));
 	if(_printEnable) r.print();
 
@@ -102,58 +100,50 @@ namespace Hgcal10gLinkReceiver {
 	}
 
 	_configuringBCounter++;
-      }
+
       return true;
     }
 
-    bool starting(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
+    bool starting() {
+      // Enable sequencer (even if masked)
+      //_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",3);
+      
+      // Release throttle
+      //_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",1);
 
-	// Enable sequencer (even if masked)
-	//_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",3);
-
-	// Release throttle
-	//_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",1);
-      }
       //_serenity10g.uhalWrite("payload.ctrl.reg.en",1);
 
       return true;
     }
 
-    bool pausing(FsmInterface::Handshake s) {
+    bool pausing() {
       //_serenity10g.uhalWrite("payload.ctrl.reg.en",0);
       return true;
     }
     
-    bool resuming(FsmInterface::Handshake s) {
+    bool resuming() {
       //_serenity10g.uhalWrite("payload.ctrl.reg.en",1);
       return true;
     }
     
-    bool stopping(FsmInterface::Handshake s) {
+    bool stopping() {
       //_serenity10g.uhalWrite("payload.ctrl.reg.en",0);
-      if(s==FsmInterface::GoToTransient) {
-	_eventNumberInConfiguration+=_eventNumberInRun;
+      _eventNumberInConfiguration+=_eventNumberInRun;
 
-	// Impose throttle
-	//_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0);
-	
-	// Disable sequencer
-	//_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",0);
-
-      }
+      // Impose throttle
+      //_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0);
+      
+      // Disable sequencer
+      //_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",0);
+      
       return true;
     }
     
-    bool haltingB(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-      }
+    bool haltingB() {
       return true;
     }
     
-    bool haltingA(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-      }
+    bool haltingA() {
       return true;
     }
     
@@ -229,8 +219,9 @@ namespace Hgcal10gLinkReceiver {
 
       _serenity10g.uhalWrite("payload.ctrl.reg.en",1);
 
-      _ptrFsmInterface->idle();
-      while(_ptrFsmInterface->isIdle()) usleep(1000);
+      _ptrFsmInterface->setProcessState(FsmState::Running);
+      
+      while(_ptrFsmInterface->systemState()==FsmState::Running) usleep(1000);
 
       _serenity10g.uhalWrite("payload.ctrl.reg.en",0);
       
