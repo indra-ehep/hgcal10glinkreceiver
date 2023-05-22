@@ -32,7 +32,8 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool makeTable() {
-      SerenityUhal::makeTable("payload.fc_ctrl.tcds2_emu");
+      SerenityUhal::makeTable("payload");
+      //SerenityUhal::makeTable("payload.fc_ctrl.tcds2_emu");
       return true;
     }
   

@@ -237,7 +237,7 @@ namespace Hgcal10gLinkReceiver {
 	}
 	      
 	if(_printEnable) {
-	  std::cout << "Finished processing transient state, change to Trnasient state" << std::endl;
+	  std::cout << "Finished processing transient state, change to Transient state" << std::endl;
 	  _ptrFsmInterface->print();
 	}
 	  

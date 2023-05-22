@@ -134,9 +134,9 @@ int main(int argc, char *argv[]) {
       unsigned nx(999);
       unsigned nt(1000000000);
       //while(nx==0 || nx>1000) {
-      while(nx!=0 && nx!=123 && nx!=124) {
+      while(nx>38 && nx!=123 && nx!=124) {
 	//std::cout << "Relay number of runs"
-	std::cout << "Relay type (0,123,124)"
+	std::cout << "Relay type (0-38,123,124)"
 		<< std::endl;
 	std::cin >> nx;
       }
@@ -168,6 +168,8 @@ int main(int argc, char *argv[]) {
       uint32_t srNumber(rca.relayNumber());
 
       if(nx==  0) rca.setMaxNumberOfConfigurations( 1);
+      if(nx>0 && nx<38) rca.setMaxNumberOfConfigurations(8);
+      if(nx== 38) rca.setMaxNumberOfConfigurations(8*37);
       if(nx==123) rca.setMaxNumberOfConfigurations(80);
       if(nx==124) rca.setMaxNumberOfConfigurations( 4);
 

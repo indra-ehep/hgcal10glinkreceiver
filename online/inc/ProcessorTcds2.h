@@ -64,7 +64,7 @@ namespace Hgcal10gLinkReceiver {
 
 	_keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
 	
-	if(_keyCfgA==123) {
+	if((_keyCfgA>0 && _keyCfgA<=38) || _keyCfgA==123) {
 
 	  // Do configuration; ones which could have been changed
 	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
