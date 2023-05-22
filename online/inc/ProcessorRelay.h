@@ -53,8 +53,7 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool configuringA(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
+    bool configuringA() {
 	RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->record()));
 
 	_fileWriter.openRelay(r.relayNumber());
@@ -63,47 +62,41 @@ namespace Hgcal10gLinkReceiver {
 
 	_cfgSeqCounter=1;
 	_evtSeqCounter=1;
-      }
+
 
       return true;
     }
     
-    bool configuringB(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
+    bool configuringB() {
 	_fileWriter.write(&(_ptrFsmInterface->record()));
 
 	_eventNumberInConfiguration=0;
-      }
+
       return true;
     }
 
-    bool starting(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
+    bool starting() {
 	_fileWriter.write(&(_ptrFsmInterface->record()));
 
 	_pauseCounter=0;
 	_eventNumberInRun=0;
-      }
+
 
       return true;
     }
 
-    bool pausing(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
+    bool pausing() {
 	_fileWriter.write(&(_ptrFsmInterface->record()));
-      }
+
       return true;
     }
     
-    bool resuming(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
+    bool resuming() {
 	_fileWriter.write(&(_ptrFsmInterface->record()));
-      }
       return true;
     }
     
-    bool stopping(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
+    bool stopping() {
 	RecordStopping r;
 	r.deepCopy((_ptrFsmInterface->record()));
 
@@ -114,24 +107,21 @@ namespace Hgcal10gLinkReceiver {
 	if(_printEnable) r.print();
 
 	_fileWriter.write(&r);
-      }
+
       return true;
     }
     
-    bool haltingB(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
+    bool haltingB() {
 	_fileWriter.write(&(_ptrFsmInterface->record()));
 
 	_eventNumberInRelay+=_eventNumberInConfiguration;
-      }
+
       return true;
     }
     
-    bool haltingA(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
+    bool haltingA() {
 	_fileWriter.write(&(_ptrFsmInterface->record()));
 	_fileWriter.close();
-      }
       return true;
     }
     
