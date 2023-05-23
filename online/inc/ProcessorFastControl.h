@@ -564,7 +564,9 @@ namespace Hgcal10gLinkReceiver {
     virtual void running() {
       _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",1);
 
-      while(_ptrFsmInterface->isIdle()) usleep(10);
+      _ptrFsmInterface->setProcessState(FsmState::Running);
+
+      while(_ptrFsmInterface->systemState()==FsmState::Running) usleep(1000);
       
       _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",0);
       

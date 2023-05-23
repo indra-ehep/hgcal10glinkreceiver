@@ -37,13 +37,18 @@ namespace Hgcal10gLinkReceiver {
     virtual ~ProcessorRelay() {
     }
   
-    void setUpAll(uint32_t rcKey, uint32_t fifoKey0, uint32_t fifoKey1) {
-      ShmSingleton< DataFifoT<6,1024> > shm0;
+    void setUpAll(uint32_t rcKey, uint32_t fifoKey0, uint32_t fifoKey1, uint32_t fifoKey2=0) {
+      ShmSingleton<RelayWriterDataFifo> shm0;
       _ptrFifoShm.push_back(shm0.setup(fifoKey0));
 
-      ShmSingleton< DataFifoT<6,1024> > shm1;
+      ShmSingleton<RelayWriterDataFifo> shm1;
       _ptrFifoShm.push_back(shm1.setup(fifoKey1));
 
+      if(fifoKey2!=0) {
+	ShmSingleton<RelayWriterDataFifo> shm2;
+	_ptrFifoShm.push_back(shm2.setup(fifoKey2));
+      }
+      
       for(unsigned i(0);i<_ptrFifoShm.size();i++) _ptrFifoShm[i]->coldStart();
 
       startFsm(rcKey);
@@ -57,8 +62,7 @@ namespace Hgcal10gLinkReceiver {
 	RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->record()));
 
 	_fileWriter.openRelay(r.relayNumber());
-	_fileWriter.write(&r);
-
+	_fileWriter.write(&(_ptrFsmInterface->record()));
 
 	_cfgSeqCounter=1;
 	_evtSeqCounter=1;
@@ -165,6 +169,10 @@ namespace Hgcal10gLinkReceiver {
     
     virtual void configuredB() {
       if(_printEnable) std::cout << "ProcessRelay::configuredB()" << std::endl;
+
+      _ptrFsmInterface->setProcessState(FsmState::ConfiguredB);
+
+      while(_ptrFsmInterface->systemState()==FsmState::ConfiguredB) usleep(1000);
 
       const Record *r;
 
@@ -333,6 +341,10 @@ namespace Hgcal10gLinkReceiver {
     virtual void running() {
       if(_printEnable) std::cout << "ProcessRelay::running()" << std::endl;
 
+      _ptrFsmInterface->setProcessState(FsmState::Running);
+
+      while(_ptrFsmInterface->systemState()==FsmState::Running) usleep(1000);
+
       const Record *r;
 
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
@@ -355,6 +367,10 @@ namespace Hgcal10gLinkReceiver {
     void paused() {
       if(_printEnable) std::cout << "ProcessRelay::paused()" << std::endl;
 
+      _ptrFsmInterface->setProcessState(FsmState::Paused);
+
+      while(_ptrFsmInterface->systemState()==FsmState::Paused) usleep(1000);
+
       const Record *r;
 
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
@@ -376,7 +392,7 @@ namespace Hgcal10gLinkReceiver {
     }
         
   protected:
-    std::vector< DataFifoT<6,1024>* > _ptrFifoShm;
+    std::vector<RelayWriterDataFifo*> _ptrFifoShm;
 
     FileWriter _fileWriter;
 
