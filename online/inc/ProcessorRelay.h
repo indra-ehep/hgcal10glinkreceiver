@@ -31,7 +31,7 @@ namespace Hgcal10gLinkReceiver {
     
   public:
 
-    ProcessorRelay() : _ignoreInputs(true) {
+    ProcessorRelay() : _ignoreInputs(false) {
     }
 
     virtual ~ProcessorRelay() {
@@ -140,12 +140,16 @@ namespace Hgcal10gLinkReceiver {
     virtual void configuredA() {
       if(_printEnable) std::cout << "ProcessRelay::configuredA()" << std::endl;
 
+      _ptrFsmInterface->setProcessState(FsmState::ConfiguredA);
+
+      while(_ptrFsmInterface->systemState()==FsmState::ConfiguredA) usleep(1000);
+
       const Record *r;
 
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
 	bool done(false);
-	while(!done) {
-	  while((r=_ptrFifoShm[i]->readRecord())==nullptr) usleep(10);
+	//while(!done) {
+	while((r=_ptrFifoShm[i]->readRecord())!=nullptr) {
 	  if(_printEnable) r->print();
 	  
 	  if(r->state()!=FsmState::Continuing) {
@@ -155,27 +159,7 @@ namespace Hgcal10gLinkReceiver {
 	  }
 	  _ptrFifoShm[i]->readIncrement();
 	}
-      }
-    }
-    
-    virtual void running() {
-      if(_printEnable) std::cout << "ProcessRelay::running()" << std::endl;
-
-      const Record *r;
-
-      for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
-	bool done(false);
-	while(!done) {
-	  while((r=_ptrFifoShm[i]->readRecord())==nullptr) usleep(10);
-	  if(_printEnable) r->print();
-	  
-	  if(r->state()!=FsmState::Continuing) {
-	    _fileWriter.write(r);
-	  } else {
-	    done=true;
-	  }
-	  _ptrFifoShm[i]->readIncrement();
-	}
+	//}
       }
     }
     
@@ -186,17 +170,18 @@ namespace Hgcal10gLinkReceiver {
 
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
 	bool done(false);
-	while(!done) {
-	  while((r=_ptrFifoShm[i]->readRecord())==nullptr) usleep(10);
-	  if(_printEnable) r->print();
-	  
-	  if(r->state()!=FsmState::Continuing) {
-	    _fileWriter.write(r);
-	  } else {
-	    done=true;
+	//while(!done) {
+	  while((r=_ptrFifoShm[i]->readRecord())!=nullptr) {
+	    if(_printEnable) r->print();
+	    
+	    if(r->state()!=FsmState::Continuing) {
+	      _fileWriter.write(r);
+	    } else {
+	      done=true;
+	    }
+	    _ptrFifoShm[i]->readIncrement();
 	  }
-	  _ptrFifoShm[i]->readIncrement();
-	}
+	  //}
       }
 #ifdef NOT_YET
 
@@ -345,16 +330,15 @@ namespace Hgcal10gLinkReceiver {
 #endif
     }
 
-
-    void paused() {
-      if(_printEnable) std::cout << "ProcessRelay::paused()" << std::endl;
+    virtual void running() {
+      if(_printEnable) std::cout << "ProcessRelay::running()" << std::endl;
 
       const Record *r;
 
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
 	bool done(false);
-	while(!done) {
-	  while((r=_ptrFifoShm[i]->readRecord())==nullptr) usleep(10);
+	//while(!done) {
+	while((r=_ptrFifoShm[i]->readRecord())!=nullptr) {
 	  if(_printEnable) r->print();
 	  
 	  if(r->state()!=FsmState::Continuing) {
@@ -364,8 +348,30 @@ namespace Hgcal10gLinkReceiver {
 	  }
 	  _ptrFifoShm[i]->readIncrement();
 	}
+	//}
       }
-      
+    }
+
+    void paused() {
+      if(_printEnable) std::cout << "ProcessRelay::paused()" << std::endl;
+
+      const Record *r;
+
+      for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
+	bool done(false);
+	//while(!done) {
+	while((r=_ptrFifoShm[i]->readRecord())==nullptr) {
+	  if(_printEnable) r->print();
+	  
+	  if(r->state()!=FsmState::Continuing) {
+	    _fileWriter.write(r);
+	  } else {
+	    done=true;
+	  }
+	  _ptrFifoShm[i]->readIncrement();
+	}
+	//}
+      }
       _pauseCounter++;
     }
         

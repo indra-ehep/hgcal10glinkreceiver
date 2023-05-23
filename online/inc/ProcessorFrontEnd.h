@@ -35,7 +35,7 @@ namespace Hgcal10gLinkReceiver {
     }
 
     virtual bool initializing() {
-      std::string c("cd /home/cmx/rshukla/hgc-engine-tools;python3 roc_control.py --source file --filename initLD-hgcrocv3.csv --dir write --roc s2");
+      std::string c("cd /home/cmx/rshukla/hgc-engine-tools;python3 roc_control_PD.py --source file --filename initLD-hgcrocv3.csv --dir write --roc s2");
       if(_printEnable) std::cout << "System call = " << c << std::endl;
       system(c.c_str());
 
@@ -161,7 +161,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool haltingA() {
-      std::string c("cd /home/cmx/rshukla/hgc-engine-tools;python3 roc_control.py --source file --filename initLD-hgcrocv3.csv --dir write --roc s2");
+      std::string c("cd /home/cmx/rshukla/hgc-engine-tools;python3 roc_control_PD.py --source file --filename initLD-hgcrocv3.csv --dir write --roc s2");
       if(_printEnable) std::cout << "System call = " << c << std::endl;
       system(c.c_str());
 	
@@ -243,9 +243,10 @@ namespace Hgcal10gLinkReceiver {
     
     void i2cRead(uint16_t add, uint8_t msk) {
       std::ostringstream sout;
-      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py"
+      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control_PD.py"
 	   << " --roc s2 --reg 0x"
-	   << std::hex << std::setfill('0') << std::setw(4) << add;
+	   << std::hex << std::setfill('0') << std::setw(4) << add
+	   << " --mask 0x" << std::setw(2) << uint16_t(msk);
 
       if(_printEnable) std::cout << "Read system call = "
 				 << sout.str() << std::endl;
@@ -254,9 +255,10 @@ namespace Hgcal10gLinkReceiver {
     
     void i2cWrite(uint16_t add, uint8_t val, uint8_t msk) {
       std::ostringstream sout;
-      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py"
+      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control_PD.py"
 	   << " --roc s2 --reg 0x"
 	   << std::hex << std::setfill('0') << std::setw(4) << add
+	   << " --mask 0x" << std::setw(2) << uint16_t(msk)
 	   << "  --dir write --value " << uint16_t(val);
 
       if(_printEnable) std::cout << "Write system call = "

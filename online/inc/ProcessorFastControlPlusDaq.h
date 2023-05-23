@@ -88,7 +88,7 @@ namespace Hgcal10gLinkReceiver {
       for(unsigned i(0);i<128*nr;i++) {
 	for(unsigned j(0);j<8;j++) {
 	  std::cout << " 0x" << std::hex << std::setfill('0') 
-		    << std::setw(8) << _rxSummaryData[j][i]
+		    << std::setw(16) << _rxSummaryData[j][i]
 		    << std::dec << std::setfill(' ');
 	}
 	std::cout << std::endl;
@@ -100,11 +100,11 @@ namespace Hgcal10gLinkReceiver {
     void running() {
       _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",1);
 
-      _ptrFsmInterface->idle();
+      _ptrFsmInterface->setProcessState(FsmState::Running);
 
-      while(_ptrFsmInterface->isIdle()) {
+      while(_ptrFsmInterface->systemState()==FsmState::Running) {
 
-	if(!ptrFifoShm2->backPressure()) {
+	if(!ptrFifoShm2->backPressure() || true) {
 	  _eventNumberInRun++;
 	  uint64_t bxNumberInRun(1637*_eventNumberInRun);
 	  uint64_t bc((bxNumberInRun%3564)+1);
@@ -248,7 +248,7 @@ namespace Hgcal10gLinkReceiver {
 
 
 	  RecordRunning *r;
-	  while((r=(RecordRunning*)(ptrFifoShm0->getWriteRecord()))==nullptr) usleep(1);
+	  while((r=(RecordRunning*)(ptrFifoShm0->getWriteRecord()))==nullptr) usleep(10);
 
 	  
 	  /*
