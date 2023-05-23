@@ -38,173 +38,103 @@ namespace Hgcal10gLinkReceiver {
       std::string c("cd /home/cmx/rshukla/hgc-engine-tools;python3 roc_control.py --source file --filename initLD-hgcrocv3.csv --dir write --roc s2");
       if(_printEnable) std::cout << "System call = " << c << std::endl;
       system(c.c_str());
+
+      
+
       return true;
     }
 
     bool configuringA() {
-	RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->record()));
-	if(_printEnable) r.print();
+      RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->record()));
+      if(_printEnable) r.print();
 
-	_keyCfgA=r.processorKey(RunControlFrontEndFsmShmKey);
+      _keyCfgA=r.processorKey(RunControlFrontEndFsmShmKey);
 	
-	if(_keyCfgA<=38) {
-	  uint16_t add,val;
-	  for(unsigned i(0);i<2;i++) {
+      if(_keyCfgA<=40) {
+	uint16_t add;
+	uint8_t val,msk;
 
-	    // Unset characterisation mode
-	    {
-	      add=0x564+i*0x5c0;
-	      val=0x00;
-	      std::ostringstream sout;
-	      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py --dir write --reg 0x" 
-		   << std::hex << std::setfill('0') << std::setw(4) << add << " --value " << val
-		   << " --roc s2";
-	      if(_printEnable) std::cout << "System call = " << sout.str() << std::endl;
-	      system(sout.str().c_str());
-	    }
-	    {
-	      std::ostringstream sout;
-	      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py --reg 0x" 
-		   << std::hex << std::setfill('0') << std::setw(4) << add
-		   << " --roc s2";
-	      if(_printEnable) std::cout << "System call = " << sout.str() << std::endl;
-	      system(sout.str().c_str());
-	    }
+	// Loop over halves
+	for(unsigned i(0);i<2;i++) {
 
+	  // Digitial half: Set characterisation mode
+	  add=0x564+i*0x5c0;
+	  val=0x40;
+	  msk=0x40;
+	  i2cWriteAndRead(add,val,msk);
 
-	    // Remove fixed ADC values
-	    {
-	      add=0x52a+i*0x5c0;
-	      val=0x00;
-	      std::ostringstream sout;
-	      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py --dir write --reg 0x" 
-		   << std::hex << std::setfill('0') << std::setw(4) << add << " --value " << val
-		   << " --roc s2";
-	      if(_printEnable) std::cout << "System call = " << sout.str() << std::endl;
-	      system(sout.str().c_str());
-	    }
-	    {
-	      std::ostringstream sout;
-	      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py --reg 0x" 
-		   << std::hex << std::setfill('0') << std::setw(4) << add
-		   << " --roc s2";
-	      if(_printEnable) std::cout << "System call = " << sout.str() << std::endl;
-	      system(sout.str().c_str());
-	    }
+	  // Global analogue: unset fixed ADC values
+	  add=0x52a+i*0x5c0;
+	  val=0x00;
+	  msk=0x08;
+	  i2cWriteAndRead(add,val,msk);
 
-
-	    // Disconnect all injection capacitors
-	    {
-	      add=0x584+i*0x5c0;
-	      val=0x00;
-	      std::ostringstream sout;
-	      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py --dir write --reg 0x" 
-		   << std::hex << std::setfill('0') << std::setw(4) << add << " --value " << val
-		   << " --roc s2";
-	      if(_printEnable) std::cout << "System call = " << sout.str() << std::endl;
-	      system(sout.str().c_str());
-	    }
-	  }
+	  // Halfwise: disconnect all injection capacitors
+	  add=0x584+i*0x5c0;
+	  val=0x00;
+	  msk=0x06;
+	  i2cWrite(add,val,msk);
 	}
+      }
 	
-	_configuringBCounter=0;
+      _configuringBCounter=0;
 
       return true;
     }
     
     bool configuringB() {
-	RecordConfiguringB &r((RecordConfiguringB&)(_ptrFsmInterface->record()));
-	if(_printEnable) r.print();
+      RecordConfiguringB &r((RecordConfiguringB&)(_ptrFsmInterface->record()));
+      if(_printEnable) r.print();
 
-	_keyCfgB=r.processorKey(RunControlFrontEndFsmShmKey);
+      _keyCfgB=r.processorKey(RunControlFrontEndFsmShmKey);
 
-	if(_keyCfgA<=38) {
-	  uint16_t dac(0),chn(0);
-	  uint16_t add(0),val(0);
-	  for(unsigned i(0);i<2;i++) {
-	    
-	    if(_keyCfgA<=37) {
-	      dac=128*(_configuringBCounter%8);
-	      chn=_keyCfgA-1;
-	    } else if(_keyCfgA==38) {
-	      dac=128*(_configuringBCounter%8);
-	      chn=(_keyCfgB/8);
-	    }
+      if(_keyCfgA>0 && _keyCfgA<=40) {
+	uint16_t dac(0),chn(0);
+	unsigned dacSteps(8);
+	  
+	dac=(4096/dacSteps)*(_configuringBCounter%dacSteps);
 
-	    // Disconnect all injection capacitors
-	    {
-	      add=0x584+i*0x5c0;
-	      val=0x00;
-	      std::ostringstream sout;
-	      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py --dir write --reg 0x" 
-		   << std::hex << std::setfill('0') << std::setw(4) << add << " --value " << val
-		   << " --roc s2";
-	      if(_printEnable) std::cout << "System call = " << sout.str() << std::endl;
-	      system(sout.str().c_str());
-	    }
+	if(_keyCfgA<=39) chn=_keyCfgA-1;
+	else chn=(_configuringBCounter/dacSteps);
 
-	    // Set channel injection capacitor
-	    {
-	      add=0x0004+i*0x05c0+chn*0x020;
-	      val=0x02;
-	      std::ostringstream sout;
-	      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py --dir write --reg 0x" 
-		   << std::hex << std::setfill('0') << std::setw(4) << add << " --value " << val
-		   << " --roc s2";
-	      if(_printEnable) std::cout << "System call = " << sout.str() << std::endl;
-	      system(sout.str().c_str());
-	    }
-	    {
-	      std::ostringstream sout;
-	      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py --reg 0x" 
-		   << std::hex << std::setfill('0') << std::setw(4) << add
-		   << " --roc s2";
-	      if(_printEnable) std::cout << "System call = " << sout.str() << std::endl;
-	      system(sout.str().c_str());
-	    }
-
-	    // Set DAC value
-	    {
-	      add=0x0506+i*0x05c0;
-	      val=dac&0xff;
-	      std::ostringstream sout;
-	      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py --dir write --reg 0x" 
-		   << std::hex << std::setfill('0') << std::setw(4) << add << " --value " << val
-		   << " --roc s2";
-	      if(_printEnable) std::cout << "System call = " << sout.str() << std::endl;
-	      system(sout.str().c_str());
-	    }
-	    {
-	      std::ostringstream sout;
-	      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py --reg 0x" 
-		   << std::hex << std::setfill('0') << std::setw(4) << add
-		   << " --roc s2";
-	      if(_printEnable) std::cout << "System call = " << sout.str() << std::endl;
-	      system(sout.str().c_str());
-	    }
-
-	    {
-	      add=0x0507+i*0x05c0;
-	      val=(dac>>8|0x40);
-	      std::ostringstream sout;
-	      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py --dir write --reg 0x" 
-		   << std::hex << std::setfill('0') << std::setw(4) << add << " --value " << val
-		   << " --roc s2";
-	      if(_printEnable) std::cout << "System call = " << sout.str() << std::endl;
-	      system(sout.str().c_str());
-	    }
-	    {
-	      std::ostringstream sout;
-	      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py --reg 0x" 
-		   << std::hex << std::setfill('0') << std::setw(4) << add
-		   << " --roc s2";
-	      if(_printEnable) std::cout << "System call = " << sout.str() << std::endl;
-	      system(sout.str().c_str());
-	    }
-	  }	  
+	if(_printEnable) {
+	  std::cout << "configuringB() Key A = " << _keyCfgA
+		    << ", DAC = " << dac << ", Channel = "
+		    << chn << std::endl;
 	}
+	  
+	uint16_t add;
+	uint8_t val,msk;
 
-	_configuringBCounter++;
+	// Loop over halves
+	for(unsigned i(0);i<2;i++) {
+	    
+	  // Halfwise: disconnect all injection capacitors
+	  add=0x584+i*0x5c0;
+	  val=0x00;
+	  msk=0x06;
+	  i2cWrite(add,val,msk);
+
+	  // Set individual channel low range injection capacitor
+	  add=0x0004+chn*0x020+i*0x05c0;
+	  val=0x02;
+	  msk=0x06;
+	  i2cWriteAndRead(add,val,msk);
+	    
+	  // Reference voltage: set DAC value and IntCtest
+	  add=0x0506+i*0x05c0;
+	  val=dac&0xff;
+	  msk=0xff;
+	  i2cWriteAndRead(add,val,msk);
+
+	  add=0x0507+i*0x05c0;
+	  val=(dac>>8|0x40);
+	  msk=0x4f;
+	  i2cWriteAndRead(add,val,msk);
+	}	  
+      }
+
+      _configuringBCounter++;
 
       return true;
     }
@@ -269,18 +199,18 @@ namespace Hgcal10gLinkReceiver {
 	std::cout << "ProcessorFrontEnd::configuredB()" << std::endl;
       }
       /*
-      RecordConfigured *r;
-      while((r=(RecordConfigured*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
+	RecordConfigured *r;
+	while((r=(RecordConfigured*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
 
-      r->setHeader(++_fifoCounter);
-      r->setState(FsmState::ConfiguredB);
+	r->setHeader(++_fifoCounter);
+	r->setState(FsmState::ConfiguredB);
       
-      std::vector<uint32_t> v;
-      _serenityTcds2.configuration(v);
-      for(unsigned i(0);i<v.size();i++) r->addData32(v[i]);
-      if(_printEnable) r->print();
+	std::vector<uint32_t> v;
+	_serenityTcds2.configuration(v);
+	for(unsigned i(0);i<v.size();i++) r->addData32(v[i]);
+	if(_printEnable) r->print();
 
-      ptrFifoShm2->writeIncrement();
+	ptrFifoShm2->writeIncrement();
       */
 
       writeContinuing();
@@ -311,28 +241,56 @@ namespace Hgcal10gLinkReceiver {
       }
     }
     
-    protected:
-      RelayWriterDataFifo *ptrFifoShm2;
+    void i2cRead(uint16_t add, uint8_t msk) {
+      std::ostringstream sout;
+      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py"
+	   << " --roc s2 --reg 0x"
+	   << std::hex << std::setfill('0') << std::setw(4) << add;
 
-      uint32_t _fifoCounter;
+      if(_printEnable) std::cout << "Read system call = "
+				 << sout.str() << std::endl;
+      system(sout.str().c_str());
+    }
+    
+    void i2cWrite(uint16_t add, uint8_t val, uint8_t msk) {
+      std::ostringstream sout;
+      sout << "cd /home/cmx/rshukla/hgc-engine-tools; python3 roc_control.py"
+	   << " --roc s2 --reg 0x"
+	   << std::hex << std::setfill('0') << std::setw(4) << add
+	   << "  --dir write --value " << uint16_t(val);
 
-      /*
+      if(_printEnable) std::cout << "Write system call = "
+				 << sout.str() << std::endl;
+      system(sout.str().c_str());
+    }
+    
+    void i2cWriteAndRead(uint16_t add, uint8_t val, uint8_t msk) {
+      i2cWrite(add,val,msk);
+      i2cRead(add,msk);
+    }
+        
+  protected:
+    RelayWriterDataFifo *ptrFifoShm2;
+
+    uint32_t _fifoCounter;
+
+    /*
       uint32_t _evtSeqCounter;
       uint32_t _pauseCounter;
 
       uint32_t _superRunNumber;
       uint32_t _runNumber;
-      */
-      uint32_t _keyCfgA;
-      uint32_t _keyCfgB;
+    */
+    uint32_t _keyCfgA;
+    uint32_t _keyCfgB;
 
-      uint32_t _configuringBCounter;
+    uint32_t _configuringBCounter;
 
-      uint32_t _eventNumberInRun;
-      uint32_t _eventNumberInConfiguration;
-      uint32_t _eventNumberInSuperRun;
-    };
+    uint32_t _eventNumberInRun;
+    uint32_t _eventNumberInConfiguration;
+    uint32_t _eventNumberInSuperRun;
+  };
 
-  }
+}
 
 #endif

@@ -57,96 +57,81 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool configuringA(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-	RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->record()));
-	if(_printEnable) r.print();
+    bool configuringA() {
+      RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->record()));
+      if(_printEnable) r.print();
 
-	_keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
+      _keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
 	
-	if((_keyCfgA>0 && _keyCfgA<=38) || _keyCfgA==123) {
+      if((_keyCfgA>0 && _keyCfgA<=38) || _keyCfgA==123) {
 
-	  // Do configuration; ones which could have been changed
-	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
+	// Do configuration; ones which could have been changed
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
 	  
-	  // Hardwire CalComing
-	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",2);
-	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
-	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3500<<16)|0x0010);
-	  //_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",1);
-	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3510<<16)|0x0004);
-	}
+	// Hardwire CalComing
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",2);
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3500<<16)|0x0010);
+	//_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",1);
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3510<<16)|0x0004);
+      }
 	
-	_configuringBCounter=0;
-      }
+      _configuringBCounter=0;
 
       return true;
     }
     
-    bool configuringB(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-	RecordConfiguringB &r((RecordConfiguringB&)(_ptrFsmInterface->record()));
-	if(_printEnable) r.print();
+    bool configuringB() {
+      RecordConfiguringB &r((RecordConfiguringB&)(_ptrFsmInterface->record()));
+      if(_printEnable) r.print();
 
-	_keyCfgB=r.processorKey(RunControlTcds2FsmShmKey);
+      _keyCfgB=r.processorKey(RunControlTcds2FsmShmKey);
 
-	if(_keyCfgA==123) {
-	  _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",_keyCfgB);
-	}
+      if(_keyCfgA==123) {
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",_keyCfgB);
+      }
 	
-	_configuringBCounter++;
-      }
-      return true;
-    }
-
-    bool starting(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-
-	// Enable sequencer (even if masked)
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",3);
-
-	// Release throttle
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",1);
-      }
+      _configuringBCounter++;
 
       return true;
     }
 
-    bool pausing(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-      }
-      return true;
-    }
-    
-    bool resuming(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-      }
-      return true;
-    }
-    
-    bool stopping(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-	_eventNumberInConfiguration+=_eventNumberInRun;
+    bool starting() {
 
-	// Impose throttle
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0);
+      // Enable sequencer (even if masked)
+      _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",3);
+
+      // Release throttle
+      _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",1);
+      return true;
 	
-	// Disable sequencer
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",0);
+    }
 
-      }
+    bool pausing() {
       return true;
     }
     
-    bool haltingB(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-      }
+    bool resuming() {
       return true;
     }
     
-    bool haltingA(FsmInterface::Handshake s) {
-      if(s==FsmInterface::GoToTransient) {
-      }
+    bool stopping() {
+      _eventNumberInConfiguration+=_eventNumberInRun;
+
+      // Impose throttle
+      _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0);
+	
+      // Disable sequencer
+      _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",0);
+
+      return true;
+    }
+    
+    bool haltingB() {
+      return true;
+    }
+    
+    bool haltingA() {
       return true;
     }
     
@@ -191,19 +176,19 @@ namespace Hgcal10gLinkReceiver {
       if(_printEnable) r->print();
 
       /*
-      r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl"));
-      r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1"));
-      r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2"));
-      r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl3"));
+	r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl"));
+	r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1"));
+	r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2"));
+	r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl3"));
 
-      // Sequencer
-      uint32_t length(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length"));
-      r->addData32(length);
+	// Sequencer
+	uint32_t length(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length"));
+	r->addData32(length);
 
-      _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
-      for(unsigned i(0);i<length;i++) {
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+	for(unsigned i(0);i<length;i++) {
 	r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.seq_mem.data"));
-      }
+	}
       */
 
       ptrFifoShm2->writeIncrement();
@@ -245,45 +230,45 @@ namespace Hgcal10gLinkReceiver {
       case 123: {
 	//_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",20+(_runNumberInSuperRun%50));
 
-				 break;
-				 }
+	break;
+      }
 	
-	  case 999: {
-	    break;
-	  }
+      case 999: {
+	break;
+      }
 	
-	default: {
-	  break;
-	}
+      default: {
+	break;
+      }
 
       };
-      }
+    }
     
-    protected:
-      DataFifoT<6,1024> *ptrFifoShm2;
+  protected:
+    DataFifoT<6,1024> *ptrFifoShm2;
 
-      uint32_t _fifoCounter;
+    uint32_t _fifoCounter;
 
-      /*
+    /*
       uint32_t _evtSeqCounter;
       uint32_t _pauseCounter;
 
       uint32_t _superRunNumber;
       uint32_t _runNumber;
-      */
-      uint32_t _keyCfgA;
-      uint32_t _keyCfgB;
+    */
+    uint32_t _keyCfgA;
+    uint32_t _keyCfgB;
 
-      uint32_t _configuringBCounter;
+    uint32_t _configuringBCounter;
 
-      uint32_t _eventNumberInRun;
-      uint32_t _eventNumberInConfiguration;
-      uint32_t _eventNumberInSuperRun;
+    uint32_t _eventNumberInRun;
+    uint32_t _eventNumberInConfiguration;
+    uint32_t _eventNumberInSuperRun;
 
-      SerenityTcds2 _serenityTcds2;
+    SerenityTcds2 _serenityTcds2;
 
-    };
+  };
 
-  }
+}
 
 #endif

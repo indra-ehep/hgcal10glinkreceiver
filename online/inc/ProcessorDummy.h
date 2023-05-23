@@ -23,42 +23,42 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool configuringA(FsmInterface::Handshake s) {
+    bool configuringA() {
       sleep(1);
       return true;
     }
     
-    bool configuringB(FsmInterface::Handshake s) {
+    bool configuringB() {
       sleep(1);
       return true;
     }
     
-    bool starting(FsmInterface::Handshake s) {
+    bool starting() {
       sleep(1);
       return true;
     }
     
-    bool pausing(FsmInterface::Handshake s) {
+    bool pausing() {
       sleep(1);
       return true;
     }
     
-    bool resuming(FsmInterface::Handshake s) {
+    bool resuming() {
       sleep(1);
       return true;
     }
     
-    bool stopping(FsmInterface::Handshake s) {
+    bool stopping() {
       sleep(1);
       return true;
     }
     
-    bool haltingB(FsmInterface::Handshake s) {
+    bool haltingB() {
       sleep(1);
       return true;
     }
     
-    bool haltingA(FsmInterface::Handshake s) {
+    bool haltingA() {
       sleep(1);
       return true;
     }
