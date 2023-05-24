@@ -151,7 +151,7 @@ namespace Hgcal10gLinkReceiver {
       const Record *r;
 
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
-	bool done(false);
+	//bool done(false);
 	//while(!done) {
 	while((r=_ptrFifoShm[i]->readRecord())!=nullptr) {
 	  if(_printEnable) r->print();
@@ -159,7 +159,7 @@ namespace Hgcal10gLinkReceiver {
 	  if(r->state()!=FsmState::Continuing) {
 	    _fileWriter.write(r);
 	  } else {
-	    done=true;
+	    //done=true;
 	  }
 	  _ptrFifoShm[i]->readIncrement();
 	}
@@ -177,7 +177,7 @@ namespace Hgcal10gLinkReceiver {
       const Record *r;
 
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
-	bool done(false);
+	//bool done(false);
 	//while(!done) {
 	  while((r=_ptrFifoShm[i]->readRecord())!=nullptr) {
 	    if(_printEnable) r->print();
@@ -185,7 +185,7 @@ namespace Hgcal10gLinkReceiver {
 	    if(r->state()!=FsmState::Continuing) {
 	      _fileWriter.write(r);
 	    } else {
-	      done=true;
+	      //done=true;
 	    }
 	    _ptrFifoShm[i]->readIncrement();
 	  }
@@ -348,7 +348,7 @@ namespace Hgcal10gLinkReceiver {
       const Record *r;
 
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
-	bool done(false);
+	//bool done(false);
 	//while(!done) {
 	while((r=_ptrFifoShm[i]->readRecord())!=nullptr) {
 	  if(_printEnable) r->print();
@@ -356,7 +356,7 @@ namespace Hgcal10gLinkReceiver {
 	  if(r->state()!=FsmState::Continuing) {
 	    _fileWriter.write(r);
 	  } else {
-	    done=true;
+	    //done=true;
 	  }
 	  _ptrFifoShm[i]->readIncrement();
 	}
@@ -374,7 +374,7 @@ namespace Hgcal10gLinkReceiver {
       const Record *r;
 
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
-	bool done(false);
+	//bool done(false);
 	//while(!done) {
 	while((r=_ptrFifoShm[i]->readRecord())==nullptr) {
 	  if(_printEnable) r->print();
@@ -382,7 +382,7 @@ namespace Hgcal10gLinkReceiver {
 	  if(r->state()!=FsmState::Continuing) {
 	    _fileWriter.write(r);
 	  } else {
-	    done=true;
+	    //done=true;
 	  }
 	  _ptrFifoShm[i]->readIncrement();
 	}

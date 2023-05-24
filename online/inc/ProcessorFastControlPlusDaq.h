@@ -424,7 +424,7 @@ namespace Hgcal10gLinkReceiver {
 
     
   private:
-    bool     _rxSummaryValid[8];
+    //bool     _rxSummaryValid[8];
     uint64_t _rxSummaryData[8][4000];
     unsigned _rxBitShift;
 

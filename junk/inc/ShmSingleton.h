@@ -18,17 +18,17 @@ template <class Payload> class ShmSingleton {
 
  public:
 
-  ShmSingleton() : thePayload(0) {
+ ShmSingleton() : thePayload(0) {
   }
   /*
- ShmSingleton(bool sup=false, int access = 0666) : thePayload(0) {
+    ShmSingleton(bool sup=false, int access = 0666) : thePayload(0) {
     if(sup) {
-      theNewKey=theKey;
-      setup(theNewKey,access);
+    theNewKey=theKey;
+    setup(theNewKey,access);
     }
-  }
+    }
   */
-   Payload* setup(key_t theNewKey, int access = 0666) {
+  Payload* setup(key_t theNewKey, int access = 0666) {
     std::cout << "ShmSingleton<>::setup key = 0x"
 	      << std::hex << std::setfill('0')
 	      << std::setw(8) << theNewKey
@@ -53,7 +53,7 @@ template <class Payload> class ShmSingleton {
 	//      perror("ShmSingleton<>::ctor() shmget");
 	std::cerr << "ShmSingleton<>::ctor() shmget(" << theNewKey << ","
 		  << sizeof(Payload) << "," << std::oct << (IPC_CREAT | access) 
-	  		  << std::dec << ")" << std::endl;
+		  << std::dec << ")" << std::endl;
 	perror(0);
 	return nullptr;
       }
@@ -78,19 +78,20 @@ template <class Payload> class ShmSingleton {
     
     //remove();
     /*
-    ShmIdData ds;
-    shmctl(shmId, IPC_STAT, &ds);
-    std::cout << "Number attached = " << theShmIdData->numberAttached() << std::endl;
+      ShmIdData ds;
+      shmctl(shmId, IPC_STAT, &ds);
+      std::cout << "Number attached = " << theShmIdData->numberAttached() << std::endl;
     */
     return thePayload;
-   }
+  }
 
   ~ShmSingleton() {
     if(thePayload != 0) {
       ShmIdData ds;
       shmctl(shmId, IPC_STAT, &ds);
-      std::cout << "Number attached = " << ds.numberAttached() << std::endl;
-      if(ds.numberAttached()==1) delete thePayload;
+      //std::cout << "Dtor: number attached = "
+      //<< ds.numberAttached() << std::endl;
+      //if(ds.numberAttached()==1) delete thePayload;
 
       if(shmdt(thePayload) == -1) {
 	perror("ShmSingleton<>::dtor() shmdt");
@@ -129,16 +130,16 @@ template <class Payload> class ShmSingleton {
 //class RunFileShm;
 //template<> const key_t ShmSingleton<RunFileShm>::theKey=123456789;
 /*
-class Command;
-const key_t ShmSingleton<Command>::theKey(123456789);
+  class Command;
+  const key_t ShmSingleton<Command>::theKey(123456789);
 
-class RecordBuffer;
-const key_t ShmSingleton<RecordBuffer>::theKey(123456788);
+  class RecordBuffer;
+  const key_t ShmSingleton<RecordBuffer>::theKey(123456788);
 
-class VmeCrate;
-const key_t ShmSingleton<VmeCrate>::theKey(123456787);
+  class VmeCrate;
+  const key_t ShmSingleton<VmeCrate>::theKey(123456787);
 
-class VmeInterrupt;
-const key_t ShmSingleton<VmeInterrupt>::theKey(123456786);
+  class VmeInterrupt;
+  const key_t ShmSingleton<VmeInterrupt>::theKey(123456786);
 */
 #endif
