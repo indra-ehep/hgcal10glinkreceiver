@@ -37,17 +37,15 @@ namespace Hgcal10gLinkReceiver {
     virtual ~ProcessorRelay() {
     }
   
-    void setUpAll(uint32_t rcKey, uint32_t fifoKey0, uint32_t fifoKey1, uint32_t fifoKey2=0) {
+    void setUpAll(uint32_t rcKey, uint32_t fifoKey0, uint32_t fifoKey1, uint32_t fifoKey2) {
       ShmSingleton<RelayWriterDataFifo> shm0;
       _ptrFifoShm.push_back(shm0.setup(fifoKey0));
 
       ShmSingleton<RelayWriterDataFifo> shm1;
       _ptrFifoShm.push_back(shm1.setup(fifoKey1));
 
-      if(fifoKey2!=0) {
-	ShmSingleton<RelayWriterDataFifo> shm2;
-	_ptrFifoShm.push_back(shm2.setup(fifoKey2));
-      }
+      ShmSingleton<RelayWriterDataFifo> shm2;
+      _ptrFifoShm.push_back(shm2.setup(fifoKey2));
       
       for(unsigned i(0);i<_ptrFifoShm.size();i++) _ptrFifoShm[i]->coldStart();
 

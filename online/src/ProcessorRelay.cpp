@@ -47,6 +47,7 @@ int main(int argc, char *argv[]) {
   
   pb.setUpAll(ProcessorRelayFsmShmKey,
 	      ProcessorRelayCl0FifoShmKey,
-  	      ProcessorRelayCl1FifoShmKey);
+  	      ProcessorRelayCl1FifoShmKey,
+  	      ProcessorRelayCl2FifoShmKey);
   return 0;
 }
