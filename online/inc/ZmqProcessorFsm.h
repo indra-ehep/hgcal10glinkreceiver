@@ -35,8 +35,8 @@ bool ZmqProcessorFsm(uint32_t key, uint16_t port) {
   FsmInterface *prcfs=shmU.payload();
   prcfs->print();
   
-  FsmInterface::Handshake hsOld(prcfs->handshake());
-  FsmInterface::Handshake hsNew(prcfs->handshake());
+  //FsmInterface::Handshake hsOld(prcfs->handshake());
+  //FsmInterface::Handshake hsNew(prcfs->handshake());
 
 
   Record *r((Record*)&(prcfs->getRecord()));
