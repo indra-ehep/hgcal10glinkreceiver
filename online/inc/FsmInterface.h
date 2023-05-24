@@ -33,7 +33,7 @@ namespace Hgcal10gLinkReceiver {
     void coldStart() {
       //_record.reset(FsmState::Initial);
       _record.reset(FsmState::Resetting);
-      _handshake=Idle;
+      //_handshake=Idle;
       //_processState=FsmState::Initial;
       _processState=FsmState::Resetting;
     }
@@ -41,7 +41,7 @@ namespace Hgcal10gLinkReceiver {
     // Run Controller: normal operation ///////////////
 
     // Check if alive
-
+    /*
     bool ping() {
       if(_handshake!=Idle) return false;
       _handshake=Ping;
@@ -89,11 +89,11 @@ namespace Hgcal10gLinkReceiver {
     bool isIdle() {
       return _handshake==Idle;
     }
-    
+    */    
     // Processor: normal operation ///////////////
 
     // Indicate alive
-
+    /*
     bool pong() {
       if(_handshake!=Ping) return false;
       _handshake=Idle;
@@ -141,7 +141,7 @@ namespace Hgcal10gLinkReceiver {
       _handshake=Idle;
       return true;
     }
-
+    */
     // Get values
     
     FsmState::State systemState() const {
@@ -159,11 +159,11 @@ namespace Hgcal10gLinkReceiver {
     const RecordT<15>& record() const {
       return _record;
     }
-
+    /*
     Handshake handshake() const {
       return _handshake;
     }
-
+    */
     // Set values
     
     void setPrepareRecord(FsmState::State s) {
@@ -198,11 +198,11 @@ namespace Hgcal10gLinkReceiver {
     void setProcessState(FsmState::State s) {
       _processState=s;
     }
-
+    /*
     void forceProcessState(FsmState::State s) {
       _processState=s;
     }
-  
+    */
     FsmState::State* getProcessState() {
       return &_processState;
     }
@@ -214,7 +214,7 @@ namespace Hgcal10gLinkReceiver {
     const std::string& processStateName() const {
       return FsmState::stateName(_processState);
     }
-
+    /*
     const std::string& handshakeName() const {
       return handshakeName(_handshake);
     }
@@ -223,25 +223,25 @@ namespace Hgcal10gLinkReceiver {
       if(h<EndOfHandshakeEnum) return _handshakeName[h];
       return _unknown;
     }
-
+    */
     // Used for displaying results
     void print(std::ostream &o=std::cout) const {
       o << "FsmInterface::print()" << std::endl;
       o << " System state    = " <<  systemStateName() << std::endl;
       o << " Processor state = " << processStateName() << std::endl;
-      o << " Handshake = " << handshakeName() << std::endl;
+      //o << " Handshake = " << handshakeName() << std::endl;
       _record.print(o);
     }
   
   private:
     RecordT<15> _record;
     FsmState::State _processState;
-    Handshake _handshake;
+    //Handshake _handshake;
 
-    static const std::string _unknown;
-    static const std::string _handshakeName[EndOfHandshakeEnum];
+    //static const std::string _unknown;
+    //static const std::string _handshakeName[EndOfHandshakeEnum];
   };
-
+  /*
   const std::string FsmInterface::_unknown="Unknown";
 
   const std::string FsmInterface::_handshakeName[EndOfHandshakeEnum]={
@@ -253,6 +253,7 @@ namespace Hgcal10gLinkReceiver {
     "GoToStatic",
     "Ping"
   };
+  */
 }
 
 #endif

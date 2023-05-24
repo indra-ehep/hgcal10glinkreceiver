@@ -45,6 +45,10 @@ namespace Hgcal10gLinkReceiver {
     virtual ~SerenityUhal() {
     }
     
+    virtual void setPrintEnable(bool p) {
+      _printEnable=p;
+    }
+
     bool makeTable(const std::string &s="payload") {
 #ifdef ProcessorHardware
       std::vector<std::string> temp;

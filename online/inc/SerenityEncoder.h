@@ -41,7 +41,7 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.prel1a_offset",3);
       uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.user_prel1a_off_en",1);
       
-      uint32_t hgcrocLatencyBufferDepth(10); // ????
+      //uint32_t hgcrocLatencyBufferDepth(10); // ????
       uint32_t cpid(8),cped(10); // ???
       uhalWrite("payload.fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",cpid);
       uhalWrite("payload.fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_ext_del",cped);

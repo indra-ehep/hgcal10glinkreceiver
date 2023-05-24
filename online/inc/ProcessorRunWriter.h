@@ -140,9 +140,9 @@ namespace Hgcal10gLinkReceiver {
 
     void halted() {
       _ptrFifoShm->print();
-      _ptrFsmInterface->idle();
       
       /*      
+      _ptrFsmInterface->idle();
       while(_ptrFsmInterface->isIdle()) {
 	usleep(1000);
       }

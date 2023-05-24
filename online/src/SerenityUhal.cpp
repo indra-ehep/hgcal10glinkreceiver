@@ -31,6 +31,7 @@ int main(int argc, char *argv[]) {
   SerenityUhal::setUhalLogLevel();
 
   SerenityUhal su;
+  su.setPrintEnable(printEnable);
   su.makeTable("eth10g");
   //su.setDefaults();
   //su.uhalWrite("BLAH",0xdead);
