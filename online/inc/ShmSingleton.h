@@ -12,7 +12,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include "ShmIdData.hh"
+#include "ShmIdData.h"
 
 template <class Payload> class ShmSingleton {
 

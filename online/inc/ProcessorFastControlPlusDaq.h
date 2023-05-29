@@ -50,7 +50,8 @@ namespace Hgcal10gLinkReceiver {
       for(unsigned n(0);n<nr && n<28;n++) {
 	
 	std::ostringstream sout;
-	sout << "rm data/rx_summary.txt; rm data/tx_summary.txt; source ./emp_capture_single.sh " << 128*n+1;
+	//sout << "rm data/rx_summary.txt; rm data/tx_summary.txt; source ./emp_capture_single.sh " << 128*n+1;
+	sout << "source ./emp_capture_single.sh " << 128*n+1;
 	system(sout.str().c_str());
       
 	//system("ls -l data/");
@@ -367,7 +368,7 @@ namespace Hgcal10gLinkReceiver {
 	  
 	  if(ptrFifoShm1!=0) {
 	    RecordRunning *r;
-	    while((r=(RecordRunning*)(ptrFifoShm1->getWriteRecord()))==nullptr) usleep(1);
+	    while((r=(RecordRunning*)(ptrFifoShm1->getWriteRecord()))==nullptr) usleep(10);
 	    r->setHeader(_eventNumberInRun);
 
 	    r->setPayloadLength(4+8);
@@ -388,7 +389,7 @@ namespace Hgcal10gLinkReceiver {
 	    eoe->setBxId((bxNumberInRun%3564)+1);
 	    eoe->setOrbitId(bxNumberInRun/3564);
 
-	    assert(ptrFifoShm1->write(r->totalLength(),(uint64_t*)r));
+	    ptrFifoShm1->writeIncrement();
 	  }
 	  
 	  //usleep(100);
@@ -403,10 +404,10 @@ namespace Hgcal10gLinkReceiver {
 	// Throttle
       _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",0);
 
-      RecordContinuing rc;
-      rc.setHeader();
-      rc.print();
-      assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
+      RecordContinuing *rc((RecordContinuing*)(ptrFifoShm2->getWriteRecord()));
+      rc->setHeader();
+      if(_printEnable) rc->print();
+      ptrFifoShm2->writeIncrement();
     }
 
     bool ending() {

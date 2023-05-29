@@ -53,7 +53,7 @@ namespace Hgcal10gLinkReceiver {
 
     virtual bool initializing() {
       _serenityTcds2.setDefaults();
-      _serenityTcds2.print();
+      if(_printEnable) _serenityTcds2.print();
       return true;
     }
 

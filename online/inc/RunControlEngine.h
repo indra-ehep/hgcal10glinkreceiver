@@ -4,7 +4,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include "FsmCommandPacket.h"
+#include "FsmState.h"
 #include "ShmSingleton.h"
 #include "RecordPrinter.h"
 

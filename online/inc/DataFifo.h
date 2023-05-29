@@ -48,24 +48,37 @@ public:
   }
   
   // Processor writing into FIFO
+
+  uint32_t writeable() const {
+    return _readPtr+BufferDepth-_writePtr;
+  }
+
   Record* getWriteRecord() {
-    if(!writeable()) return nullptr;
-    return (Record*)_buffer[_writePtr&BufferDepthMask];
+    if(writeable()==0) return nullptr;
+    //return (Record*)_buffer[_writePtr&BufferDepthMask];
+    return &(_buffer[_writePtr&BufferDepthMask]);
   }
 
   void writeIncrement() {
     _writePtr++;
   }
   
-  // Reading from FIFO to disk without or with modification in FIFO first
+  // Reading from FIFO to disk or ZMQ
+
+  uint32_t readable() {
+    return _writePtr-_readPtr;
+  }
+
   const Record* readRecord() {
-    if(!readable()) return nullptr;
-    return (const Record*)_buffer[_readPtr&BufferDepthMask];
+    if(readable()==0) return nullptr;
+    //return (const Record*)_buffer[_readPtr&BufferDepthMask];
+    return &(_buffer[_readPtr&BufferDepthMask]);
   }
 
   Record* getReadRecord() {
-    if(!readable()) return nullptr;
-    return (Record*)_buffer[_readPtr&BufferDepthMask];
+    if(readable()==0) return nullptr;
+    //return (Record*)_buffer[_readPtr&BufferDepthMask];
+    return &(_buffer[_readPtr&BufferDepthMask]);
   }
 
   void readIncrement() {
@@ -73,11 +86,11 @@ public:
   }
   
 
-  
+  // REDUNDANT?
+  /*  
   bool writeRecord(const Record *r) {
     return write(r->payloadLength(),(const uint64_t*)r);
   }
-
 
   bool write(uint16_t n, const uint64_t *p) {
     if(_writePtr==_readPtr+BufferDepth) return false;
@@ -85,25 +98,6 @@ public:
     std::memcpy(_buffer[_writePtr&BufferDepthMask],p,8*n);
     _writePtr++;
     return true;
-  }
-
-  uint32_t writeable() const {
-    return _readPtr+BufferDepth-_writePtr;
-  }
-
-
-
-
-
-
-
-
-
-
-
-  
-  uint32_t readable() {
-    return _writePtr-_readPtr;
   }
 
   uint16_t read(uint64_t *p) {
@@ -114,7 +108,14 @@ public:
     _readPtr++;
     return n;
   }
+  */
+
+  // Only if applying back pressure
   
+  uint32_t writeableQuarters() const {
+    return (4*writeable())/BufferDepth;
+  }
+
   bool backPressure() const {
     return _backPressure;
   }
@@ -135,7 +136,8 @@ public:
   bool _backPressure;
   uint32_t _writePtr;
   uint32_t _readPtr;
-  uint64_t _buffer[BufferDepth][BufferWidth];
+  //uint64_t _buffer[BufferDepth][BufferWidth];
+  RecordT<BufferWidth-1> _buffer[BufferDepth];
 };
 
  typedef DataFifoT<6,1024> RelayWriterDataFifo;

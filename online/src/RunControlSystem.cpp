@@ -78,15 +78,15 @@ int main(int argc, char *argv[]) {
 
   engine.coldStart();
 
-  FsmCommandPacket fcp;
+  //FsmCommandPacket fcp;
   Record r;
 
   r.reset(FsmState::Initializing);
   r.setPayloadLength(0);
   r.setUtc();
-  fcp.setCommand(FsmCommand::Initialize);
-  fcp.setRecord(r);
-  fcp.print();
+  //fcp.setCommand(FsmCommand::Initialize);
+  //fcp.setRecord(r);
+  //fcp.print();
 
   engine.command(&r);
 
@@ -103,9 +103,9 @@ int main(int argc, char *argv[]) {
     if(x=='r' || x=='q' || x=='x') {
       RecordResetting rr;
       rr.setHeader();
-      fcp.setCommand(FsmCommand::Reset);
-      fcp.setRecord(rr);
-      fcp.print();
+      //fcp.setCommand(FsmCommand::Reset);
+      //fcp.setRecord(rr);
+      //fcp.print();
       engine.command(&rr);
       
       if(x=='x') {
@@ -114,17 +114,17 @@ int main(int argc, char *argv[]) {
       }	else if(x=='r') {
 	RecordInitializing ri;
 	ri.setHeader();
-	fcp.setCommand(FsmCommand::Initialize);
-	fcp.setRecord(ri);
-	fcp.print();
+	//fcp.setCommand(FsmCommand::Initialize);
+	//fcp.setRecord(ri);
+	//fcp.print();
 	engine.command(&ri);
 
       } else {
 	RecordEnding re;
 	re.setHeader();
-	fcp.setCommand(FsmCommand::End);
-	fcp.setRecord(re);
-	fcp.print();
+	//fcp.setCommand(FsmCommand::End);
+	//fcp.setRecord(re);
+	//fcp.print();
 	engine.command(&re);
 	
 	continueLoop=false;
@@ -183,11 +183,11 @@ int main(int argc, char *argv[]) {
       rca.setProcessKey(RunControlDaqLink0FsmShmKey,0);
       rca.setProcessKey(RunControlDaqLink1FsmShmKey,0);
 
-      fcp.setCommand(FsmCommand::ConfigureA);
-      fcp.setRecord(rca);
+      //fcp.setCommand(FsmCommand::ConfigureA);
+      //fcp.setRecord(rca);
       std::cout  << std::endl << "HEREA!" << std::endl << std::endl;
       rca.print();
-      fcp.print();
+      //fcp.print();
       engine.command(&rca);
 
       for(nc=0;nc<rca.maxNumberOfConfigurations() && continueRelay;nc++) {
@@ -200,11 +200,11 @@ int main(int argc, char *argv[]) {
 	// Configuration
 	if(nx==123) rcb.setProcessKey(RunControlTcds2FsmShmKey,20+(nc%80));
 	
-	fcp.setCommand(FsmCommand::ConfigureB);
-	fcp.setRecord(rcb);
+	//fcp.setCommand(FsmCommand::ConfigureB);
+	//fcp.setRecord(rcb);
 	std::cout  << std::endl << "HEREB!" << std::endl << std::endl;
 	rcb.print();
-	fcp.print();
+	//fcp.print();
 	engine.command(&rcb);
 
 	for(nr=0;nr<rcb.maxNumberOfRuns() && continueRelay;nr++) {
@@ -219,11 +219,11 @@ int main(int argc, char *argv[]) {
 	  rsa.setMaxSeconds(nt);
 	  rsa.setMaxSpills(0);
       
-	  fcp.setCommand(FsmCommand::Start);
-	  fcp.setRecord(rsa);
+	  //fcp.setCommand(FsmCommand::Start);
+	  //fcp.setRecord(rsa);
 	  std::cout  << std::endl << "HERES!" << std::endl << std::endl;
 	  rsa.print();
-	  fcp.print();
+	  //fcp.print();
 	  engine.command(&rsa);
 
 	  signal(SIGINT,RunControlSignalHandler);
@@ -240,20 +240,20 @@ int main(int argc, char *argv[]) {
 
 	      RecordPausing rp;
 	      rp.setHeader();
-	      fcp.setCommand(FsmCommand::Pause);
-	      fcp.setRecord(rp);
+	      //fcp.setCommand(FsmCommand::Pause);
+	      //fcp.setRecord(rp);
 	      std::cout  << std::endl << "HEREP!" << std::endl << std::endl;
 	      rp.print();
-	      fcp.print();
+	      //fcp.print();
 	      engine.command(&rp);
 
 	      RecordResuming rr;
 	      rr.setHeader();
-	      fcp.setCommand(FsmCommand::Resume);
-	      fcp.setRecord(rr);
+	      //fcp.setCommand(FsmCommand::Resume);
+	      //fcp.setRecord(rr);
 	      std::cout  << std::endl << "HEREP!" << std::endl << std::endl;
 	      rr.print();
-	      fcp.print();
+	      //fcp.print();
 	      engine.command(&rr);
 
 	      np++;
@@ -271,11 +271,11 @@ int main(int argc, char *argv[]) {
 	  rsb.setNumberOfSpills(0);
 	  rsb.setNumberOfPauses(np);
       
-	  fcp.setCommand(FsmCommand::Stop);
-	  fcp.setRecord(rsb);
+	  //fcp.setCommand(FsmCommand::Stop);
+	  //fcp.setRecord(rsb);
 	  std::cout  << std::endl << "HERES!" << std::endl << std::endl;
 	  rsb.print();
-	  fcp.print();
+	  //fcp.print();
 	  engine.command(&rsb);
 	}
 
@@ -288,11 +288,11 @@ int main(int argc, char *argv[]) {
 	rhb.setNumberOfRuns(nr);
 	rhb.setNumberOfEvents(0xffffffff);
     
-	fcp.setCommand(FsmCommand::HaltB);
-	fcp.setRecord(rhb);
+	//fcp.setCommand(FsmCommand::HaltB);
+	//fcp.setRecord(rhb);
 	std::cout  << std::endl << "HEREB!" << std::endl << std::endl;
 	rhb.print();
-	fcp.print();
+	//fcp.print();
 	engine.command(&rhb);
       }
     
@@ -303,11 +303,11 @@ int main(int argc, char *argv[]) {
       rha.setNumberOfRuns(nrt);
       rha.setNumberOfEvents(0xffffffff);
   
-      fcp.setCommand(FsmCommand::HaltA);
-      fcp.setRecord(rha);
+      //fcp.setCommand(FsmCommand::HaltA);
+      //fcp.setRecord(rha);
       std::cout  << std::endl << "HEREA!" << std::endl << std::endl;
       rha.print();
-      fcp.print();
+      //fcp.print();
       engine.command(&rha);
     }
   }

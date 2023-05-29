@@ -408,10 +408,10 @@ namespace Hgcal10gLinkReceiver {
 
 
     virtual void configuredA() {
-      RecordContinuing rc;
-      rc.setHeader();
-      rc.print();
-      assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
+      RecordContinuing *rc((RecordContinuing*)(ptrFifoShm2->getWriteRecord()));
+      rc->setHeader();
+      if(_printEnable) rc->print();
+      ptrFifoShm2->writeIncrement();
     }
     
     virtual void configuredB() {
@@ -462,15 +462,17 @@ namespace Hgcal10gLinkReceiver {
 	    i2c.setAddress(add);
 	    i2c.setMask(mask);
 	    i2c.setValue(val&0xff);
-	    i2c.print();
+	    if(_printEnable) {
+	      i2c.print();
 	  
-	    std::cout << "HGCROC cfg address 0x" << std::setw(4) << add
-		      << ", mask 0x" << std::setw(2) << unsigned(mask)
-		      << ", value 0x" << std::setw(2) << unsigned(val)
-		      << std::endl;
-
+	      std::cout << "HGCROC cfg address 0x" << std::setw(4) << add
+			<< ", mask 0x" << std::setw(2) << unsigned(mask)
+			<< ", value 0x" << std::setw(2) << unsigned(val)
+			<< std::endl;
+	    }
+	    
 	    r->addData32(i2c.data());
-	    if(add<16) r->print();
+	    if(_printEnable && add<16) r->print();
 	  
 	    fin.getline(buffer,16);
 	  }
@@ -554,11 +556,10 @@ namespace Hgcal10gLinkReceiver {
 	 assert(ptrFifoShm2->write(h.totalLength(),(uint64_t*)(&h)));
 	 }
       */      
-      RecordContinuing rc;
-      rc.setHeader();
-      if(_printEnable) rc.print();
-      assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
-
+      RecordContinuing *rc((RecordContinuing*)(ptrFifoShm2->getWriteRecord()));
+      rc->setHeader();
+      if(_printEnable) rc->print();
+      ptrFifoShm2->writeIncrement();
     }
 
     virtual void running() {
@@ -570,19 +571,19 @@ namespace Hgcal10gLinkReceiver {
       
       _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",0);
       
-      RecordContinuing rc;
-      rc.setHeader();
-      rc.print();
-      assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
+      RecordContinuing *rc((RecordContinuing*)(ptrFifoShm2->getWriteRecord()));
+      rc->setHeader();
+      if(_printEnable) rc->print();
+      ptrFifoShm2->writeIncrement();
     }
     
     void paused() {
       _pauseCounter++;
 
-      RecordContinuing rc;
-      rc.setHeader();
-      rc.print();
-      assert(ptrFifoShm2->write(rc.totalLength(),(uint64_t*)(&rc)));   
+      RecordContinuing *rc((RecordContinuing*)(ptrFifoShm2->getWriteRecord()));
+      rc->setHeader();
+      if(_printEnable) rc->print();
+      ptrFifoShm2->writeIncrement();
     }
 
     

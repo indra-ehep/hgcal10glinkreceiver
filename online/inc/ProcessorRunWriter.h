@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <cstring>
 
-#include "RunControlFsmShm.h"
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"

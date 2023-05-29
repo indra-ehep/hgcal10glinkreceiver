@@ -8,7 +8,8 @@
 #include <cstdint>
 #include <cassert>
 
-#include "FsmCommandPacket.h"
+#include "FsmState.h"
+#include "Record.h"
 
 namespace Hgcal10gLinkReceiver {
   
