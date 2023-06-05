@@ -37,13 +37,15 @@ bool ZmqSerenityProcessorFifo(uint32_t key, uint16_t port) {
     socket.connect(sout.str());
 
 
-    ShmSingleton< DataFifoT<6,1024> > shmU;
+    ShmSingleton<RelayWriterDataFifo> shmU;
     shmU.setup(key);
-    DataFifoT<6,1024> *prcfs=shmU.payload();
+    RelayWriterDataFifo *prcfs=shmU.payload();
     prcfs->coldStart();
     prcfs->print();
 
     uint64_t buffer[1024];
+
+    const Record *r;
 
     bool continueLoop(true);
 
@@ -58,13 +60,22 @@ bool ZmqSerenityProcessorFifo(uint32_t key, uint16_t port) {
       std::cout  << std::endl << "************ DATA READY ******************" << std::endl << std::endl;
       prcfs->print();
       
+
+      /*
       uint16_t n(prcfs->read(buffer));
       std::cout << "Size in 64-bit words = " << n << std::endl;
       prcfs->print();
       
       // Send data to PC
       socket.send(zmq::buffer(buffer,8*n), zmq::send_flags::none);
+      */
 
+      r=prcfs->readRecord();
+      assert(r!=nullptr);
+
+      // Send data to PC
+      socket.send(zmq::buffer(r,r->totalLengthInBytes()), zmq::send_flags::none);
+      
       zmq::message_t reply{};
       socket.recv(reply, zmq::recv_flags::none);
 
