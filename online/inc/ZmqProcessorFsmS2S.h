@@ -89,81 +89,100 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
     //socket.recv(request, zmq::recv_flags::none);
 
     auto req = server.getRequest();
+
     if( req.is_valid() ){
       std::cout << "got valid request" << std::endl;
       std::cout << "command = " << req.get_command() << std::endl;
       std::cout << "utc_or_counter = " << req.get_utc_or_counter() << std::endl;
       std::cout << "config = " << req.get_config() << std::endl;
 
-      auto it = replyMap.find( req.get_command() );
-      if( it!=replyMap.end() ) {
-
-	std::cout  << std::endl << "************ GOT REQUEST ******************" << std::endl << std::endl;
-
-	// Put prepare transient in local shared memory
-	auto it2 = stateMap.find(req.get_command());
-	FsmState::State trans(it2->second);
-	r->reset(trans);
-
-	prcfs->print();
-
-	// Wait for the processor to respond
-	while(psOld==(*pState)) usleep(1000);
-	psOld=(*pState);
-
-	std::cout  << std::endl << "************ PREPARED ******************" << std::endl << std::endl;
-	prcfs->print();
-
-	// Set true transient in local shared memory
-	r->setUtc(req.get_utc_or_counter());
-
-	prcfs->print();
-
-	// Wait for the processor to respond
-	while(psOld==(*pState)) usleep(1000);
-	psOld=(*pState);
-
-	std::cout  << std::endl << "************ FINISHED TRANSIENT ******************" << std::endl << std::endl;
-	prcfs->print();
-
-	// Put static in local shared memory
-	r->reset(FsmState::staticStateAfterTransient(trans));
-	prcfs->print();
-
-	// Wait for the processor to respond
-	while(psOld==(*pState)) usleep(1000);
-	psOld=(*pState);
-
-	std::cout  << std::endl << "************ FINISHED FINITE STATIC ******************" << std::endl << std::endl;
-	prcfs->print();
-
-
-	/*
-	  if(prcfs->processState()==FsmState::Shutdown) {
-	  std::cout  << std::endl << "************ SEEN SHUTDOWN ******************" << std::endl << std::endl;
-	  continueLoop=false;
-	  }
-	*/
-
-
-	// Send processor response back to Run Control
-	//socket.send(zmq::buffer(pState,sizeof(FsmState::State)), zmq::send_flags::none);
+      // Special case
+      if(req.get_command()=="Ping") {
 	
-	rep = reply( it->second, 0xC0FFE, "no comment" );
-	server.sendReply( rep );
+	std::cout  << std::endl << "************ GOT PING ******************" << std::endl << std::endl;
+
+	std::string repStr;
+
+	if((*pState)==FsmState::Initial   ) repStr="Initial";
+	if((*pState)==FsmState::Halted    ) repStr="Halted";
+	if((*pState)==FsmState::Configured) repStr="Configured";
+	if((*pState)==FsmState::Running   ) repStr="Running";
+	if((*pState)==FsmState::Paused    ) repStr="Paused";
+
+	rep = reply( repStr, 0xC0FFE, "Pong" );
 	
-      } else { // ! command is in map
-	std::cout  << std::endl << "************ NOT COMMAND ******************" << std::endl << std::endl;
-	rep = reply( "ERROR", 0xC0FFE, "no comment" );
-	server.sendReply( rep );
-      }
+	std::cout  << std::endl << "************ SENT PONG ******************" << std::endl << std::endl;
+
+      } else {
+
+	auto it = replyMap.find( req.get_command() );
+	if( it!=replyMap.end() ) {
+	  
+	  std::cout  << std::endl << "************ GOT REQUEST ******************" << std::endl << std::endl;
+	  
+	  // Put prepare transient in local shared memory
+	  auto it2 = stateMap.find(req.get_command());
+	  FsmState::State trans(it2->second);
+	  r->reset(trans);
+	  
+	  prcfs->print();
+	  
+	  // Wait for the processor to respond
+	  while(psOld==(*pState)) usleep(1000);
+	  psOld=(*pState);
+	  
+	  std::cout  << std::endl << "************ PREPARED ******************" << std::endl << std::endl;
+	  prcfs->print();
+	  
+	  // Set true transient in local shared memory
+	  r->setUtc(req.get_utc_or_counter());
+	  
+	  prcfs->print();
+	  
+	  // Wait for the processor to respond
+	  while(psOld==(*pState)) usleep(1000);
+	  psOld=(*pState);
+	  
+	  std::cout  << std::endl << "************ FINISHED TRANSIENT ******************" << std::endl << std::endl;
+	  prcfs->print();
+	  
+	  // Put static in local shared memory
+	  r->reset(FsmState::staticStateAfterTransient(trans));
+	  prcfs->print();
+	  
+	  // Wait for the processor to respond
+	  while(psOld==(*pState)) usleep(1000);
+	  psOld=(*pState);
+	  
+	  std::cout  << std::endl << "************ FINISHED FINITE STATIC ******************" << std::endl << std::endl;
+	  prcfs->print();
+	  
+	  
+	  /*
+	    if(prcfs->processState()==FsmState::Shutdown) {
+	    std::cout  << std::endl << "************ SEEN SHUTDOWN ******************" << std::endl << std::endl;
+	    continueLoop=false;
+	    }
+	  */
+	  
+	  
+	  // Send processor response back to Run Control
+	  //socket.send(zmq::buffer(pState,sizeof(FsmState::State)), zmq::send_flags::none);
+	  
+	  rep = reply( it->second, 0xC0FFE, "no comment" );
+	  
+	} else { // ! command is in map
+	  std::cout  << std::endl << "************ NOT COMMAND ******************" << std::endl << std::endl;
+	  rep = reply( "ERROR", 0xC0FFE, "no comment" );
+	}
+      }	
 
     } else { // ! reply is_valid    
       std::cout  << std::endl << "************ NOT VALID ******************" << std::endl << std::endl;
       rep = reply( "ERROR", 0xC0FFE, "no comment" );
-      server.sendReply( rep );
     }
     
+    server.sendReply( rep );
   }
   return false;
 }
