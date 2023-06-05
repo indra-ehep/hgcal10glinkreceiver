@@ -168,9 +168,9 @@ namespace Hgcal10gLinkReceiver {
     virtual void configuredB() {
       if(_printEnable) std::cout << "ProcessRelay::configuredB()" << std::endl;
 
-      _ptrFsmInterface->setProcessState(FsmState::ConfiguredB);
+      _ptrFsmInterface->setProcessState(FsmState::Configured);
 
-      while(_ptrFsmInterface->systemState()==FsmState::ConfiguredB) usleep(1000);
+      while(_ptrFsmInterface->systemState()==FsmState::Configured) usleep(1000);
 
       const Record *r;
 
@@ -202,7 +202,7 @@ namespace Hgcal10gLinkReceiver {
 
 	  while((r=(RecordConfigured*)_ptrFifoShm[i]->getWriteRecord())==nullptr) usleep(10);
 	  r->setHeader(_cfgSeqCounter++);
-	  r->setState(FsmState::ConfiguredB);
+	  r->setState(FsmState::Configured);
 	  r->setType(RecordConfigured::HGCROC);
 	  r->setLocation(0xfe00+i);
 	  r->print();

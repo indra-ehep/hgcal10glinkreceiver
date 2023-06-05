@@ -168,7 +168,7 @@ namespace Hgcal10gLinkReceiver {
       while((r=(RecordConfigured*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
 
       r->setHeader(++_fifoCounter);
-      r->setState(FsmState::ConfiguredB);
+      r->setState(FsmState::Configured);
       
       std::vector<uint32_t> v;
       _serenityTcds2.configuration(v);

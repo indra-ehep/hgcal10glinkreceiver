@@ -216,17 +216,17 @@ namespace Hgcal10gLinkReceiver {
 	  _ptrFsmInterface->print();
 	}
 	    
-	if(     _ptrFsmInterface->systemState()==FsmState::Initializing) this->initializing();
-	else if(_ptrFsmInterface->systemState()==FsmState::ConfiguringA) this->configuringA();
-	else if(_ptrFsmInterface->systemState()==FsmState::ConfiguringB) this->configuringB();
-	else if(_ptrFsmInterface->systemState()==FsmState::Starting    ) this->starting();
-	else if(_ptrFsmInterface->systemState()==FsmState::Pausing     ) this->pausing();
-	else if(_ptrFsmInterface->systemState()==FsmState::Resuming    ) this->resuming();
-	else if(_ptrFsmInterface->systemState()==FsmState::Stopping    ) this->stopping();
-	else if(_ptrFsmInterface->systemState()==FsmState::HaltingB    ) this->haltingB();
-	else if(_ptrFsmInterface->systemState()==FsmState::HaltingA    ) this->haltingA();
-	else if(_ptrFsmInterface->systemState()==FsmState::Resetting   ) this->resetting();
-	else if(_ptrFsmInterface->systemState()==FsmState::Ending      ) this->ending();
+	if(     _ptrFsmInterface->systemState()==FsmState::Initializing ) this->initializing();
+	else if(_ptrFsmInterface->systemState()==FsmState::Configuring  ) this->configuringA();
+	else if(_ptrFsmInterface->systemState()==FsmState::Reconfiguring) this->configuringB();
+	else if(_ptrFsmInterface->systemState()==FsmState::Starting     ) this->starting();
+	else if(_ptrFsmInterface->systemState()==FsmState::Pausing      ) this->pausing();
+	else if(_ptrFsmInterface->systemState()==FsmState::Resuming     ) this->resuming();
+	else if(_ptrFsmInterface->systemState()==FsmState::Stopping     ) this->stopping();
+	else if(_ptrFsmInterface->systemState()==FsmState::HaltingB     ) this->haltingB();
+	else if(_ptrFsmInterface->systemState()==FsmState::Halting      ) this->haltingA();
+	else if(_ptrFsmInterface->systemState()==FsmState::Resetting    ) this->resetting();
+	else if(_ptrFsmInterface->systemState()==FsmState::Ending       ) this->ending();
 	else {
 	  if(_printEnable) {
 	    std::cout << "Unknown transient state" << std::endl;
@@ -258,7 +258,7 @@ namespace Hgcal10gLinkReceiver {
 	if(     _ptrFsmInterface->systemState()==FsmState::Initial    ) this->initial();
 	else if(_ptrFsmInterface->systemState()==FsmState::Halted     ) this->halted();
 	else if(_ptrFsmInterface->systemState()==FsmState::ConfiguredA) this->configuredA();
-	else if(_ptrFsmInterface->systemState()==FsmState::ConfiguredB) this->configuredB();
+	else if(_ptrFsmInterface->systemState()==FsmState::Configured ) this->configuredB();
 	else if(_ptrFsmInterface->systemState()==FsmState::Running    ) this->running();
 	else if(_ptrFsmInterface->systemState()==FsmState::Paused     ) this->paused();
 	else if(_ptrFsmInterface->systemState()==FsmState::Shutdown   );

@@ -33,11 +33,11 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
   const std::unordered_map<std::string,FsmState::State> stateMap = {
     {"reset",      FsmState::Resetting},
     {"initialize", FsmState::Initializing},
-    {"configure",  FsmState::ConfiguringA},
-    {"reconfigure",FsmState::ConfiguringB},
+    {"configure",  FsmState::Configuring},
+    {"reconfigure",FsmState::Reconfiguring},
     {"start",      FsmState::Starting},
     {"stop",       FsmState::Stopping},
-    {"halt",       FsmState::HaltingA},
+    {"halt",       FsmState::Halting},
     {"pause",      FsmState::Pausing},
     {"resume",     FsmState::Resuming},
     {"end",        FsmState::Ending}

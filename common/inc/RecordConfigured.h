@@ -24,7 +24,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     void setHeader(uint32_t c) {
-      setState(FsmState::ConfiguredB);
+      setState(FsmState::Configured);
       setPayloadLength(2);
       setUtc(c);
       setType(EndOfTypeEnum);

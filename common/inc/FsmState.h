@@ -14,21 +14,21 @@ namespace Hgcal10gLinkReceiver {
       Initial,
       Halted,
       ConfiguredA,
-      ConfiguredB,
+      Configured,
       Running,
       Paused,
       EndOfStaticEnum,
       
       // Transients
       Initializing=EndOfStaticEnum,
-      ConfiguringA,
-      ConfiguringB,
+      Configuring,
+      Reconfiguring,
       Starting,
       Pausing,
       Resuming,
       Stopping,
       HaltingB,
-      HaltingA,
+      Halting,
       Resetting,
       Ending,
       EndOfTransientEnum,
@@ -54,7 +54,6 @@ namespace Hgcal10gLinkReceiver {
     }
 
     bool staticState() const {
-      //return _state<EndOfStaticEnum;
       return staticState(_state);
     }
     
@@ -86,46 +85,46 @@ namespace Hgcal10gLinkReceiver {
 	
       return	      
 	// Static to Transient
-	(s1==Initial     && s2==Ending      ) ||
-	(s1==Initial     && s2==Initializing) ||
-	(s1==Halted      && s2==ConfiguringA) ||
-	(s1==Halted      && s2==Resetting   ) ||
-	(s1==ConfiguredA && s2==ConfiguringB) ||
-	(s1==ConfiguredA && s2==HaltingA    ) ||
-	(s1==ConfiguredB && s2==Starting    ) ||
-	(s1==ConfiguredB && s2==HaltingB    ) ||
-	(s1==Running     && s2==Pausing     ) ||	      
-	(s1==Running     && s2==Stopping    ) ||
-	(s1==Paused      && s2==Resuming    ) ||
+	(s1==Initial     && s2==Ending       ) ||
+	(s1==Initial     && s2==Initializing ) ||
+	(s1==Halted      && s2==Configuring  ) ||
+	(s1==Halted      && s2==Resetting    ) ||
+	(s1==ConfiguredA && s2==Reconfiguring) ||
+	(s1==ConfiguredA && s2==Halting      ) ||
+	(s1==Configured  && s2==Starting     ) ||
+	(s1==Configured  && s2==HaltingB     ) ||
+	(s1==Running     && s2==Pausing      ) ||	      
+	(s1==Running     && s2==Stopping     ) ||
+	(s1==Paused      && s2==Resuming     ) ||
       
 	// Transient to Static
-	(s1==Initializing && s2==Halted     ) ||
-	(s1==ConfiguringA && s2==ConfiguredA) ||
-	(s1==ConfiguringB && s2==ConfiguredB) ||
-	(s1==Starting     && s2==Running    ) ||
-	(s1==Pausing      && s2==Paused     ) ||
-	(s1==Resuming     && s2==Running    ) ||
-	(s1==Stopping     && s2==ConfiguredB) ||
-	(s1==HaltingB     && s2==ConfiguredA) ||
-	(s1==HaltingA     && s2==Halted     ) ||
-	(s1==Resetting    && s2==Initial    ) ||
-	(s1==Ending       && s2==Shutdown   );      
+	(s1==Initializing  && s2==Halted     ) ||
+	(s1==Configuring   && s2==ConfiguredA) ||
+	(s1==Reconfiguring && s2==Configured ) ||
+	(s1==Starting      && s2==Running    ) ||
+	(s1==Pausing       && s2==Paused     ) ||
+	(s1==Resuming      && s2==Running    ) ||
+	(s1==Stopping      && s2==Configured ) ||
+	(s1==HaltingB      && s2==ConfiguredA) ||
+	(s1==Halting       && s2==Halted     ) ||
+	(s1==Resetting     && s2==Initial    ) ||
+	(s1==Ending        && s2==Shutdown   );      
     }
 
     static State staticStateBeforeTransient(State s) {
       if(staticState(s)) return EndOfStateEnum;
 
-      if(s==Initializing) return Initial;
-      if(s==ConfiguringA) return Halted;
-      if(s==ConfiguringB) return ConfiguredA;
-      if(s==Starting    ) return ConfiguredB;
-      if(s==Pausing     ) return Running;
-      if(s==Resuming    ) return Paused;
-      if(s==Stopping    ) return Running;
-      if(s==HaltingB    ) return ConfiguredB;
-      if(s==HaltingA    ) return ConfiguredA;
-      if(s==Resetting   ) return Halted;
-      if(s==Ending      ) return Initial;
+      if(s==Initializing ) return Initial;
+      if(s==Configuring  ) return Halted;
+      if(s==Reconfiguring) return ConfiguredA;
+      if(s==Starting     ) return Configured;
+      if(s==Pausing      ) return Running;
+      if(s==Resuming     ) return Paused;
+      if(s==Stopping     ) return Running;
+      if(s==HaltingB     ) return Configured;
+      if(s==Halting      ) return ConfiguredA;
+      if(s==Resetting    ) return Halted;
+      if(s==Ending       ) return Initial;
 
       return EndOfStateEnum;
     }
@@ -134,17 +133,17 @@ namespace Hgcal10gLinkReceiver {
     static State staticStateAfterTransient(State s) {
       if(staticState(s)) return EndOfStateEnum;
 
-      if(s==Initializing) return Halted;
-      if(s==ConfiguringA) return ConfiguredA;
-      if(s==ConfiguringB) return ConfiguredB;
-      if(s==Starting    ) return Running;
-      if(s==Pausing     ) return Paused;
-      if(s==Resuming    ) return Running;
-      if(s==Stopping    ) return ConfiguredB;
-      if(s==HaltingB    ) return ConfiguredA;
-      if(s==HaltingA    ) return Halted;
-      if(s==Resetting   ) return Initial;
-      if(s==Ending      ) return Shutdown;
+      if(s==Initializing ) return Halted;
+      if(s==Configuring  ) return ConfiguredA;
+      if(s==Reconfiguring) return Configured;
+      if(s==Starting     ) return Running;
+      if(s==Pausing      ) return Paused;
+      if(s==Resuming     ) return Running;
+      if(s==Stopping     ) return Configured;
+      if(s==HaltingB     ) return ConfiguredA;
+      if(s==Halting      ) return Halted;
+      if(s==Resetting    ) return Initial;
+      if(s==Ending       ) return Shutdown;
 
       return EndOfStateEnum;
     }
@@ -162,30 +161,30 @@ namespace Hgcal10gLinkReceiver {
     static const std::string _stateName[EndOfStateEnum];
   };
  
-  const std::string FsmState::_unknown="Unknown     ";
+  const std::string FsmState::_unknown="Unknown      ";
     
   const std::string FsmState::_stateName[EndOfStateEnum]={
     // Statics
-    "Shutdown    ",
-    "Initial     ",
-    "Halted      ",
-    "ConfiguredA ",
-    "ConfiguredB ",
-    "Running     ",
-    "Paused      ",
+    "Shutdown     ",
+    "Initial      ",
+    "Halted       ",
+    "ConfiguredA  ",
+    "Configured   ",
+    "Running      ",
+    "Paused       ",
       
     // Transients
-    "Initializing",
-    "ConfiguringA",
-    "ConfiguringB",
-    "Starting    ",
-    "Pausing     ",
-    "Resuming    ",
-    "Stopping    ",
-    "HaltingB    ",
-    "HaltingA    ",
-    "Resetting   ",
-    "Ending      ",
+    "Initializing ",
+    "Configuring  ",
+    "Reconfiguring",
+    "Starting     ",
+    "Pausing      ",
+    "Resuming     ",
+    "Stopping     ",
+    "HaltingB     ",
+    "Halting      ",
+    "Resetting    ",
+    "Ending       ",
     
     // For file and buffer records only    
     "Continuing  "

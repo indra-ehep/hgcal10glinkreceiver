@@ -16,13 +16,13 @@ namespace Hgcal10gLinkReceiver {
     }
     
     void setHeader(uint32_t c) {
-      setState(FsmState::ConfiguredB);
+      setState(FsmState::Configured);
       setPayloadLength(2);
       setUtc(c);
     }
   
     bool valid() const {
-      return validPattern() && state()==FsmState::ConfiguredB;
+      return validPattern() && state()==FsmState::Configured;
     }
     
     uint32_t relayNumber() const {

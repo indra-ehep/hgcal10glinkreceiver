@@ -219,14 +219,14 @@ namespace Hgcal10gLinkReceiver {
       }
 
       if(_checkEnable) {
-	if(_ptrFsmInterface->record().state()!=FsmState::ConfiguringA) {
+	if(_ptrFsmInterface->record().state()!=FsmState::Configuring) {
 	  std::cerr << "State does not match" << std::endl;
 	  std::cout << "State does not match" << std::endl;
 	  if(_assertEnable) assert(false);
 	}
       }
       
-      //assert(_ptrFsmInterface->commandPacket().record().state()==FsmState::ConfiguringA);
+      //assert(_ptrFsmInterface->commandPacket().record().state()==FsmState::Configuring);
 
       _cfgSeqCounter=1;
       _evtSeqCounter=1;
@@ -424,7 +424,7 @@ namespace Hgcal10gLinkReceiver {
 
 	while((r=(RecordConfigured*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
 	r->setHeader(_cfgSeqCounter++);
-	r->setState(FsmState::ConfiguredB);
+	r->setState(FsmState::Configured);
 	r->setType(RecordConfigured::HGCROC);
 	r->setLocation(0xfe00+i);
 	if(_printEnable) r->print();
