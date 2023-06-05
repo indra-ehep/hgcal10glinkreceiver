@@ -33,9 +33,9 @@ bool ZmqPcProcessorFifo(uint32_t key, uint16_t port) {
   //socket.connect("tcp://serenity-2368-03-i5:5556");
   socket.bind(sout.str());
   
-  ShmSingleton< DataFifoT<6,1024> > shmU;
+  ShmSingleton<RelayWriterDataFifo> shmU;
   shmU.setup(key);
-  DataFifoT<6,1024> *prcfs=shmU.payload();
+  RelayWriterDataFifo *prcfs=shmU.payload();
   prcfs->print();
   
   zmq::message_t request;
@@ -57,7 +57,9 @@ bool ZmqPcProcessorFifo(uint32_t key, uint16_t port) {
     prcfs->print();
 
     // Write into local PC FIFO
-    assert(prcfs->write((request.size()+7)/8,(uint64_t*)request.data()));
+    //assert(prcfs->write((request.size()+7)/8,(uint64_t*)request.data()));
+    assert(prcfs->writeable()>0);
+    prcfs->getWriteRecord()->deepCopy((Record*)request.data());
     prcfs->print();
 
     socket.send(zmq::buffer(&z,1), zmq::send_flags::none);
