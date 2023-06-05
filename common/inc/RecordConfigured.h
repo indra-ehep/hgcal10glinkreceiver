@@ -30,6 +30,10 @@ namespace Hgcal10gLinkReceiver {
       setType(EndOfTypeEnum);
       setLocation(0);
     }
+  
+    bool valid() const {
+      return validPattern() && state()==FsmState::Configured;
+    }
     
     uint32_t relayNumber() const {
       return _payload[0]&0xffffffff;

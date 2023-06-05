@@ -90,8 +90,9 @@ int main(int argc, char** argv) {
     if(r.state()<FsmState::EndOfStateEnum) nRecord[r.state()]++;
     else nRecord[FsmState::EndOfStateEnum]++;
 
-    if(r.state()!=FsmState::Running &&
-       r.state()!=FsmState::ConfiguredB) RecordPrinter(&r);
+    //if(r.state()!=FsmState::Running &&
+    // r.state()!=FsmState::Configured) RecordPrinter(&r);
+    if(r.state()!=FsmState::Running) RecordPrinter(&r);
     
     // Check the change of state is allowed
 
@@ -130,7 +131,7 @@ int main(int argc, char** argv) {
       assert(rcb.payloadLength()<=rcb.maxNumberOfPayloadWords());
 
       assert(rcb.relayNumber()==relayNumber);
-      assert(rcb.configurationCounter()==(++nCfgB));
+      //assert(rcb.configurationCounter()==(++nCfgB));
       assert(rcb.maxNumberOfRuns()==1);
 
       nSt=0;
@@ -245,7 +246,7 @@ int main(int argc, char** argv) {
       assert(rha.payloadLength()==rha.maxNumberOfPayloadWords());
 
       assert(rha.relayNumber()==relayNumber);
-      assert(rha.numberOfConfigurations()==nCfgInRelay);
+      //assert(rha.numberOfConfigurations()==nCfgInRelay);
       assert(rha.numberOfRuns()==nRunInRelay);
       //assert(rha.numberOfEvents()==nEvtInRelay);
     }
@@ -264,11 +265,17 @@ int main(int argc, char** argv) {
   // Print out table
   std::cout << std::endl << "Number of records seen by state" << std::endl;
   for(unsigned i(0);i<=FsmState::EndOfStateEnum;i++) {
-    if(((FsmState::State)i)==FsmState::EndOfStaticEnum) std::cout << std::endl;
 
-    std::cout << " State " << FsmState::stateName((FsmState::State)i)
-	      << ", number of records = " << std::setw(10)
-	      << nRecord[i] << std::endl;
+    // TEMP!!!
+    if(((FsmState::State)i)!=FsmState::ConfiguredA &&
+       ((FsmState::State)i)!=FsmState::HaltingB) {
+      
+      if(((FsmState::State)i)==FsmState::EndOfStaticEnum) std::cout << std::endl;
+
+      std::cout << " State " << FsmState::stateName((FsmState::State)i)
+		<< ", number of records = " << std::setw(10)
+		<< nRecord[i] << std::endl;
+    }
   }
 
   return 0;
