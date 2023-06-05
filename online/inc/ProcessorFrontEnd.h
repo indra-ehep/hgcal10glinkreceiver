@@ -44,8 +44,8 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool configuringA() {
-      RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->record()));
+    bool configuring() {
+      RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
       if(_printEnable) r.print();
 
       _keyCfgA=r.processorKey(RunControlFrontEndFsmShmKey);
@@ -82,8 +82,8 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool configuringB() {
-      RecordConfiguringB &r((RecordConfiguringB&)(_ptrFsmInterface->record()));
+    bool reconfiguring() {
+      RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
       if(_printEnable) r.print();
 
       _keyCfgB=r.processorKey(RunControlFrontEndFsmShmKey);
@@ -156,11 +156,7 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool haltingB() {
-      return true;
-    }
-    
-    bool haltingA() {
+    bool halting() {
       std::string c("cd /home/cmx/rshukla/hgc-engine-tools;python3 roc_control_PD.py --source file --filename initLD-hgcrocv3.csv --dir write --roc s2");
       if(_printEnable) std::cout << "System call = " << c << std::endl;
       system(c.c_str());
@@ -185,18 +181,9 @@ namespace Hgcal10gLinkReceiver {
 
     //////////////////////////////////////////////
 
-
-    virtual void configuredA() {
+    virtual void configured() {
       if(_printEnable) {
-	std::cout << "ProcessorFrontEnd::configuredA()" << std::endl;
-      }
-      
-      writeContinuing();
-    }
-
-    virtual void configuredB() {
-      if(_printEnable) {
-	std::cout << "ProcessorFrontEnd::configuredB()" << std::endl;
+	std::cout << "ProcessorFrontEnd::configured()" << std::endl;
       }
       /*
 	RecordConfigured *r;

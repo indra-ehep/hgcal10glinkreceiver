@@ -1,5 +1,6 @@
 #ifndef Hgcal10gLinkReceiver_RecordConfiguredB_h
 #define Hgcal10gLinkReceiver_RecordConfiguredB_h
+#ifndef Hgcal10gLinkReceiver_RecordConfiguredB_h
 
 #include <iostream>
 #include <iomanip>
@@ -86,4 +87,5 @@ namespace Hgcal10gLinkReceiver {
 
 }
 
+#endif
 #endif

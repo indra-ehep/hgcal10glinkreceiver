@@ -57,8 +57,8 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool configuringA() {
-      RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->record()));
+    bool configuring() {
+      RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
       if(_printEnable) r.print();
 
       _keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
@@ -81,8 +81,8 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool configuringB() {
-      RecordConfiguringB &r((RecordConfiguringB&)(_ptrFsmInterface->record()));
+    bool reconfiguring() {
+      RecordReconfiguring &r((RecordReconfiguring&)(_ptrFsmInterface->record()));
       if(_printEnable) r.print();
 
       _keyCfgB=r.processorKey(RunControlTcds2FsmShmKey);
@@ -127,11 +127,7 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool haltingB() {
-      return true;
-    }
-    
-    bool haltingA() {
+    bool halting() {
       return true;
     }
     
@@ -150,18 +146,9 @@ namespace Hgcal10gLinkReceiver {
 
     //////////////////////////////////////////////
 
-
-    virtual void configuredA() {
+    virtual void configured() {
       if(_printEnable) {
-	std::cout << "ProcessorTcds2::configuredA()" << std::endl;
-      }
-      
-      writeContinuing();
-    }
-
-    virtual void configuredB() {
-      if(_printEnable) {
-	std::cout << "ProcessorTcds2::configuredB()" << std::endl;
+	std::cout << "ProcessorTcds2::configured()" << std::endl;
       }
 
       RecordConfigured *r;

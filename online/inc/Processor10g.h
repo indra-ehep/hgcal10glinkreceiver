@@ -56,8 +56,8 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool configuringA() {
-	RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->record()));
+    bool configuring() {
+	RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
 	if(_printEnable) r.print();
 
 	_keyCfgA=r.processorKey(RunControlDummyFsmShmKey);
@@ -85,8 +85,8 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool configuringB() {
-	RecordConfiguringB &r((RecordConfiguringB&)(_ptrFsmInterface->record()));
+    bool reconfiguring() {
+	RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
 	if(_printEnable) r.print();
 
 	_keyCfgB=r.processorKey(RunControlDummyFsmShmKey);
@@ -139,11 +139,7 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool haltingB() {
-      return true;
-    }
-    
-    bool haltingA() {
+    bool halting() {
       return true;
     }
     
@@ -164,18 +160,9 @@ namespace Hgcal10gLinkReceiver {
 
     //////////////////////////////////////////////
 
-
-    virtual void configuredA() {
+    virtual void configured() {
       if(_printEnable) {
-	std::cout << "Processor10g::configuredA()" << std::endl;
-      }
-      
-      writeContinuing();
-    }
-
-    virtual void configuredB() {
-      if(_printEnable) {
-	std::cout << "Processor10g::configuredB()" << std::endl;
+	std::cout << "Processor10g::configured()" << std::endl;
       }
 
         if(ptrFifoShm2!=nullptr) {

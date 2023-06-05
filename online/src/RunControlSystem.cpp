@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
       unsigned nr(0);
       unsigned nrt(0);
 
-      RecordConfiguringA rca;
+      RecordConfiguring rca;
       rca.setHeader();
 
       if(x=='y') rca.setRelayNumber();
@@ -191,23 +191,25 @@ int main(int argc, char *argv[]) {
       engine.command(&rca);
 
       for(nc=0;nc<rca.maxNumberOfConfigurations() && continueRelay;nc++) {
-	RecordConfiguringB rcb;
-	rcb.setHeader();
-	rcb.setRelayNumber(srNumber);
-	rcb.setConfigurationCounter(nc+1);
-	rcb.setMaxNumberOfRuns(1);
+	if(nc>0) {
+	  RecordReconfiguring rcb;
+	  rcb.setHeader();
+	  rcb.setRelayNumber(srNumber);
+	  rcb.setConfigurationCounter(nc+1);
+	  rcb.setMaxNumberOfRuns(1);
+	  
+	  // Configuration
+	  if(nx==123) rcb.setProcessKey(RunControlTcds2FsmShmKey,20+(nc%80));
+	  
+	  //fcp.setCommand(FsmCommand::ConfigureB);
+	  //fcp.setRecord(rcb);
+	  std::cout  << std::endl << "HEREB!" << std::endl << std::endl;
+	  rcb.print();
+	  //fcp.print();
+	  engine.command(&rcb);
+	}
 
-	// Configuration
-	if(nx==123) rcb.setProcessKey(RunControlTcds2FsmShmKey,20+(nc%80));
-	
-	//fcp.setCommand(FsmCommand::ConfigureB);
-	//fcp.setRecord(rcb);
-	std::cout  << std::endl << "HEREB!" << std::endl << std::endl;
-	rcb.print();
-	//fcp.print();
-	engine.command(&rcb);
-
-	for(nr=0;nr<rcb.maxNumberOfRuns() && continueRelay;nr++) {
+	for(nr=0;nr<1 && continueRelay;nr++) {
 	  RecordStarting rsa;
 	  rsa.setHeader();
 
@@ -280,7 +282,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	nrt+=nr;
-	
+	/*	
 	RecordHaltingB rhb;
 	rhb.setHeader();
 	rhb.setRelayNumber(srNumber);
@@ -294,9 +296,10 @@ int main(int argc, char *argv[]) {
 	rhb.print();
 	//fcp.print();
 	engine.command(&rhb);
+	*/
       }
     
-      RecordHaltingA rha;
+      RecordHalting rha;
       rha.setHeader();
       rha.setRelayNumber(srNumber);
       rha.setNumberOfConfigurations(nc);

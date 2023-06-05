@@ -10,7 +10,7 @@
 #include "ProcessorBase.h"
 #include "DataFifo.h"
 #include "RecordHeader.h"
-#include "RecordHaltingA.h"
+#include "RecordHalting.h"
 #include "RecordResetting.h"
 #include "FileWriter.h"
 
@@ -109,12 +109,7 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }    
 
-    bool haltingB() {
-      _ptrFifoShm->print();
-      return true;
-    }    
-
-    bool haltingA() {
+    bool halting() {
       _ptrFifoShm->print();
       return true;
     }    
@@ -129,11 +124,7 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    void configuredB() {
-      _ptrFifoShm->print();
-    }
-
-    void configuredA() {
+    void configured() {
       _ptrFifoShm->print();
     }
 

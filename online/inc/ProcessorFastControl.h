@@ -211,9 +211,9 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool configuringA() {
+    bool configuring() {
       if(_printEnable) {
-	std::cout << "ConfiguringA" << std::endl;
+	std::cout << "Configuring" << std::endl;
 	RecordPrinter(_ptrFsmInterface->record());
 	std::cout << std::endl;
       }
@@ -279,7 +279,7 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool configuringB() {
+    bool reconfiguring() {
       /*
 	RecordConfiguringB rcb;
 	rcb.deepCopy(_ptrFsmInterface->commandPacket().record());
@@ -362,22 +362,8 @@ namespace Hgcal10gLinkReceiver {
 
       return true;
     }
-    
-    bool haltingB() {
-      /*
-	_eventNumberInSuperRun+=_eventNumberInConfiguration;
 
-	RecordHaltingB rr;
-	rr.deepCopy(_ptrFsmInterface->commandPacket().record());
-	rr.setNumberOfEvents(_eventNumberInConfiguration);
-	rr.print();
-	ptrFifoShm2->print();
-	assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
-      */
-      return true;
-    }
-    
-    bool haltingA() {
+    bool halting() {
       /*
 	RecordHaltingA rr;
 	rr.deepCopy(_ptrFsmInterface->commandPacket().record());
@@ -406,19 +392,10 @@ namespace Hgcal10gLinkReceiver {
 
     //////////////////////////////////////////////
 
+    virtual void configured() {
 
-    virtual void configuredA() {
-      RecordContinuing *rc((RecordContinuing*)(ptrFifoShm2->getWriteRecord()));
-      rc->setHeader();
-      if(_printEnable) rc->print();
-      ptrFifoShm2->writeIncrement();
-    }
-    
-    virtual void configuredB() {
+      std::cout << "configured() relay = " << _relayNumber << std::endl;
 
-      std::cout << "configuredB() super run = " << _superRunNumber << std::endl;
-
-      //RecordConfiguredB *r;
       RecordConfigured *r;
       for(unsigned i(1);i<=3;i++) {
 
@@ -594,7 +571,7 @@ namespace Hgcal10gLinkReceiver {
     uint32_t _evtSeqCounter;
     uint32_t _pauseCounter;
 
-    uint32_t _superRunNumber;
+    uint32_t _relayNumber;
     uint32_t _runNumber;
 
     uint32_t _runNumberInSuperRun;

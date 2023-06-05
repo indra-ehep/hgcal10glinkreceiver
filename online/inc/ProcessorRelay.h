@@ -56,8 +56,8 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool configuringA() {
-	RecordConfiguringA &r((RecordConfiguringA&)(_ptrFsmInterface->record()));
+    bool configuring() {
+	RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
 
 	_fileWriter.openRelay(r.relayNumber());
 	_fileWriter.write(&(_ptrFsmInterface->record()));
@@ -69,7 +69,7 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool configuringB() {
+    bool reconfiguring() {
 	_fileWriter.write(&(_ptrFsmInterface->record()));
 
 	_eventNumberInConfiguration=0;
@@ -113,17 +113,10 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool haltingB() {
-	_fileWriter.write(&(_ptrFsmInterface->record()));
-
-	_eventNumberInRelay+=_eventNumberInConfiguration;
-
-      return true;
-    }
-    
-    bool haltingA() {
-	_fileWriter.write(&(_ptrFsmInterface->record()));
-	_fileWriter.close();
+    bool halting() {
+      _eventNumberInRelay+=_eventNumberInConfiguration;
+      _fileWriter.write(&(_ptrFsmInterface->record()));
+      _fileWriter.close();
       return true;
     }
     
@@ -138,35 +131,9 @@ namespace Hgcal10gLinkReceiver {
     }
 
     //////////////////////////////////////////////
-
-    virtual void configuredA() {
-      if(_printEnable) std::cout << "ProcessRelay::configuredA()" << std::endl;
-
-      _ptrFsmInterface->setProcessState(FsmState::ConfiguredA);
-
-      while(_ptrFsmInterface->systemState()==FsmState::ConfiguredA) usleep(1000);
-
-      const Record *r;
-
-      for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
-	//bool done(false);
-	//while(!done) {
-	while((r=_ptrFifoShm[i]->readRecord())!=nullptr) {
-	  if(_printEnable) r->print();
-	  
-	  if(r->state()!=FsmState::Continuing) {
-	    _fileWriter.write(r);
-	  } else {
-	    //done=true;
-	  }
-	  _ptrFifoShm[i]->readIncrement();
-	}
-	//}
-      }
-    }
     
-    virtual void configuredB() {
-      if(_printEnable) std::cout << "ProcessRelay::configuredB()" << std::endl;
+    virtual void configured() {
+      if(_printEnable) std::cout << "ProcessRelay::configured()" << std::endl;
 
       _ptrFsmInterface->setProcessState(FsmState::Configured);
 
@@ -194,9 +161,8 @@ namespace Hgcal10gLinkReceiver {
 
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
 
-	std::cout << "configuredB() relay = " << _relayNumber << std::endl;
+	std::cout << "configured() relay = " << _relayNumber << std::endl;
 
-	//RecordConfiguredB *r;
 	RecordConfigured *r;
 	for(unsigned i(1);i<=3;i++) {
 

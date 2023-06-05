@@ -31,17 +31,16 @@ int main(int argc, char** argv) {
 
   RecordT<1023> r;
 
-  RecordConfiguringA &rca((RecordConfiguringA&)r);
-  RecordConfiguringB &rcb((RecordConfiguringB&)r);
-  RecordConfiguredB  &rdb((RecordConfiguredB& )r);
-  RecordStarting     &rst((RecordStarting&    )r);
-  RecordRunning      &rrn((RecordRunning&     )r);
-  RecordPausing      &rps((RecordPausing&     )r);
-//RecordPaused       &rpd((RecordPaused&      )r);
-  RecordResuming     &rrs((RecordResuming&    )r);
-  RecordStopping     &rsp((RecordStopping&    )r);
-  RecordHaltingB     &rhb((RecordHaltingB&    )r);
-  RecordHaltingA     &rha((RecordHaltingA&    )r);
+  RecordConfiguring   &rca((RecordConfiguring&  )r);
+  RecordReconfiguring &rcb((RecordReconfiguring&)r);
+  RecordConfigured    &rdb((RecordConfigured&   )r);
+  RecordStarting      &rst((RecordStarting&     )r);
+  RecordRunning       &rrn((RecordRunning&      )r);
+  RecordPausing       &rps((RecordPausing&      )r);
+//RecordPaused        &rpd((RecordPaused&       )r);
+  RecordResuming      &rrs((RecordResuming&     )r);
+  RecordStopping      &rsp((RecordStopping&     )r);
+  RecordHalting       &rha((RecordHalting&      )r);
 
   uint32_t nRecord[FsmState::EndOfStateEnum+1];
   for(unsigned i(0);i<=FsmState::EndOfStateEnum;i++) nRecord[i]=0;
@@ -115,7 +114,7 @@ int main(int argc, char** argv) {
 
     
     // Check values for each case
-    if(r.state()==FsmState::ConfiguringA) {
+    if(r.state()==FsmState::Configuring) {
       assert(rca.valid());
       assert(rca.utc()==relayNumber);
       assert(rca.payloadLength()==rca.maxNumberOfPayloadWords());
@@ -125,7 +124,7 @@ int main(int argc, char** argv) {
       nCfgA++;
     }
 
-    else if(r.state()==FsmState::ConfiguringB) {
+    else if(r.state()==FsmState::Reconfiguring) {
       assert(rcb.valid());
       assert(rcb.utc()>=previousRecordHeader.utc());
       assert(rcb.payloadLength()<=rcb.maxNumberOfPayloadWords());
@@ -142,7 +141,7 @@ int main(int argc, char** argv) {
       nEvtInCfg=0;
     }
     
-    else if(r.state()==FsmState::ConfiguredB) {
+    else if(r.state()==FsmState::Configured) {
       assert(rdb.valid());      
       //assert(rst.sequenceCounter()==?);
     }
@@ -224,6 +223,7 @@ int main(int argc, char** argv) {
       assert(nPs==nRs);
     }
 
+    /*
     else if(r.state()==FsmState::HaltingB) {
       assert(rhb.valid());
       assert(rhb.utc()>=previousRecordHeader.utc());
@@ -237,9 +237,9 @@ int main(int argc, char** argv) {
       assert(rhb.numberOfRuns()==nSt);
       assert(rhb.numberOfRuns()==nSp);
     }
+    */
 
-
-    else if(r.state()==FsmState::HaltingA) {
+    else if(r.state()==FsmState::Halting) {
       assert(rha.valid());
       assert(rha.utc()>=previousRecordHeader.utc());
       assert(rha.payloadLength()==rha.maxNumberOfPayloadWords());

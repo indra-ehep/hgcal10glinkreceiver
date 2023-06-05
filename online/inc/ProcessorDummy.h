@@ -22,12 +22,12 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool configuringA() {
+    bool configuring() {
       sleep(1);
       return true;
     }
     
-    bool configuringB() {
+    bool reconfiguring() {
       sleep(1);
       return true;
     }
@@ -52,12 +52,7 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
-    bool haltingB() {
-      sleep(1);
-      return true;
-    }
-    
-    bool haltingA() {
+    bool halting() {
       sleep(1);
       return true;
     }
@@ -82,11 +77,7 @@ namespace Hgcal10gLinkReceiver {
       sleep(1);
     }
     
-    void configuredA() {
-      sleep(1);
-    }
-    
-    void configuredB() {
+    void configured() {
       sleep(1);
     }
     
