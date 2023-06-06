@@ -134,11 +134,11 @@ namespace Hgcal10gLinkReceiver {
 
 #else
 
-  uint32_t uhalRead(const std::string &s) {
+  virtual uint32_t uhalRead(const std::string &s) {
     return 999;
   }
 
-  bool uhalWrite(const std::string &s, uint32_t v) {
+  virtual bool uhalWrite(const std::string &s, uint32_t v) {
     std::cout << "uhalWrite: setting " << s << " to  0x"
 	      << std::hex << std::setfill('0')
 	      << std::setw(8) << v
