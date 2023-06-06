@@ -411,13 +411,13 @@ namespace Hgcal10gLinkReceiver {
     }
 
     virtual void running() {
-      _serenityEncoder.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",1);
+      _serenityEncoder.uhalWrite("ctrl.tts",1);
 
       _ptrFsmInterface->setProcessState(FsmState::Running);
 
       while(_ptrFsmInterface->systemState()==FsmState::Running) usleep(1000);
       
-      _serenityEncoder.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",0);
+      _serenityEncoder.uhalWrite("ctrl.tts",0);
       
       RecordContinuing *rc((RecordContinuing*)(ptrFifoShm2->getWriteRecord()));
       rc->setHeader();

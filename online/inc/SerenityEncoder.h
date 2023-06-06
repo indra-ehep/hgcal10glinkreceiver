@@ -72,7 +72,8 @@ namespace Hgcal10gLinkReceiver {
       uint32_t _mask;
     };
   
-    SerenityEncoder() {
+    SerenityEncoder() { 
+#ifndef ProcessorHardware
       _uhalData.resize(7);
       
       accessInfoMap["ctrl"                   ]=AccessInfo(0, 0,0xffffffff);
@@ -95,6 +96,7 @@ namespace Hgcal10gLinkReceiver {
       accessInfoMap["l1a_counter_l"]=AccessInfo(4, 0,0xffffffff);
       accessInfoMap["l1a_counter_h"]=AccessInfo(5, 0,0xffffffff);
       accessInfoMap["orb_counter"  ]=AccessInfo(6, 0,0xffffffff);
+#endif
     }
     
     virtual ~SerenityEncoder() {
@@ -120,15 +122,16 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("ctrl_2",0);
       uhalWrite("ctrl_3",0);
 
-      uhalWrite("l1a_counter_l",0);
-      uhalWrite("l1a_counter_h",0);
-      uhalWrite("orb_counter",0);
+      // NO! Read-only
+      //uhalWrite("l1a_counter_l",0);
+      //uhalWrite("l1a_counter_h",0);
+      //uhalWrite("orb_counter",0);
       
       // fc_lpgbt_pair
 
-      uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.ctrl.calpulse_type",1);
-      uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.ctrl.user_bx",1);
-      uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.fc_cmd.user",0x36);
+      //uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.ctrl.calpulse_type",1);
+      //uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.ctrl.user_bx",1);
+      //uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.fc_cmd.user",0x36);
 
       return true;
     }  

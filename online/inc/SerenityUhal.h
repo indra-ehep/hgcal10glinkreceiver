@@ -53,18 +53,26 @@ namespace Hgcal10gLinkReceiver {
       _uhalTopString=s;
       
 #ifdef ProcessorHardware
+      //uhal::ValWord<uint32_t> ver = lHW.getNode("FIRMWARE_REVISION").read();
+      //std::cout << "Firmware revision = " << ver.value() << std::endl;
+
       std::vector<std::string> temp;
       temp=lHW.getNode(s).getNodes();
+      //temp=lHW.getNodes();
       
       if(_printEnable) {
 	for(unsigned i(0);i<temp.size();i++) {
-	  std::cout << "ALL string " << temp[i] << std::endl;
+	  std::cout << "ALL string " << temp[i]
+		    << " 0x" << std::hex
+		    << lHW.getNode(s+"."+temp[i]).getAddress()
+		    << std::endl;
 	}
-	std::cout << std::endl;
+	std::cout << std::dec << std::endl;
       }
 
       _uhalString.resize(0);
       for(unsigned i(0);i<temp.size();i++) {
+	/*
 	if(s=="payload") {
 	  if(temp[i].substr(0,8)=="fc_ctrl.") {
 	    std::cout << "Substr = " << temp[i].substr(8,17) << std::endl;
@@ -76,7 +84,9 @@ namespace Hgcal10gLinkReceiver {
 	  }
 	} else {
 	  _uhalString.push_back(s+"."+temp[i]);
-	}
+        }
+	*/
+	  _uhalString.push_back(temp[i]);
       }
     
       if(_printEnable) {
@@ -84,7 +94,7 @@ namespace Hgcal10gLinkReceiver {
 	  std::cout << "RO UHAL string " << std::setw(3) << " = " 
 		    << _uhalString[i] << std::endl;
 	
-	  const uhal::Node& lNode = lHW.getNode(_uhalString[i]);
+	  const uhal::Node& lNode = lHW.getNode(_uhalTopString+"."+_uhalString[i]);
 	  uhal::ValWord<uint32_t> lReg = lNode.read();
 	  lHW.dispatch();
 	
@@ -103,7 +113,7 @@ namespace Hgcal10gLinkReceiver {
 #ifdef ProcessorHardware
   uint32_t uhalRead(const std::string &s) {
     //const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
-    const uhal::Node& lNode = lHW.getNode(s);
+    const uhal::Node& lNode = lHW.getNode(_uhalTopString+"."+s);
     uhal::ValWord<uint32_t> lReg = lNode.read();
     lHW.dispatch();
 
@@ -124,7 +134,7 @@ namespace Hgcal10gLinkReceiver {
 	      << std::endl;
     
     //const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
-    const uhal::Node& lNode = lHW.getNode(s);
+    const uhal::Node& lNode = lHW.getNode(_uhalTopString+"."+s);
     lNode.write(v);
     lHW.dispatch();
     

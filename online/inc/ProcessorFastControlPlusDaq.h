@@ -99,7 +99,7 @@ namespace Hgcal10gLinkReceiver {
     }
 
     void running() {
-      _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",1);
+      _serenityEncoder.uhalWrite("ctrl.tts",1);
 
       _ptrFsmInterface->setProcessState(FsmState::Running);
 
@@ -402,7 +402,7 @@ namespace Hgcal10gLinkReceiver {
       }
 
 	// Throttle
-      _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",0);
+      _serenityEncoder.uhalWrite("ctrl.tts",0);
 
       RecordContinuing *rc((RecordContinuing*)(ptrFifoShm2->getWriteRecord()));
       rc->setHeader();
