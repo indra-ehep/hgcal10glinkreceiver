@@ -37,9 +37,12 @@ namespace Hgcal10gLinkReceiver {
     }
   
     bool setDefaults() {
-      uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.ctrl.calpulse_type",1);
-      uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.ctrl.user_bx",1);
-      uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.fc_cmd.user",0x36);
+      //uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.ctrl.calpulse_type",1);
+      //uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.ctrl.user_bx",1);
+      //uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.fc_cmd.user",0x36);
+      uhalWrite("ctrl.calpulse_type",1);
+      uhalWrite("ctrl.user_bx",1);
+      uhalWrite("fc_cmd.user",0x36);
       return true;
     }  
 

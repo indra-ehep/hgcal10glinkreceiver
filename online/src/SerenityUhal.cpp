@@ -32,7 +32,10 @@ int main(int argc, char *argv[]) {
 
   SerenityUhal su;
   su.setPrintEnable(printEnable);
-  su.makeTable("eth10g");
+  //su.makeTable("eth10g");
+  su.makeTable("payload");
+ su.csv(std::cout);
+
   //su.setDefaults();
   //su.uhalWrite("BLAH",0xdead);
   su.uhalWrite("payload.reg_320.ctrl3",0xaccccccc);

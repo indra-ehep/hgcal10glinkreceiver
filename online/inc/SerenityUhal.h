@@ -50,19 +50,29 @@ namespace Hgcal10gLinkReceiver {
     }
 
     bool makeTable(const std::string &s="payload") {
+      _uhalTopString=s;
+      
 #ifdef ProcessorHardware
+      //uhal::ValWord<uint32_t> ver = lHW.getNode("FIRMWARE_REVISION").read();
+      //std::cout << "Firmware revision = " << ver.value() << std::endl;
+
       std::vector<std::string> temp;
       temp=lHW.getNode(s).getNodes();
+      //temp=lHW.getNodes();
       
       if(_printEnable) {
 	for(unsigned i(0);i<temp.size();i++) {
-	  std::cout << "ALL string " << temp[i] << std::endl;
+	  std::cout << "ALL string " << temp[i]
+		    << " 0x" << std::hex
+		    << lHW.getNode(s+"."+temp[i]).getAddress()
+		    << std::endl;
 	}
-	std::cout << std::endl;
+	std::cout << std::dec << std::endl;
       }
 
       _uhalString.resize(0);
       for(unsigned i(0);i<temp.size();i++) {
+	/*
 	if(s=="payload") {
 	  if(temp[i].substr(0,8)=="fc_ctrl.") {
 	    std::cout << "Substr = " << temp[i].substr(8,17) << std::endl;
@@ -74,7 +84,9 @@ namespace Hgcal10gLinkReceiver {
 	  }
 	} else {
 	  _uhalString.push_back(s+"."+temp[i]);
-	}
+        }
+	*/
+	  _uhalString.push_back(temp[i]);
       }
     
       if(_printEnable) {
@@ -82,7 +94,7 @@ namespace Hgcal10gLinkReceiver {
 	  std::cout << "RO UHAL string " << std::setw(3) << " = " 
 		    << _uhalString[i] << std::endl;
 	
-	  const uhal::Node& lNode = lHW.getNode(_uhalString[i]);
+	  const uhal::Node& lNode = lHW.getNode(_uhalTopString+"."+_uhalString[i]);
 	  uhal::ValWord<uint32_t> lReg = lNode.read();
 	  lHW.dispatch();
 	
@@ -101,7 +113,7 @@ namespace Hgcal10gLinkReceiver {
 #ifdef ProcessorHardware
   uint32_t uhalRead(const std::string &s) {
     //const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
-    const uhal::Node& lNode = lHW.getNode(s);
+    const uhal::Node& lNode = lHW.getNode(_uhalTopString+"."+s);
     uhal::ValWord<uint32_t> lReg = lNode.read();
     lHW.dispatch();
 
@@ -122,7 +134,7 @@ namespace Hgcal10gLinkReceiver {
 	      << std::endl;
     
     //const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
-    const uhal::Node& lNode = lHW.getNode(s);
+    const uhal::Node& lNode = lHW.getNode(_uhalTopString+"."+s);
     lNode.write(v);
     lHW.dispatch();
     
@@ -132,11 +144,11 @@ namespace Hgcal10gLinkReceiver {
 
 #else
 
-  uint32_t uhalRead(const std::string &s) {
+  virtual uint32_t uhalRead(const std::string &s) {
     return 999;
   }
 
-  bool uhalWrite(const std::string &s, uint32_t v) {
+  virtual bool uhalWrite(const std::string &s, uint32_t v) {
     std::cout << "uhalWrite: setting " << s << " to  0x"
 	      << std::hex << std::setfill('0')
 	      << std::setw(8) << v
@@ -148,6 +160,8 @@ namespace Hgcal10gLinkReceiver {
 #endif
 
   void csv(std::ostream &o=std::cout) {
+    o << _uhalTopString << std::endl;
+    
     for(unsigned i(0);i<_uhalString.size();i++) {
       uint32_t v(uhalRead(_uhalString[i]));
       unsigned nComma(0);
@@ -166,7 +180,7 @@ namespace Hgcal10gLinkReceiver {
   }
 
   void print(std::ostream &o=std::cout) {
-    o << "SerenityUhal::print()" << std::endl;
+    o << "SerenityUhal::print() Top string " << _uhalTopString << std::endl;
     o << " Current settings for " << _uhalString.size()
       << " values:" << std::endl;
 
@@ -183,6 +197,8 @@ namespace Hgcal10gLinkReceiver {
   
  protected:
   bool _printEnable;
+  
+  std::string _uhalTopString;
   std::vector<std::string> _uhalString;
 
 #ifdef ProcessorHardware
@@ -190,6 +206,8 @@ namespace Hgcal10gLinkReceiver {
   const std::string lDeviceId;
   uhal::ConnectionManager lConnectionMgr;
   uhal::HwInterface lHW;
+#else
+  std::vector<uint32_t> _uhalData;
 #endif
 
 };

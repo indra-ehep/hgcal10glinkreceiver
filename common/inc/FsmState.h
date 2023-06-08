@@ -183,7 +183,7 @@ namespace Hgcal10gLinkReceiver {
     "Ending       ",
     
     // For file and buffer records only    
-    "Continuing  "
+    "Continuing   "
   };
 
 }

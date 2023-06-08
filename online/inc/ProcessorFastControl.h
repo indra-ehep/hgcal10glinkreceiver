@@ -56,9 +56,8 @@ namespace Hgcal10gLinkReceiver {
     }
   
     void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
-      _serenityUhal.makeTable();
+      _serenityEncoder.makeTable();
       _serenityLpgbt.makeTable();
-      
 
       ShmSingleton<RelayWriterDataFifo> shm2;
       ptrFifoShm2=shm2.setup(fifoKey);
@@ -67,147 +66,10 @@ namespace Hgcal10gLinkReceiver {
     }
 
     virtual bool initializing() {
-      std::cout << "HEREI !!!" << std::endl;
-
-      _serenityUhal.setDefaults();
-      _serenityUhal.print();
+      _serenityEncoder.setDefaults();
+      _serenityEncoder.print();
       _serenityLpgbt.setDefaults();
       _serenityLpgbt.print();
-
-      std::cout << "HEREI2 !!!" << std::endl;
-#ifdef JUNK
-#ifdef ProcessorHardware
-      //system("/home/cmx/pdauncey/source setFC.sh");
-
-      std::vector<std::string> lRegisterName;
-      std::vector<std::string> lRegisterNameW;
-  
-      lRegisterName.push_back("tcds2_emu.ctrl_stat.ctrl.seq_length");
-
-      //uhal::ConnectionManager lConnectionMgr("file://" + lConnectionFilePath);
-      //uhal::HwInterface lHW = lConnectionMgr.getDevice(lDeviceId);
-  
-  
-      const uhal::Node& lNode = lHW.getNode("payload.fc_ctrl." + lRegisterName[0]);
-      std::cout << "Reading from register '" << lRegisterName[0] << "' ..." << std::endl;
-      uhal::ValWord<uint32_t> lReg = lNode.read();
-      lHW.dispatch();
-      std::cout << "... success!" << std::endl << "Value = 0x" << std::hex << lReg.value() << std::endl;
-
-      std::vector<std::string> ids;//, ids_filtered;
-      std::vector<uint32_t> nds;//, ids_filtered;
-      //ids = lHW.getNode("payload.fc_ctrl.tcds2_emu").getNodes();
-      ids = lHW.getNode("payload.fc_ctrl").getNodes();
-  
-      std::cout << "payload.fc_ctrl.tcds2_emu.getNodes(): ";
-      /*
-	std::copy(ids.begin(),
-	ids.end(),
-	std::ostream_iterator<std::string>(std::cout,", "));
-      */
-      for(unsigned i(0);i<ids.size();i++) {
-	std::cout << ids[i] << std::endl;
-      }
-      std::cout << std::endl << std::endl;
-
-
-
-
-      for(unsigned i(0);i<ids.size();i++) {
-  
-	// PART 3: Reading from the register
-	const uhal::Node& lNode = lHW.getNode("payload.fc_ctrl." + ids[i]);
-
-	std::cout << "Reading from register '" << ids[i] << "' ..." << std::endl;
-
-	uhal::ValWord<uint32_t> lReg = lNode.read();
-	// dispatch method sends read request to hardware, and waits for result to return
-	// N.B. Before dispatch, lReg.valid() == false, and lReg.value() will throw
-	lHW.dispatch();
-
-	std::cout << "... success!" << std::endl << "Value = 0x" << std::hex << lReg.value() << std::endl;
-	nds.push_back(lReg.value());
-      }
-
-      std::vector<std::string> temp;
-      temp=lHW.getNode("payload").getNodes();
-
-      if(_printEnable) {
-	for(unsigned i(0);i<temp.size();i++) {
-	  std::cout << "ALL string " << temp[i] << std::endl;
-	}
-	std::cout << std::endl;
-      }
-
-      _uhalString.resize(0);
-      for(unsigned i(0);i<temp.size();i++) {
-	if(temp[i].substr(0,8)=="fc_ctrl.") {
-	  std::cout << "Substr = " << temp[i].substr(8,17) << std::endl;
-	  if(temp[i].substr(8,17)!="tcds2_emu") {
-	    std::cout << "UHAL string " << std::setw(3) << " = " 
-		      << temp[i] << std::endl;
-	    _uhalString.push_back(temp[i]);
-	  }
-	}
-      }
-	
-      if(_printEnable) {
-	for(unsigned i(0);i<_uhalString.size();i++) {
-	  std::cout << "UHAL string " << std::setw(3) << " = " 
-		    << _uhalString[i] << std::endl;
-
-	  const uhal::Node& lNode = lHW.getNode("payload."+_uhalString[i]);
-	  uhal::ValWord<uint32_t> lReg = lNode.read();
-	  lHW.dispatch();
-	    
-	  std::cout << "UHAL string " << std::setw(3) << " = "
-		    << _uhalString[i] << ", initial value = " 
-		    << lReg.value() << std::endl;
-	}
-	std::cout << std::endl;
-      } 
-
-      // Now set the initialization values
-      /*
-
-	python3 hgcal_fc.py -c test_stand/connections.xml -d x0 encoder configure -tts on = fc_ctrl.fpga_fc.ctrl.tts
-	python3 hgcal_fc.py -c test_stand/connections.xml -d x0 encoder configure --set_prel1a_offset 3 = fc_ctrl.fpga_fc.ctrl.prel1a_offset
-	fc_ctrl.fpga_fc.ctrl.user_prel1a_off_en
-
-	python3 hgcal_fc.py -c test_stand/connections.xml -d x0 tcds2_emu configure --seq_disable
-
-	fc_ctrl.fc_lpgbt_pair.ctrl.issue_linkrst
-	fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
-
-      */
-
-
-      std::cout << "SETTING SOME DEFAULTS" << std::endl;
-      assert(uhalWrite("fc_ctrl.fpga_fc.ctrl.tts",0));
-      uhalWrite("fc_ctrl.fpga_fc.ctrl.prel1a_offset",3);
-      uhalWrite("fc_ctrl.fpga_fc.ctrl.user_prel1a_off_en",1);
-
-      uint32_t hgcrocLatencyBufferDepth(10); // ????
-      uint32_t cpid(8),cped(10); // ???
-      uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",cpid);
-      uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",12+cpid+hgcrocLatencyBufferDepth);
-
-      uhalWrite("fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_ext_del",cped);
-      uhalWrite("fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",12+cped+hgcrocLatencyBufferDepth);
-	
-	
-      /* ????
-	 fc_ctrl.fc_lpgbt_pair.ctrl.issue_linkrst
-	 fc_ctrl.fc_lpgbt_pair.fc_cmd.linkrst
-      */
-	
-#else
-      _uhalString.resize(0);
-      _uhalString.push_back("tcds2_emu.ctrl_stat.ctrl.seq_length"); 
-#endif
-#endif
-
-	
       return true;
     }
 
@@ -233,7 +95,7 @@ namespace Hgcal10gLinkReceiver {
 
 
       // Do configuration; ones which could have been changed
-      _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.calpulse_ctrl.calpulse_int_del",8);
+      _serenityEncoder.uhalWrite("calpulse_ctrl.calpulse_int_del",8);
 	
       if(_printEnable) {
 	std::cout << "Waiting for space in buffer" << std::endl;
@@ -364,16 +226,10 @@ namespace Hgcal10gLinkReceiver {
     }
 
     bool halting() {
-      /*
-	RecordHaltingA rr;
-	rr.deepCopy(_ptrFsmInterface->commandPacket().record());
-	//rr.setNumberOfRuns(_runNumberInSuperRun);
-	rr.setNumberOfEvents(_eventNumberInSuperRun);
-	rr.print();
-	ptrFifoShm2->print();
-	assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
-      */
-
+      _serenityEncoder.setDefaults();
+      _serenityEncoder.print();
+      _serenityLpgbt.setDefaults();
+      _serenityLpgbt.print();
       return true;
     }
     
@@ -397,7 +253,7 @@ namespace Hgcal10gLinkReceiver {
       std::cout << "configured() relay = " << _relayNumber << std::endl;
 
       RecordConfigured *r;
-      for(unsigned i(1);i<=3;i++) {
+      for(unsigned i(1);i<=3 && false;i++) {
 
 	while((r=(RecordConfigured*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
 	r->setHeader(_cfgSeqCounter++);
@@ -461,7 +317,22 @@ namespace Hgcal10gLinkReceiver {
 
 	ptrFifoShm2->writeIncrement();
       }
+
+      while((r=(RecordConfigured*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
+      r->setHeader(_cfgSeqCounter++);
+      r->setState(FsmState::Configured);
+      r->setType(RecordConfigured::BE);
+      r->setLocation(1);
+
+      r->addData32(_serenityEncoder.uhalRead("ctrl"));
+      r->addData32(_serenityEncoder.uhalRead("calpulse_ctrl"));
+      r->addData32(_serenityEncoder.uhalRead("ctrl_2"));
+      r->addData32(_serenityEncoder.uhalRead("ctrl_3"));
+            
+      if(_printEnable) r->print();
       
+      ptrFifoShm2->writeIncrement();
+
       ///////////////
       /*
 	while((r=(RecordConfigured*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
@@ -540,13 +411,13 @@ namespace Hgcal10gLinkReceiver {
     }
 
     virtual void running() {
-      _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",1);
+      _serenityEncoder.uhalWrite("ctrl.tts",1);
 
       _ptrFsmInterface->setProcessState(FsmState::Running);
 
       while(_ptrFsmInterface->systemState()==FsmState::Running) usleep(1000);
       
-      _serenityUhal.uhalWrite("payload.fc_ctrl.fpga_fc.ctrl.tts",0);
+      _serenityEncoder.uhalWrite("ctrl.tts",0);
       
       RecordContinuing *rc((RecordContinuing*)(ptrFifoShm2->getWriteRecord()));
       rc->setHeader();
@@ -580,7 +451,7 @@ namespace Hgcal10gLinkReceiver {
     uint32_t _eventNumberInConfiguration;
     uint32_t _eventNumberInSuperRun;
 
-    SerenityEncoder _serenityUhal;
+    SerenityEncoder _serenityEncoder;
     SerenityLpgbt _serenityLpgbt;
   
   };
