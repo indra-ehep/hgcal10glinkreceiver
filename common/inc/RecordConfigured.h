@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cassert>
+#include <unordered_map>
 
 #include "Record.h"
 
@@ -17,6 +18,7 @@ namespace Hgcal10gLinkReceiver {
       ECOND,
       ECONT,
       BE,
+      TCDS2,
       EndOfTypeEnum
     };
     
@@ -91,6 +93,35 @@ namespace Hgcal10gLinkReceiver {
       _payload[payloadLength()+n]=0xffffffff;
       std::memcpy(_payload+payloadLength(),s.c_str(),s.size()+1);
       incrementPayloadLength(n);
+    }
+
+    void configuration(std::unordered_map<std::string,uint32_t> &m) const {
+      m.clear();
+
+      const uint32_t *p((uint32_t*)(_payload+2));
+      for(unsigned n32(0);n32<2*(payloadLength()-2)-1;) {
+	std::string s((const char*)(p+n32));
+	n32+=(s.size()+4)/4;
+	m[s]=p[n32];
+	n32++;
+      }
+    }
+    
+    void setConfiguration(const std::unordered_map<std::string,uint32_t> &m) {
+      uint32_t *p((uint32_t*)(_payload+2));
+
+      unsigned n32(0);
+
+      for(auto i(m.begin());i!=m.end();i++) {
+	const std::string &s(i->first);
+	unsigned n((s.size()+4)/4);
+	std::memcpy(p+n32,s.c_str(),s.size()+1);
+	n32+=n;
+	p[n32]=i->second;
+	n32++;
+      }
+
+      setPayloadLength(2+(n32+1)/2);
     }
     
     void print(std::ostream &o=std::cout, std::string s="") const {

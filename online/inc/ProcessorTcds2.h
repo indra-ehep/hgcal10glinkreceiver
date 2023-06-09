@@ -157,9 +157,38 @@ namespace Hgcal10gLinkReceiver {
       r->setHeader(++_fifoCounter);
       r->setState(FsmState::Configured);
       
-      std::vector<uint32_t> v;
-      _serenityTcds2.configuration(v);
-      for(unsigned i(0);i<v.size();i++) r->addData32(v[i]);
+      //std::vector<uint32_t> v;
+      //_serenityTcds2.configuration(v);
+      //for(unsigned i(0);i<v.size();i++) r->addData32(v[i]);
+
+      r->setType(RecordConfigured::TCDS2);
+      r->setLocation(0);
+
+      std::unordered_map<std::string,uint32_t> m;
+      _serenityTcds2.configuration(m);
+      
+      if(_printEnable) {
+	std::cout << "Serenity configuration" << std::endl;
+	_serenityTcds2.print();
+	
+	std::cout << "Serenity map" << std::endl;
+	for(auto i(m.begin());i!=m.end();i++) {
+	  std::cout << " " << i->first << " = " << i->second << std::endl;
+	}
+      }
+
+      r->setConfiguration(m);
+      
+      if(_printEnable) {
+	std::unordered_map<std::string,uint32_t> m2;
+	r->configuration(m2);
+        
+	std::cout << "Record configuration unpacked" << std::endl;
+	for(auto i(m2.begin());i!=m2.end();i++) {
+	  std::cout << " " << i->first << " = " << i->second << std::endl;
+	}
+      }
+
       if(_printEnable) r->print();
 
       /*

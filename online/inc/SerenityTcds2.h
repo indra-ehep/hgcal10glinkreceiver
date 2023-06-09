@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <unordered_map>
 
 #include "SerenityUhal.h"
 #include "I2cInstruction.h"
@@ -32,33 +33,68 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool makeTable() {
-      SerenityUhal::makeTable("payload");
-      //SerenityUhal::makeTable("payload.fc_ctrl.tcds2_emu");
-      return true;
+      return SerenityUhal::makeTable("payload.fc_ctrl.tcds2_emu");
+    }
+
+    void configuration(std::unordered_map<std::string,uint32_t> &m) {
+      m.clear();
+
+      m["ctrl_stat.ctrl.en_l1a_physics"]=uhalRead("ctrl_stat.ctrl.en_l1a_physics");
+      m["ctrl_stat.ctrl.en_l1a_random"]=uhalRead("ctrl_stat.ctrl.en_l1a_random");
+      m["ctrl_stat.ctrl.en_l1a_software"]=uhalRead("ctrl_stat.ctrl.en_l1a_software");
+      m["ctrl_stat.ctrl.en_l1a_regular"]=uhalRead("ctrl_stat.ctrl.en_l1a_regular");
+      m["ctrl_stat.ctrl.calpulse_delay"]=uhalRead("ctrl_stat.ctrl.calpulse_delay");
+
+      m["ctrl_stat.ctrl1.en_nzs_reg"]=uhalRead("ctrl_stat.ctrl1.en_nzs_reg");
+      m["ctrl_stat.ctrl1.en_nzs_rand"]=uhalRead("ctrl_stat.ctrl1.en_nzs_rand");
+      m["ctrl_stat.ctrl1.en_nzs_physics"]=uhalRead("ctrl_stat.ctrl1.en_nzs_physics");
+      m["ctrl_stat.ctrl1.l1a_prbs_threshold"]=uhalRead("ctrl_stat.ctrl1.l1a_prbs_threshold");
+
+      m["ctrl_stat.ctrl2.tts_tcds2"]=uhalRead("ctrl_stat.ctrl2.tts_tcds2");
+      m["ctrl_stat.ctrl2.tts_mask"]=uhalRead("ctrl_stat.ctrl2.tts_mask");
+      m["ctrl_stat.ctrl2.l1a_physics_mask"]=uhalRead("ctrl_stat.ctrl2.l1a_physics_mask");
+
+      m["ctrl_stat.ctrl.seq_length"]=uhalRead("ctrl_stat.ctrl.seq_length");
+      m["seq_mem.pointer"]=uhalRead("seq_mem.pointer");
+      
+      for(unsigned i(0);i<m["ctrl_stat.ctrl.seq_length"] && i<1;i++) {
+	std::ostringstream sout;
+	sout << "seq_mem.data_" << std::setfill('0') << std::setw(4) << i;
+	m[sout.str()]=uhalRead("seq_mem.data");
+      }
+    }
+
+    void status(std::unordered_map<std::string,uint32_t> &m) {
+      m.clear();
+
+      m["ctrl_stat.stat0.tts_all"]=uhalRead("ctrl_stat.stat0.tts_all");
+      m["ctrl_stat.stat0.tts_ext"]=uhalRead("ctrl_stat.stat0.tts_ext");
+      m["ctrl_stat.stat0.tts_hgcroc"]=uhalRead("ctrl_stat.stat0.tts_hgcroc");
     }
   
     bool setDefaults() {
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_physics",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_random",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_software",1);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_regular",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.en_nzs_reg",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.en_nzs_rand",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.en_nzs_physics",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.l1a_prbs_threshold",0xf000);
+      uhalWrite("ctrl_stat.ctrl.en_l1a_physics",0);
+      uhalWrite("ctrl_stat.ctrl.en_l1a_random",0);
+      uhalWrite("ctrl_stat.ctrl.en_l1a_software",1);
+      uhalWrite("ctrl_stat.ctrl.en_l1a_regular",0);
+      uhalWrite("ctrl_stat.ctrl.calpulse_delay",30);
 
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_mask",0x7);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.l1a_physics_mask",0xff);
+      uhalWrite("ctrl_stat.ctrl1.en_nzs_reg",0);
+      uhalWrite("ctrl_stat.ctrl1.en_nzs_rand",0);
+      uhalWrite("ctrl_stat.ctrl1.en_nzs_physics",0);
+      uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xf000);
+
+      uhalWrite("ctrl_stat.ctrl2.tts_tcds2",0);
+      uhalWrite("ctrl_stat.ctrl2.tts_mask",0x7);
+      uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",0xff);
+
       //uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_all",1);
       //uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_ext",1);
       //uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_hgcroc",1);
      
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
-    
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",1);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(1<<16)|0x0040);
+      uhalWrite("ctrl_stat.ctrl.seq_length",1);
+      uhalWrite("seq_mem.pointer",0);
+      uhalWrite("seq_mem.data",(1<<16)|0x0040);
 
       return true;
     }  
@@ -99,7 +135,9 @@ namespace Hgcal10gLinkReceiver {
       o << std::dec << std::setfill(' ');
 
       uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
-      uint32_t seqLength=uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length");
+      uint32_t seqLength(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length"));
+      if(seqLength==999) seqLength=0; // CLUDGE
+
       for(unsigned i(0);i<seqLength;i++) {
 	uint32_t seqMemPointer=uhalRead("payload.fc_ctrl.tcds2_emu.seq_mem.pointer");
 	uint32_t seqMemData=uhalRead("payload.fc_ctrl.tcds2_emu.seq_mem.data");

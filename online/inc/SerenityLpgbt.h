@@ -32,14 +32,18 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool makeTable() {
-      SerenityUhal::makeTable("payload.fc_ctrl.fc_lpgbt_pair");
-      return true;
+      return SerenityUhal::makeTable("payload.fc_ctrl.fc_lpgbt_pair");
     }
-  
+
+    void configuration(std::unordered_map<std::string,uint32_t> &m) {
+      m.clear();
+
+      m["ctrl.calpulse_type"]=uhalRead("ctrl.calpulse_type");
+      m["ctrl.user_bx"]=uhalRead("ctrl.user_bx");
+      m["fc_cmd.user"]=uhalRead("fc_cmd.user");
+    }
+    
     bool setDefaults() {
-      //uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.ctrl.calpulse_type",1);
-      //uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.ctrl.user_bx",1);
-      //uhalWrite("payload.fc_ctrl.fc_lpgbt_pair.fc_cmd.user",0x36);
       uhalWrite("ctrl.calpulse_type",1);
       uhalWrite("ctrl.user_bx",1);
       uhalWrite("fc_cmd.user",0x36);

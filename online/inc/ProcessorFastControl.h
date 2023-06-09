@@ -318,21 +318,52 @@ namespace Hgcal10gLinkReceiver {
 	ptrFifoShm2->writeIncrement();
       }
 
-      while((r=(RecordConfigured*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
-      r->setHeader(_cfgSeqCounter++);
-      r->setState(FsmState::Configured);
-      r->setType(RecordConfigured::BE);
-      r->setLocation(1);
+      for(unsigned i(1);i<=2;i++) {
+	while((r=(RecordConfigured*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
+	r->setHeader(_cfgSeqCounter++);
+	r->setState(FsmState::Configured);
+	r->setType(RecordConfigured::BE);
+	r->setLocation(i);
 
-      r->addData32(_serenityEncoder.uhalRead("ctrl"));
-      r->addData32(_serenityEncoder.uhalRead("calpulse_ctrl"));
-      r->addData32(_serenityEncoder.uhalRead("ctrl_2"));
-      r->addData32(_serenityEncoder.uhalRead("ctrl_3"));
-            
-      if(_printEnable) r->print();
+	std::unordered_map<std::string,uint32_t> m;
+	if(i==1) _serenityEncoder.configuration(m);
+	else     _serenityLpgbt.configuration(m);
       
-      ptrFifoShm2->writeIncrement();
+	if(_printEnable) {
+	  std::cout << "Serenity configuration" << std::endl;
+	  if(i==1) _serenityEncoder.print();
+	  else     _serenityLpgbt.print();
 
+	  std::cout << "Serenity map" << std::endl;
+	  for(auto i(m.begin());i!=m.end();i++) {
+	    std::cout << " " << i->first << " = " << i->second << std::endl;
+	  }
+	}
+
+	r->setConfiguration(m);
+      
+	if(_printEnable) {
+	  std::unordered_map<std::string,uint32_t> m2;
+	  r->configuration(m2);
+	
+	  std::cout << "Record configuration unpacked" << std::endl;
+	  for(auto i(m2.begin());i!=m2.end();i++) {
+	    std::cout << " " << i->first << " = " << i->second << std::endl;
+	  }
+	}
+
+      
+	/*
+	  r->addData32(_serenityEncoder.uhalRead("ctrl"));
+	  r->addData32(_serenityEncoder.uhalRead("calpulse_ctrl"));
+	  r->addData32(_serenityEncoder.uhalRead("ctrl_2"));
+	  r->addData32(_serenityEncoder.uhalRead("ctrl_3"));
+	*/
+      
+	if(_printEnable) r->print();
+      
+	ptrFifoShm2->writeIncrement();
+      }
       ///////////////
       /*
 	while((r=(RecordConfigured*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
