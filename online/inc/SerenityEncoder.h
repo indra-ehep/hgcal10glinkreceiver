@@ -11,14 +11,16 @@
 #include <cstring>
 #include <unordered_map>
 
-#include "SerenityUhal.h"
-#include "I2cInstruction.h"
-#include "UhalInstruction.h"
+#include <yaml-cpp/yaml.h>
 
 #ifdef ProcessorHardware
 #include "uhal/uhal.hpp"
 #include "uhal/ValMem.hpp"
 #endif
+
+#include "SerenityUhal.h"
+#include "I2cInstruction.h"
+#include "UhalInstruction.h"
 
 namespace Hgcal10gLinkReceiver {
 
@@ -34,6 +36,21 @@ namespace Hgcal10gLinkReceiver {
     
     bool makeTable() {
       return SerenityUhal::makeTable("payload.fc_ctrl.fpga_fc");
+    }
+
+    void configuration(YAML::Node &n) {
+      n=YAML::Node();
+
+      n["ctrl.prel1a_offset"     ]=uhalRead("ctrl.prel1a_offset");
+      n["ctrl.user_prel1a_off_en"]=uhalRead("ctrl.user_prel1a_off_en");
+      n["ctrl.l1a_stretch"       ]=uhalRead("ctrl.l1a_stretch");
+
+      n["calpulse_ctrl.calpulse_int_del"]=uhalRead("calpulse_ctrl.calpulse_int_del");
+      n["calpulse_ctrl.calpulse_ext_del"]=uhalRead("calpulse_ctrl.calpulse_ext_del");
+      n["calpulse_ctrl.ocr_n"           ]=uhalRead("calpulse_ctrl.ocr_n");
+
+      n["ctrl_2"]=uhalRead("ctrl_2");
+      n["ctrl_3"]=uhalRead("ctrl_3");      
     }
 
     void configuration(std::unordered_map<std::string,uint32_t> &m) {

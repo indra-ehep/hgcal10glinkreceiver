@@ -76,6 +76,7 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
   FsmState::State *pState(prcfs->getProcessState());
   FsmState::State psOld(*pState);
 
+  //*pState=FsmState::Resetting;
   prcfs->print();
   
   //zmq::message_t request;
@@ -96,7 +97,22 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
       std::cout << "utc_or_counter = " << req.get_utc_or_counter() << std::endl;
       std::cout << "config = " << req.get_config() << std::endl;
 
-      // Special case
+      const YAML::Node &yNode(req.get_config());
+      std::string s(yNode.as<std::string>());
+      std::cout << "config string = " << s << std::endl;
+
+      /*
+      switch (yNode.Type()) {
+      case YAML::Null: {std::cout << "Null" << std::endl;break;}
+      case YAML::Scalar: {std::cout << "Scalar" << std::endl;break;}
+      case Sequence: {std::cout << "Sequence" << std::endl;break;}
+      case Map: {std::cout << "Map" << std::endl;break;}
+      case Undefined: {std::cout << "Undefined" << std::endl;break;}
+      default: {std::cout << "Default" << std::endl;break;}
+      }
+      */
+
+      // Special cases
       if(req.get_command()=="Ping") {
 	
 	std::cout  << std::endl << "************ GOT PING ******************" << std::endl << std::endl;
@@ -111,6 +127,37 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
 
 	rep = reply( repStr, 0xC0FFE, "Pong" );
 	
+	std::cout  << std::endl << "************ SENT PONG ******************" << std::endl << std::endl;
+
+      } else if(req.get_command()=="ColdStart") {
+	
+	std::cout  << std::endl << "************ GOT COLDSTART ******************" << std::endl << std::endl;
+
+	r->reset(FsmState::Initial);
+
+	  
+	  prcfs->print();
+	  
+	  // Wait for the processor to respond
+	  while(psOld==(*pState)) usleep(1000);
+	  psOld=(*pState);
+	  
+	  std::cout  << std::endl << "************ PREPARED ******************" << std::endl << std::endl;
+	  prcfs->print();
+
+	/*
+	std::string repStr;
+
+	if((*pState)==FsmState::Initial   ) repStr="Initial";
+	if((*pState)==FsmState::Halted    ) repStr="Halted";
+	if((*pState)==FsmState::Configured) repStr="Configured";
+	if((*pState)==FsmState::Running   ) repStr="Running";
+	if((*pState)==FsmState::Paused    ) repStr="Paused";
+
+	rep = reply( repStr, 0xC0FFE, "Pong" );
+	*/
+
+	  rep = reply( "Initial", 0xC0FFE, "no comment" );
 	std::cout  << std::endl << "************ SENT PONG ******************" << std::endl << std::endl;
 
       } else {
@@ -176,13 +223,13 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
 	  rep = reply( "ERROR", 0xC0FFE, "no comment" );
 	}
       }	
+    
+      server.sendReply( rep );
 
     } else { // ! reply is_valid    
       std::cout  << std::endl << "************ NOT VALID ******************" << std::endl << std::endl;
       rep = reply( "ERROR", 0xC0FFE, "no comment" );
     }
-    
-    server.sendReply( rep );
   }
   return false;
 }

@@ -326,8 +326,11 @@ namespace Hgcal10gLinkReceiver {
 	r->setLocation(i);
 
 	std::unordered_map<std::string,uint32_t> m;
-	if(i==1) _serenityEncoder.configuration(m);
-	else     _serenityLpgbt.configuration(m);
+	YAML::Node n;
+	if(i==1) {
+	  _serenityEncoder.configuration(m);
+	  _serenityEncoder.configuration(n);
+	} else     _serenityLpgbt.configuration(m);
       
 	if(_printEnable) {
 	  std::cout << "Serenity configuration" << std::endl;
@@ -338,8 +341,17 @@ namespace Hgcal10gLinkReceiver {
 	  for(auto i(m.begin());i!=m.end();i++) {
 	    std::cout << " " << i->first << " = " << i->second << std::endl;
 	  }
+	  std::cout << "Serenity node" << std::endl;
+	  for(auto i(n.begin());i!=n.end();i++) {
+	    std::cout << " " << i->first << " = " << i->second << std::endl;
+	  }
 	}
 
+	if(i==1) {
+	  std::ostringstream sout;
+	  sout << n;
+	  r->addString(sout.str());
+	}
 	r->setConfiguration(m);
       
 	if(_printEnable) {

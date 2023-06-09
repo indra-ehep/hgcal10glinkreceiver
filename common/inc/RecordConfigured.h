@@ -99,11 +99,13 @@ namespace Hgcal10gLinkReceiver {
       m.clear();
 
       const uint32_t *p((uint32_t*)(_payload+2));
-      for(unsigned n32(0);n32<2*(payloadLength()-2)-1;) {
-	std::string s((const char*)(p+n32));
-	n32+=(s.size()+4)/4;
-	m[s]=p[n32];
-	n32++;
+      if(payloadLength()>2) {
+	for(unsigned n32(0);n32<unsigned(2*(payloadLength()-2)-1);) {
+	  std::string s((const char*)(p+n32));
+	  n32+=(s.size()+4)/4;
+	  m[s]=p[n32];
+	  n32++;
+	}
       }
     }
     
