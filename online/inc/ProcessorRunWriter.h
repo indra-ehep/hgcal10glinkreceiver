@@ -46,49 +46,63 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
     
+    bool configuring() {
+      RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
+
+      std::ostringstream sout;
+      sout << "dat/Relay" << std::setfill('0')
+	   << std::setw(10) << r.relayNumber();
+
+      system((std::string("mkdir ")+sout.str()).c_str());
+
+      _fileWriter.setDirectory(sout.str());
+
+      return true;
+    }
+
     bool starting() {
-	_eventNumber=0;
+      _eventNumber=0;
 	
-	_ptrFifoShm->starting();
+      _ptrFifoShm->starting();
 
-	assert(_ptrFsmInterface->record().state()==FsmState::Starting);
-	RecordStarting r;
-	std::cout << "HERE0 starting" << std::endl;
-	r.deepCopy(_ptrFsmInterface->record());
+      assert(_ptrFsmInterface->record().state()==FsmState::Starting);
+      RecordStarting r;
+      std::cout << "HERE0 starting" << std::endl;
+      r.deepCopy(_ptrFsmInterface->record());
+      r.print();
+      _fileWriter.openRun(r.runNumber(),_linkNumber);
+      _fileWriter.write(&r);
+
+      /*
+	while(_ptrFifoShm->read((uint64_t*)(&r))==0) usleep(10);
+	std::cout << "HERE1 starting" << std::endl;
 	r.print();
-	_fileWriter.openRun(r.runNumber(),_linkNumber);
+	_fileWriter.open(r.runNumber(),0,false,true);
 	_fileWriter.write(&r);
-
-	/*
-	  while(_ptrFifoShm->read((uint64_t*)(&r))==0) usleep(10);
-	  std::cout << "HERE1 starting" << std::endl;
-	  r.print();
-	  _fileWriter.open(r.runNumber(),0,false,true);
-	  _fileWriter.write(&r);
-	*/
+      */
 
       return true;
     }
     
     bool pausing() {
 	
-	RecordPrinter(&(_ptrFsmInterface->record()));
-	RecordPausing r;
-	std::cout << "HERE2 pausing" << std::endl;
-	r.deepCopy(_ptrFsmInterface->record());
-	r.print();
-	//_fileWriter.write(&r); NO!
+      RecordPrinter(&(_ptrFsmInterface->record()));
+      RecordPausing r;
+      std::cout << "HERE2 pausing" << std::endl;
+      r.deepCopy(_ptrFsmInterface->record());
+      r.print();
+      //_fileWriter.write(&r); NO!
 
       return true;
     }
     
     bool resuming() {
-	assert(_ptrFsmInterface->record().state()==FsmState::Resuming);
-	RecordResuming r;
-	std::cout << "HERE2 starting" << std::endl;
-	r.deepCopy(_ptrFsmInterface->record());
-	r.print();
-	//_fileWriter.write(&r); NO!
+      assert(_ptrFsmInterface->record().state()==FsmState::Resuming);
+      RecordResuming r;
+      std::cout << "HERE2 starting" << std::endl;
+      r.deepCopy(_ptrFsmInterface->record());
+      r.print();
+      //_fileWriter.write(&r); NO!
 
       return true;
     }
@@ -96,14 +110,14 @@ namespace Hgcal10gLinkReceiver {
     bool stopping() {
       _ptrFifoShm->print();
 
-	assert(_ptrFsmInterface->record().state()==FsmState::Stopping);
-	RecordStopping r;
-	std::cout << "HERE2 stopping" << std::endl;
-	r.deepCopy(_ptrFsmInterface->record());
-	r.setNumberOfEvents(_eventNumber);
-	r.print();
-	_fileWriter.write(&r);
-	_fileWriter.close();
+      assert(_ptrFsmInterface->record().state()==FsmState::Stopping);
+      RecordStopping r;
+      std::cout << "HERE2 stopping" << std::endl;
+      r.deepCopy(_ptrFsmInterface->record());
+      r.setNumberOfEvents(_eventNumber);
+      r.print();
+      _fileWriter.write(&r);
+      _fileWriter.close();
 
       _ptrFifoShm->print();
       return true;
@@ -132,18 +146,18 @@ namespace Hgcal10gLinkReceiver {
       _ptrFifoShm->print();
       
       /*      
-      _ptrFsmInterface->idle();
-      while(_ptrFsmInterface->isIdle()) {
-	usleep(1000);
-      }
-      _ptrFifoShm->print();
+	      _ptrFsmInterface->idle();
+	      while(_ptrFsmInterface->isIdle()) {
+	      usleep(1000);
+	      }
+	      _ptrFifoShm->print();
 
-      if(_ptrFifoShm->readable()>0) {
-      const Record *rrr;
-	std::cout << "HALTED" << std::endl;
-	rrr=_ptrFifoShm->readRecord();
-	rrr->print();
-      }
+	      if(_ptrFifoShm->readable()>0) {
+	      const Record *rrr;
+	      std::cout << "HALTED" << std::endl;
+	      rrr=_ptrFifoShm->readRecord();
+	      rrr->print();
+	      }
       */
     }
 

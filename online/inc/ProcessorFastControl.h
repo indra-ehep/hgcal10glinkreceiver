@@ -341,7 +341,7 @@ namespace Hgcal10gLinkReceiver {
 	  for(auto i(m.begin());i!=m.end();i++) {
 	    std::cout << " " << i->first << " = " << i->second << std::endl;
 	  }
-	  std::cout << "Serenity node" << std::endl;
+	  std::cout << "Serenity node" << std::endl << n << std::endl;
 	  for(auto i(n.begin());i!=n.end();i++) {
 	    std::cout << " " << i->first << " = " << i->second << std::endl;
 	  }
@@ -351,9 +351,10 @@ namespace Hgcal10gLinkReceiver {
 	  std::ostringstream sout;
 	  sout << n;
 	  r->addString(sout.str());
+	} else {
+	  r->setConfiguration(m);
 	}
-	r->setConfiguration(m);
-      
+	
 	if(_printEnable) {
 	  std::unordered_map<std::string,uint32_t> m2;
 	  r->configuration(m2);

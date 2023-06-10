@@ -59,6 +59,13 @@ namespace Hgcal10gLinkReceiver {
     bool configuring() {
 	RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
 
+	std::ostringstream sout;
+	sout << "dat/Relay" << std::setfill('0')
+	     << std::setw(10) << r.relayNumber();
+
+	system((std::string("mkdir ")+sout.str()).c_str());
+
+	_fileWriter.setDirectory(sout.str());
 	_fileWriter.openRelay(r.relayNumber());
 	_fileWriter.write(&(_ptrFsmInterface->record()));
 
