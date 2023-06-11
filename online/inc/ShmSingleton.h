@@ -33,6 +33,7 @@ template <class Payload> class ShmSingleton {
 	      << std::hex << std::setfill('0')
 	      << std::setw(8) << theNewKey
 	      << std::dec << std::setfill(' ')
+	      << " = " << unsigned(theNewKey)
 	      << std::endl;
 
     bool created(false);
