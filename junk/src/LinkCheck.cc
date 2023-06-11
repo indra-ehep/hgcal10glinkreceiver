@@ -16,6 +16,7 @@
 
 int main(int argc, char *argv[]) {
   ShmSingleton<LinkCheckShm> shm;
+  shm.setup(theKey);
   LinkCheckShm* const p(shm.payload());
 
   p->reset();
@@ -47,7 +48,7 @@ int main(int argc, char *argv[]) {
   servaddr.sin_port = htons(PORT);
   
   socklen_t len;
-  int n;
+  uint64_t n;
   
   len = sizeof(cliaddr); //len is value/result
 
@@ -78,6 +79,7 @@ int main(int argc, char *argv[]) {
       n = recvfrom(sockfd, (char *)buffer64, MAXLINE,
 		   MSG_WAITALL, ( struct sockaddr *) &cliaddr,
 		   &len);
+      //std::cout << "Received " << n << std::endl;
     } else {
       n=8*nWords;
       buffer64[0]++;

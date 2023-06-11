@@ -26,6 +26,8 @@ bool ZmqProcessorFsm(uint32_t key, uint16_t port) {
   
   zmq::socket_t socket{context, zmq::socket_type::rep};
   //socket.bind("tcp://*:5555");
+
+  std::cout << "Binding with " << sout.str() << std::endl;
   socket.bind(sout.str());
   
   FsmInterface local;

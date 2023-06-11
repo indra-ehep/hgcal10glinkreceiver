@@ -17,7 +17,7 @@ namespace Hgcal10gLinkReceiver {
       //MaximumBytesPerFile=2000
     };
     
-    FileWriter() : _directory("dat/"), _protectFiles(false), _flushRecords(true) {
+    FileWriter() : _directory("dat/"), _protectFiles(false), _flushRecords(false) {
     }
 
     void setDirectory(const std::string &s) {

@@ -9,6 +9,7 @@
 
 int main(int argc, char *argv[]) {
   ShmSingleton<LinkCheckShm> shm;
+  shm.setup(0xce2302);
   LinkCheckShm* const p(shm.payload());
 
   uint64_t pOld[2]={0,0};
@@ -32,11 +33,12 @@ int main(int argc, char *argv[]) {
     lcs[i]=*p;
 
     j=(i+1)%2;
-    if(lcs[i]._array[LinkCheckShm::NumberOfPacketSkips]!=lcs[j]._array[LinkCheckShm::NumberOfPacketSkips]) {
+    //if(lcs[i]._array[LinkCheckShm::NumberOfPacketSkips]!=lcs[j]._array[LinkCheckShm::NumberOfPacketSkips]) {
+    if(true) {
 
     uint64_t t(time(0));
     std::cout << ctime((time_t*)(&t)) << std::endl;
-       lcs[i].print();
+    lcs[i].print();
        
     std::cout << std::endl;
     std::cout << " Rates:" << std::endl;
