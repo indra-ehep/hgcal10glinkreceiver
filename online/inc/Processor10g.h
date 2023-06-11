@@ -11,6 +11,7 @@
 #include <cstring>
 
 #include "Serenity10g.h"
+#include "Serenity10gx.h"
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
@@ -43,20 +44,29 @@ namespace Hgcal10gLinkReceiver {
   
     void setUpAll(uint32_t rcKey) {
       _serenity10g.makeTable();
+      _serenity10gx.makeTable();
       ptrFifoShm2=nullptr;
       startFsm(rcKey);
     }
 
     virtual bool initializing() {
       _serenity10g.setDefaults();
-      _serenity10g.uhalWrite("payload.ctrl.reg.en",0);
-      _serenity10g.uhalWrite("payload.ctrl.reg.duty_cycle",0);
-      _serenity10g.uhalWrite("eth10g.quad.channel.ctrl.reg.heartbeat",1);
+      _serenity10g.uhalWrite("quad.channel.ctrl.reg.heartbeat",1);
+
+      _serenity10gx.setDefaults();
+      _serenity10gx.uhalWrite("ctrl.reg.en",0);
+      _serenity10gx.uhalWrite("ctrl.reg.duty_cycle",3);
+      _serenity10gx.uhalWrite("ctrl.pkt_len",0x20);
+      _serenity10gx.uhalWrite("ctrl.pause_interval",0);
+
       _serenity10g.print();
+      _serenity10gx.print();
       return true;
     }
 
     bool configuring() {
+	_configuringBCounter=0;
+
 	RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
 	if(_printEnable) r.print();
 
@@ -74,32 +84,34 @@ namespace Hgcal10gLinkReceiver {
 	  //_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",1);
 	  _serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3510<<16)|0x0004);
 	  */
-	} else {
-
 	}
 
 	_serenity10g.print();
-	_configuringBCounter=0;
+
+	if(_keyCfgA==124) {
+	  _serenity10gx.uhalWrite("ctrl.reg.duty_cycle",_configuringBCounter%4);
+	}
 
 
       return true;
     }
     
     bool reconfiguring() {
+	_configuringBCounter++;
+
 	RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
 	if(_printEnable) r.print();
 
-	_keyCfgB=r.processorKey(RunControlDummyFsmShmKey);
+	//_keyCfgB=r.processorKey(RunControlDummyFsmShmKey);
 
 	if(_keyCfgA==123) {
 	  //_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",_keyCfgB);
+	  //_serenity10gx.uhalWrite("ctrl.reg.duty_cycle",3);
 	}
 	
 	if(_keyCfgA==124) {
-	  _serenity10g.uhalWrite("payload.ctrl.reg.duty_cycle",_configuringBCounter%4);
+	  _serenity10gx.uhalWrite("ctrl.reg.duty_cycle",_configuringBCounter%4);
 	}
-
-	_configuringBCounter++;
 
       return true;
     }
@@ -204,13 +216,13 @@ namespace Hgcal10gLinkReceiver {
 	std::cout << "Processor10g::running()" << std::endl;
       }
 
-      _serenity10g.uhalWrite("payload.ctrl.reg.en",1);
+      _serenity10gx.uhalWrite("ctrl.reg.en",1);
 
       _ptrFsmInterface->setProcessState(FsmState::Running);
       
       while(_ptrFsmInterface->systemState()==FsmState::Running) usleep(1000);
 
-      _serenity10g.uhalWrite("payload.ctrl.reg.en",0);
+      _serenity10gx.uhalWrite("ctrl.reg.en",0);
       
       writeContinuing();
     }
@@ -241,19 +253,17 @@ namespace Hgcal10gLinkReceiver {
       }
 	
       case 123: {
-	//_serenity10g.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",20+(_runNumberInSuperRun%50));
-
-				 break;
-				 }
+	break;
+      }
 	
-	  case 999: {
-	    break;
-	  }
+      case 999: {
+	break;
+      }
 	
-	default: {
-	  break;
-	}
-
+      default: {
+	break;
+      }
+	
       };
       }
     
@@ -278,6 +288,7 @@ namespace Hgcal10gLinkReceiver {
       uint32_t _eventNumberInSuperRun;
 
       Serenity10g _serenity10g;
+      Serenity10gx _serenity10gx;
 
     };
 
