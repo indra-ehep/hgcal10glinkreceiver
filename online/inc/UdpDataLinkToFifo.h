@@ -18,8 +18,8 @@ using namespace Hgcal10gLinkReceiver;
 
 #define MAXLINE 4096
 
-bool UdpProcessorDataLinkFifo(uint32_t key, uint16_t port) {
-  std::cout << "UdpProcessorDataLinkFifo called with key = 0x"
+bool UdpDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
+  std::cout << "UdpDataLinkToFifo called with key = 0x"
             << std::hex << std::setfill('0')
             << std::setw(8) << key << ", port = 0x"
             << std::setw(4) << port
@@ -30,7 +30,7 @@ bool UdpProcessorDataLinkFifo(uint32_t key, uint16_t port) {
   DataFifoT<6,1024> *ptrRunFileShm=shmU.setup(key);
 
   // Define control flags
-  bool dummyWriter(false);
+  bool dummyWriter(w);
 
   bool printEnable(false);
   bool checkEnable(false);

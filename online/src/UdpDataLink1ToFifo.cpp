@@ -10,7 +10,7 @@
 #include <iostream>
 
 #include "SystemParameters.h"
-#include "UdpProcessorDataLinkFifo.h"
+#include "UdpDataLinkToFifo.h"
 
 using namespace Hgcal10gLinkReceiver;
 
@@ -49,5 +49,5 @@ int main(int argc, char *argv[]) {
      }     
    }
    
-   return (UdpProcessorDataLinkFifo(ProcessorDaqLink0FifoShmKey,UdpProcessorDaqLink0FifoPort)?0:1);
+   return (UdpDataLinkToFifo(ProcessorDaqLink1FifoShmKey,UdpProcessorDaqLink1FifoPort,dummyWriter)?0:1);
 }
