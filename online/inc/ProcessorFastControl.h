@@ -26,7 +26,7 @@
 
 
 #include "RecordPrinter.h"
-#include "RecordYaml.h"
+#include "RecordHalted.h"
 
 #ifdef ProcessorHardware
 #include "uhal/uhal.hpp"
@@ -255,6 +255,24 @@ namespace Hgcal10gLinkReceiver {
 
     //////////////////////////////////////////////
 
+    virtual void halted() {
+      RecordHalted *r;
+      while((r=(RecordHalted*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
+      r->setHeader(_cfgSeqCounter++);
+
+      // Replace with "constants" call to Serenity
+      YAML::Node n;
+      n["Serenity"]=0;
+      n["PayloadVersion"]=0x1234567b;
+      
+      std::ostringstream sout;
+      sout << n;
+      r->setString(sout.str());
+      r->print();
+      
+      //ptrFifoShm2->writeIncrement(); // NOT YET!
+    }
+    
     virtual void configured() {
 
       std::cout << "configured() relay = " << _relayNumber << std::endl;
