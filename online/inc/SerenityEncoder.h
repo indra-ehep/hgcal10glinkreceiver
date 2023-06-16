@@ -38,19 +38,19 @@ namespace Hgcal10gLinkReceiver {
       return SerenityUhal::makeTable("payload.fc_ctrl.fpga_fc");
     }
 
-    void configuration(YAML::Node &n) {
-      n=YAML::Node();
+    void configuration(YAML::Node &m) {
+      m=YAML::Node();
 
-      n["ctrl.prel1a_offset"     ]=uhalRead("ctrl.prel1a_offset");
-      n["ctrl.user_prel1a_off_en"]=uhalRead("ctrl.user_prel1a_off_en");
-      n["ctrl.l1a_stretch"       ]=uhalRead("ctrl.l1a_stretch");
+      m["ctrl.prel1a_offset"     ]=uhalRead("ctrl.prel1a_offset");
+      m["ctrl.user_prel1a_off_en"]=uhalRead("ctrl.user_prel1a_off_en");
+      m["ctrl.l1a_stretch"       ]=uhalRead("ctrl.l1a_stretch");
 
-      n["calpulse_ctrl.calpulse_int_del"]=uhalRead("calpulse_ctrl.calpulse_int_del");
-      n["calpulse_ctrl.calpulse_ext_del"]=uhalRead("calpulse_ctrl.calpulse_ext_del");
-      n["calpulse_ctrl.ocr_n"           ]=uhalRead("calpulse_ctrl.ocr_n");
+      m["calpulse_ctrl.calpulse_int_del"]=uhalRead("calpulse_ctrl.calpulse_int_del");
+      m["calpulse_ctrl.calpulse_ext_del"]=uhalRead("calpulse_ctrl.calpulse_ext_del");
+      m["calpulse_ctrl.ocr_n"           ]=uhalRead("calpulse_ctrl.ocr_n");
 
-      n["ctrl_2"]=uhalRead("ctrl_2");
-      n["ctrl_3"]=uhalRead("ctrl_3");      
+      m["ctrl_2"]=uhalRead("ctrl_2");
+      m["ctrl_3"]=uhalRead("ctrl_3");      
     }
 
     void configuration(std::unordered_map<std::string,uint32_t> &m) {

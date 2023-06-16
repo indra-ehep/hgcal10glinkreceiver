@@ -95,6 +95,15 @@ namespace Hgcal10gLinkReceiver {
       incrementPayloadLength(n);
     }
 
+    void setString(const std::string &s) {
+      setPayloadLength(2);
+      addString(s);
+    }
+
+    const char* string() const {
+      return (const char*)(_payload+2);
+    }
+
     void configuration(std::unordered_map<std::string,uint32_t> &m) const {
       m.clear();
 
