@@ -263,7 +263,7 @@ namespace Hgcal10gLinkReceiver {
       // Replace with "constants" call to Serenity
       YAML::Node n;
       n["Serenity"]=0;
-      n["PayloadVersion"]=0x1234567b;
+      n["PayloadVersion"]=_serenityEncoder.payloadVersion();
       
       std::ostringstream sout;
       sout << n;

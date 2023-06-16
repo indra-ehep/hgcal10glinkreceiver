@@ -49,6 +49,13 @@ namespace Hgcal10gLinkReceiver {
       _printEnable=p;
     }
 
+    uint32_t payloadVersion() {
+      const uhal::Node& lNode = lHW.getNode("info.versions.payload");
+      uhal::ValWord<uint32_t> lReg = lNode.read();
+      lHW.dispatch();
+      return lReg.value();
+    }
+
     bool makeTable(const std::string &s="payload") {
       _uhalTopString=s;
       

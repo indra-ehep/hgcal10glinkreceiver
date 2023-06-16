@@ -20,6 +20,7 @@
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
 #include "RecordConfigured.h"
+#include "RecordHalted.h"
 
 
 
@@ -142,6 +143,37 @@ namespace Hgcal10gLinkReceiver {
 
     //////////////////////////////////////////////
     
+    virtual void halted() {
+      _ptrFsmInterface->setProcessState(FsmState::Halted);
+      while(_ptrFsmInterface->systemState()==FsmState::Halted) usleep(1000);
+
+      const RecordYaml *r;
+ 
+      for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
+	//bool done(false);
+	//while(!done) {
+	while((r=(RecordYaml*)_ptrFifoShm[i]->readRecord())!=nullptr) {
+	    if(_printEnable) r->print();
+
+	    if(r->state()==FsmState::Halted) {
+	      YAML::Node n(YAML::LoadFile(std::string(r->string())));
+	      std::ofstream fout("dat/Constants.yaml");
+	      fout << n << std::endl;
+	      fout.close();
+	    }
+
+	    if(r->state()!=FsmState::Continuing) {
+	      _fileWriter.write(r);
+	    } else {
+	      //done=true;
+	    }
+	    _ptrFifoShm[i]->readIncrement();
+	  }
+	  //}
+      }
+
+    }
+    
     virtual void configured() {
       if(_printEnable) std::cout << "ProcessRelay::configured()" << std::endl;
 
@@ -161,7 +193,7 @@ namespace Hgcal10gLinkReceiver {
 	      const RecordConfigured *rc((const RecordConfigured*)r);
 	      if(rc->type()==RecordConfigured::BE && rc->location()==1) {
 		std::string s(rc->string());
-		YAML::Node n(YAML::Load(s));
+		YAML::Node n(YAML::LoadFile(s));
 		std::ofstream fout("dat/temp.yaml");
 		fout << n << std::endl;
 		fout.close();
