@@ -30,6 +30,8 @@ int main(int argc, char *argv[]) {
 
   SerenityUhal::setUhalLogLevel();
 
+  // info.versions.payload = 0x1234567b
+
   SerenityUhal su;
   su.setPrintEnable(printEnable);
   //su.makeTable("eth10g");
