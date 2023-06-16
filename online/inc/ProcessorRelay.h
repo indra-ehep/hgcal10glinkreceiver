@@ -10,10 +10,11 @@
 #include <string>
 #include <cstring>
 
+#include <yaml-cpp/yaml.h>
+
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
-
 
 
 #include "I2cInstruction.h"
@@ -155,7 +156,18 @@ namespace Hgcal10gLinkReceiver {
 	//while(!done) {
 	  while((r=_ptrFifoShm[i]->readRecord())!=nullptr) {
 	    if(_printEnable) r->print();
-	    
+
+	    if(r->state()==FsmState::Configured) {
+	      const RecordConfigured *rc((const RecordConfigured*)r);
+	      if(rc->type()==RecordConfigured::BE && rc->location()==1) {
+		std::string s(rc->string());
+		YAML::Node n(YAML::Load(s));
+		std::ofstream fout("dat/temp.yaml");
+		fout << n << std::endl;
+		fout.close();
+	      }
+	    }
+
 	    if(r->state()!=FsmState::Continuing) {
 	      _fileWriter.write(r);
 	    } else {

@@ -12,6 +12,7 @@
 
 #include "SerenityEncoder.h"
 #include "SerenityLpgbt.h"
+#include "SerenityMiniDaq.h"
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
@@ -25,6 +26,7 @@
 
 
 #include "RecordPrinter.h"
+#include "RecordHalted.h"
 
 #ifdef ProcessorHardware
 #include "uhal/uhal.hpp"
@@ -58,6 +60,7 @@ namespace Hgcal10gLinkReceiver {
     void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
       _serenityEncoder.makeTable();
       _serenityLpgbt.makeTable();
+      _serenityMiniDaq.makeTable();
 
       ShmSingleton<RelayWriterDataFifo> shm2;
       ptrFifoShm2=shm2.setup(fifoKey);
@@ -70,6 +73,8 @@ namespace Hgcal10gLinkReceiver {
       _serenityEncoder.print();
       _serenityLpgbt.setDefaults();
       _serenityLpgbt.print();
+      _serenityMiniDaq.setDefaults();
+      _serenityMiniDaq.print();
       return true;
     }
 
@@ -230,6 +235,8 @@ namespace Hgcal10gLinkReceiver {
       _serenityEncoder.print();
       _serenityLpgbt.setDefaults();
       _serenityLpgbt.print();
+      _serenityMiniDaq.setDefaults();
+      _serenityMiniDaq.print();
       return true;
     }
     
@@ -248,6 +255,24 @@ namespace Hgcal10gLinkReceiver {
 
     //////////////////////////////////////////////
 
+    virtual void halted() {
+      RecordHalted *r;
+      while((r=(RecordHalted*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
+      r->setHeader(_cfgSeqCounter++);
+
+      // Replace with "constants" call to Serenity
+      YAML::Node n;
+      n["Serenity"]=0;
+      n["PayloadVersion"]=0x1234567b;
+      
+      std::ostringstream sout;
+      sout << n;
+      r->setString(sout.str());
+      r->print();
+      
+      //ptrFifoShm2->writeIncrement(); // NOT YET!
+    }
+    
     virtual void configured() {
 
       std::cout << "configured() relay = " << _relayNumber << std::endl;
@@ -318,7 +343,131 @@ namespace Hgcal10gLinkReceiver {
 	ptrFifoShm2->writeIncrement();
       }
 
-      for(unsigned i(1);i<=2;i++) {
+      RecordYaml *ry;
+      while((ry=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
+      ry->setHeader(_cfgSeqCounter++);
+      ry->print();
+      
+      YAML::Node total;
+      total["Serenity"]=0;
+
+      YAML::Node ne;
+      _serenityEncoder.configuration(ne);
+      total["FcEncoder"]=ne;
+
+      total["LpgbtPair"][0]["Id"]=0;
+
+      YAML::Node nm;
+      _serenityMiniDaq.configuration(nm);
+      total["LpgbtPair"][0]["MiniDaq"]=nm;
+
+      YAML::Node nl;
+      _serenityLpgbt.configuration(nl);
+      total["LpgbtPair"][0]["FcStream"]=nl;
+      /*
+      total["LpgbtPair"][0]["FcStream"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][0]["FcStream0"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][0]["FcStream0"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"][0]["FcStream1"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][0]["FcStream1"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][0]["FcStream1"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"][0]["FcStream2"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][0]["FcStream2"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][0]["FcStream2"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"][0]["FcStream3"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][0]["FcStream3"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][0]["FcStream3"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"][0]["FcStream4"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][0]["FcStream4"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][0]["FcStream4"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"][0]["FcStream5"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][0]["FcStream5"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][0]["FcStream5"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"][0]["FcStream6"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][0]["FcStream6"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][0]["FcStream6"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"][0]["FcStream7"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][0]["FcStream7"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][0]["FcStream7"]["ctrl.calpulse_type"]=0;
+      */
+      total["LpgbtPair"][0]["Unpacker"][0]["Id"]=0;
+      total["LpgbtPair"][0]["Unpacker"][1]["Id"]=1;
+      total["LpgbtPair"][0]["Unpacker"][2]["Id"]=2;
+      total["LpgbtPair"][0]["Unpacker"][3]["Id"]=3;
+
+
+      total["LpgbtPair"][1]["Id"]=1;
+
+      total["LpgbtPair"][1]["MiniDaq"]="XXX: YYY";
+
+      total["LpgbtPair"][1]["FcStream0"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][1]["FcStream0"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][1]["FcStream0"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"][1]["FcStream1"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][1]["FcStream1"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][1]["FcStream1"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"][1]["FcStream2"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][1]["FcStream2"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][1]["FcStream2"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"][1]["FcStream3"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][1]["FcStream3"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][1]["FcStream3"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"][1]["FcStream4"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][1]["FcStream4"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][1]["FcStream4"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"][1]["FcStream5"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][1]["FcStream5"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][1]["FcStream5"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"][1]["FcStream6"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][1]["FcStream6"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][1]["FcStream6"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"][1]["FcStream7"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"][1]["FcStream7"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"][1]["FcStream7"]["ctrl.calpulse_type"]=0;
+
+      total["LpgbtPair"][1]["Unpacker"][0]["Id"]=0;
+      total["LpgbtPair"][1]["Unpacker"][1]["Id"]=1;
+      total["LpgbtPair"][1]["Unpacker"][2]["Id"]=2;
+      total["LpgbtPair"][1]["Unpacker"][3]["Id"]=3;
+
+
+      YAML::Node lp;
+      lp["cmd"]=0x36;
+      //_serenityLpgbt.configuration(lp);
+
+
+      YAML::Node md;
+      md["header"]=0x154;
+      //_serenityLpgbt.configuration(md);
+      //total["LpgbtPair"][1]=md;
+      //total["MiniDaq"]=md;
+
+      /*
+      YAML::Node pair0;
+      pair0["FcStream_0"]="Stuff0";
+      total["LpgbtPair"][2]=pair0;
+
+      YAML::Node pair1;
+      pair1["FcStream_1"]="Stuff1";
+      total["LpgbtPair"][3]=pair1;
+      
+      YAML::Node unp;
+      unp["Unpacker_0"]="Stuff0";
+      total["Unpacker"][0]=unp;
+      unp["Unpacker_1"]="Stuff1";
+      total["Unpacker"][1]=unp;
+      */
+      //total["LpgbtPair"][0]=lp;
+      //total["LpgbtPair"][1]=md;
+
+      
+      std::ostringstream sout;
+      sout << total;
+      ry->setString(sout.str());
+      ry->print();
+      
+      
+      for(unsigned i(1);i<=3;i++) {
 	while((r=(RecordConfigured*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
 	r->setHeader(_cfgSeqCounter++);
 	r->setState(FsmState::Configured);
@@ -330,13 +479,18 @@ namespace Hgcal10gLinkReceiver {
 	if(i==1) {
 	  _serenityEncoder.configuration(m);
 	  _serenityEncoder.configuration(n);
-	} else     _serenityLpgbt.configuration(m);
-      
+	} else if(i==2) {
+	  _serenityLpgbt.configuration(m);
+	} else {
+	  _serenityMiniDaq.configuration(m);
+	}
+	
 	if(_printEnable) {
 	  std::cout << "Serenity configuration" << std::endl;
 	  if(i==1) _serenityEncoder.print();
-	  else     _serenityLpgbt.print();
-
+	  else if(i==2) _serenityLpgbt.print();
+	  else _serenityMiniDaq.print();
+	    
 	  std::cout << "Serenity map" << std::endl;
 	  for(auto i(m.begin());i!=m.end();i++) {
 	    std::cout << " " << i->first << " = " << i->second << std::endl;
@@ -497,7 +651,7 @@ namespace Hgcal10gLinkReceiver {
 
     SerenityEncoder _serenityEncoder;
     SerenityLpgbt _serenityLpgbt;
-  
+    SerenityMiniDaq _serenityMiniDaq;  
   };
 
 }
