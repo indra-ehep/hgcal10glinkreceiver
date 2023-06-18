@@ -50,11 +50,15 @@ namespace Hgcal10gLinkReceiver {
     }
 
     uint32_t payloadVersion() {
+#ifdef ProcessorHardware
       const uhal::Node& lNode = lHW.getNode("info.versions.payload");
       uhal::ValWord<uint32_t> lReg = lNode.read();
       lHW.dispatch();
       return lReg.value();
-    }
+#else
+      return 999999999;
+#endif
+  }
 
     bool makeTable(const std::string &s="payload") {
       _uhalTopString=s;
