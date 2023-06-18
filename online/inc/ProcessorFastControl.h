@@ -50,7 +50,7 @@ namespace Hgcal10gLinkReceiver {
     }
 #endif
 #else
-    ProcessorFastControl() {
+    ProcessorFastControl() {      
     }
 #endif
 
@@ -60,11 +60,10 @@ namespace Hgcal10gLinkReceiver {
     void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
       _serenityEncoder.makeTable();
       _serenityLpgbt.makeTable();
-      _serenityMiniDaq.makeTable();
+      //_serenityMiniDaq.makeTable();
 
       ShmSingleton<RelayWriterDataFifo> shm2;
       ptrFifoShm2=shm2.setup(fifoKey);
-      //ptrFifoShm2=shm2.payload();
       startFsm(rcKey);
     }
 
@@ -73,8 +72,8 @@ namespace Hgcal10gLinkReceiver {
       _serenityEncoder.print();
       _serenityLpgbt.setDefaults();
       _serenityLpgbt.print();
-      _serenityMiniDaq.setDefaults();
-      _serenityMiniDaq.print();
+      //_serenityMiniDaq.setDefaults();
+      //_serenityMiniDaq.print();
       return true;
     }
 
@@ -235,8 +234,8 @@ namespace Hgcal10gLinkReceiver {
       _serenityEncoder.print();
       _serenityLpgbt.setDefaults();
       _serenityLpgbt.print();
-      _serenityMiniDaq.setDefaults();
-      _serenityMiniDaq.print();
+      //_serenityMiniDaq.setDefaults();
+      //_serenityMiniDaq.print();
       return true;
     }
     
@@ -270,13 +269,14 @@ namespace Hgcal10gLinkReceiver {
       r->setString(sout.str());
       r->print();
       
-      //ptrFifoShm2->writeIncrement(); // NOT YET!
+      ptrFifoShm2->writeIncrement();
     }
     
     virtual void configured() {
 
       std::cout << "configured() relay = " << _relayNumber << std::endl;
 
+#ifdef HGCROC_JUNK
       RecordConfigured *r;
       for(unsigned i(1);i<=3 && false;i++) {
 
@@ -342,9 +342,11 @@ namespace Hgcal10gLinkReceiver {
 
 	ptrFifoShm2->writeIncrement();
       }
+#endif
 
-      RecordYaml *ry;
-      while((ry=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
+#ifndef USE_CONFIGURED
+      RecordHalted *ry;
+      while((ry=(RecordHalted*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
       ry->setHeader(_cfgSeqCounter++);
       ry->print();
       
@@ -358,7 +360,8 @@ namespace Hgcal10gLinkReceiver {
       total["LpgbtPair"][0]["Id"]=0;
 
       YAML::Node nm;
-      _serenityMiniDaq.configuration(nm);
+      nm[0]="NULL";
+      //_serenityMiniDaq.configuration(nm);
       total["LpgbtPair"][0]["MiniDaq"]=nm;
 
       YAML::Node nl;
@@ -465,8 +468,11 @@ namespace Hgcal10gLinkReceiver {
       sout << total;
       ry->setString(sout.str());
       ry->print();
-      
-      
+
+      ptrFifoShm2->writeIncrement();
+            
+#else
+
       for(unsigned i(1);i<=3;i++) {
 	while((r=(RecordConfigured*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
 	r->setHeader(_cfgSeqCounter++);
@@ -482,14 +488,14 @@ namespace Hgcal10gLinkReceiver {
 	} else if(i==2) {
 	  _serenityLpgbt.configuration(m);
 	} else {
-	  _serenityMiniDaq.configuration(m);
+	  //_serenityMiniDaq.configuration(m);
 	}
 	
 	if(_printEnable) {
 	  std::cout << "Serenity configuration" << std::endl;
 	  if(i==1) _serenityEncoder.print();
 	  else if(i==2) _serenityLpgbt.print();
-	  else _serenityMiniDaq.print();
+	  //else _serenityMiniDaq.print();
 	    
 	  std::cout << "Serenity map" << std::endl;
 	  for(auto i(m.begin());i!=m.end();i++) {
@@ -531,6 +537,8 @@ namespace Hgcal10gLinkReceiver {
       
 	ptrFifoShm2->writeIncrement();
       }
+
+#endif
       ///////////////
       /*
 	while((r=(RecordConfigured*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);

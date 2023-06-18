@@ -59,24 +59,26 @@ namespace Hgcal10gLinkReceiver {
     }
 
     bool configuring() {
-	RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
+      RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
 
-	if(r.relayNumber()<0xffffffff) {
-	  std::ostringstream sout;
-	  sout << "dat/Relay" << std::setfill('0')
-	       << std::setw(10) << r.relayNumber();
-	  system((std::string("mkdir ")+sout.str()).c_str());
-	
-	  _fileWriter.setDirectory(sout.str());
-	}
-	
-	_fileWriter.openRelay(r.relayNumber());
-	_fileWriter.write(&(_ptrFsmInterface->record()));
+      _relayNumber=r.relayNumber();
 
-	_cfgSeqCounter=1;
-	_evtSeqCounter=1;
+      if(r.relayNumber()<0xffffffff) {
+	std::ostringstream sout;
+	sout << "dat/Relay" << std::setfill('0')
+	     << std::setw(10) << r.relayNumber();
 
-
+	_relayDirectory=sout.str();
+	system((std::string("mkdir ")+_relayDirectory).c_str());	
+	_fileWriter.setDirectory(sout.str());
+      }
+      
+      _fileWriter.openRelay(r.relayNumber());
+      _fileWriter.write(&(_ptrFsmInterface->record()));
+      
+      _cfgSeqCounter=1;
+      _evtSeqCounter=1;
+      
       return true;
     }
     
@@ -147,6 +149,8 @@ namespace Hgcal10gLinkReceiver {
       _ptrFsmInterface->setProcessState(FsmState::Halted);
       while(_ptrFsmInterface->systemState()==FsmState::Halted) usleep(1000);
 
+      std::cout << "*** HALTED ***" << std::endl;
+
       const RecordYaml *r;
  
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
@@ -156,7 +160,7 @@ namespace Hgcal10gLinkReceiver {
 	    if(_printEnable) r->print();
 
 	    if(r->state()==FsmState::Halted) {
-	      YAML::Node n(YAML::LoadFile(std::string(r->string())));
+	      YAML::Node n(YAML::Load(std::string(r->string())));
 	      std::ofstream fout("dat/Constants.yaml");
 	      fout << n << std::endl;
 	      fout.close();
@@ -189,17 +193,25 @@ namespace Hgcal10gLinkReceiver {
 	  while((r=_ptrFifoShm[i]->readRecord())!=nullptr) {
 	    if(_printEnable) r->print();
 
+	    std::string s;
 	    if(r->state()==FsmState::Configured) {
 	      const RecordConfigured *rc((const RecordConfigured*)r);
-	      if(rc->type()==RecordConfigured::BE && rc->location()==1) {
-		std::string s(rc->string());
-		YAML::Node n(YAML::LoadFile(s));
-		std::ofstream fout("dat/temp.yaml");
+	      s=rc->string();
+	    }
+	    if(r->state()==FsmState::Halted) {
+	      const RecordHalted *rh((const RecordHalted*)r);
+	      s=rh->string();
+	    }
+
+	    if(s!="") {
+	      if(_relayNumber<0xffffffff) {
+		YAML::Node n(YAML::Load(s));
+		std::ofstream fout((_relayDirectory+"/Serenity0.yaml").c_str());
 		fout << n << std::endl;
 		fout.close();
 	      }
 	    }
-
+	    
 	    if(r->state()!=FsmState::Continuing) {
 	      _fileWriter.write(r);
 	    } else {
@@ -421,6 +433,7 @@ namespace Hgcal10gLinkReceiver {
 
     uint32_t _relayNumber;
     uint32_t _runNumber;
+    std::string _relayDirectory;
 
     uint32_t _runNumberInRelay;
 

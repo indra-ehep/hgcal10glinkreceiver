@@ -29,6 +29,7 @@ namespace Hgcal10gLinkReceiver {
   public:
   
     SerenityEncoder() { 
+      SerenityUhal::makeTable();
     }
     
     virtual ~SerenityEncoder() {
