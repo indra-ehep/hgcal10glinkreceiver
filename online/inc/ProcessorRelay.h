@@ -55,6 +55,8 @@ namespace Hgcal10gLinkReceiver {
     }
   
     virtual bool initializing() {
+      const Record *r((Record*)&(_ptrFsmInterface->record()));
+      _haltedUtc=r->utc();
       return true;
     }
 
@@ -127,6 +129,9 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool halting() {
+      const Record *r((Record*)&(_ptrFsmInterface->record()));
+      _haltedUtc=r->utc();
+	
       _eventNumberInRelay+=_eventNumberInConfiguration;
       _fileWriter.write(&(_ptrFsmInterface->record()));
       _fileWriter.close();
@@ -160,8 +165,12 @@ namespace Hgcal10gLinkReceiver {
 	    if(_printEnable) r->print();
 
 	    if(r->state()==FsmState::Halted) {
+	      std::ostringstream sout;
+	      sout << "dat/Serenity0Constants" << std::setfill('0')
+		   << std::setw(9) << _haltedUtc << ".yaml";
+	      
 	      YAML::Node n(YAML::Load(std::string(r->string())));
-	      std::ofstream fout("dat/Constants.yaml");
+	      std::ofstream fout(sout.str().c_str());
 	      fout << n << std::endl;
 	      fout.close();
 	    }
@@ -433,6 +442,8 @@ namespace Hgcal10gLinkReceiver {
     uint32_t _evtSeqCounter;
     uint32_t _pauseCounter;
 
+    uint32_t _haltedUtc;
+    
     uint32_t _relayNumber;
     uint32_t _runNumber;
     std::string _relayDirectory;
