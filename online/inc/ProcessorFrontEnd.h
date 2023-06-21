@@ -10,9 +10,12 @@
 #include <string>
 #include <cstring>
 
+#include <yaml-cpp/yaml.h>
+
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "RecordPrinter.h"
+#include "RecordYaml.h"
 #include "DataFifo.h"
 
 namespace Hgcal10gLinkReceiver {
@@ -22,6 +25,7 @@ namespace Hgcal10gLinkReceiver {
   public:
     ProcessorFrontEnd() {
       _fifoCounter=0;
+      _sequenceCount=0;
     }
 
     virtual ~ProcessorFrontEnd() {
@@ -29,8 +33,8 @@ namespace Hgcal10gLinkReceiver {
   
     void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
       ShmSingleton<RelayWriterDataFifo> shm2;
-      //ptrFifoShm2=shm2.setup(fifoKey);
-      ptrFifoShm2=nullptr;
+      ptrFifoShm2=shm2.setup(fifoKey);
+      //ptrFifoShm2=nullptr;
       startFsm(rcKey);
     }
 
@@ -185,6 +189,29 @@ namespace Hgcal10gLinkReceiver {
       if(_printEnable) {
 	std::cout << "ProcessorFrontEnd::configured()" << std::endl;
       }
+
+      RecordYaml *r;
+      while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
+
+      r->setHeader(_sequenceCount++);
+      //r->setState(FsmState::Configured);
+      if(_printEnable) r->print();
+
+      YAML::Node n;
+      n["Source"]="HGCROC";
+      n["Fed"]=0;
+      n["Slink"]=0;
+      n["Econd"]=0;
+      n["Hgcroc"]=0;
+      n["Configuration"]=YAML::LoadFile("cfg/Hgcroc00000000.yaml");
+
+      std::ostringstream sout;
+      sout << n;
+      r->setString(sout.str());
+
+      if(_printEnable) r->print();
+      ptrFifoShm2->writeIncrement();
+
       /*
 	RecordConfigured *r;
 	while((r=(RecordConfigured*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
@@ -262,7 +289,7 @@ namespace Hgcal10gLinkReceiver {
     RelayWriterDataFifo *ptrFifoShm2;
 
     uint32_t _fifoCounter;
-
+    uint32_t _sequenceCount;
     /*
       uint32_t _evtSeqCounter;
       uint32_t _pauseCounter;
