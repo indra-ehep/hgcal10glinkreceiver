@@ -16,6 +16,19 @@
 #ifdef ProcessorHardware
 #include "uhal/uhal.hpp"
 #include "uhal/ValMem.hpp"
+
+#include "emp/logger/logger.hpp"
+#include "/home/cmx/rshukla/emp-toolbox/core/include/emp/Controller.hpp"
+#include "emp/DatapathNode.hpp"
+#include "emp/GbtMGTRegionNode.hpp"
+#include "/home/cmx/rshukla/emp-toolbox/core/include/emp/LpGbtMGTRegionNode.hpp"
+#include "emp/SCCNode.hpp"
+#include "emp/SCCICNode.hpp"
+#include "emp/utilities/misc.hpp"
+
+using namespace uhal;
+using namespace emp;
+
 #endif
 
 namespace Hgcal10gLinkReceiver {
@@ -48,6 +61,17 @@ namespace Hgcal10gLinkReceiver {
     virtual void setPrintEnable(bool p) {
       _printEnable=p;
     }
+
+    uint32_t payloadVersion() {
+#ifdef ProcessorHardware
+      const uhal::Node& lNode = lHW.getNode("info.versions.payload");
+      uhal::ValWord<uint32_t> lReg = lNode.read();
+      lHW.dispatch();
+      return lReg.value();
+#else
+      return 999999999;
+#endif
+  }
 
     bool makeTable(const std::string &s="payload") {
       _uhalTopString=s;
@@ -192,6 +216,188 @@ namespace Hgcal10gLinkReceiver {
 		<< std::endl;
     }
     o << std::dec << std::setfill(' ');
+  }
+
+
+  std::vector<unsigned int> i2c_read(/*HwInterface hi,*/ unsigned char ch, unsigned int gbtx_addr, unsigned int target_addr, unsigned int len=1){
+    HwInterface &hi(lHW);
+
+    // assume M0 for now i.e. test
+    // Updating registes for LpGBTv1 
+    //  i2c_map = {"M0":(0x100,0x16f),
+    //             "M1":(0x107,0x184),
+    //             "M2":(0x10e,0x199)}
+    // ** To do: RMW
+
+    unsigned int i2c_master_base = 0x100;
+    unsigned int i2c_master_status_base = 0x16f;
+    //unsigned int i2c_speed = 0x3;
+    unsigned int i2c_speed = 0x2;
+
+    std::vector<unsigned int> output;
+    //emp controller
+    Controller  co(hi); 
+
+    //setting region of datapath
+    co.getDatapath().selectLink(ch);
+    co.getSCC().reset();
+  
+    if (gbtx_addr == 0x70){
+      //Its IC
+      hi.getNode("datapath.region.fe_mgt.data_framer.ctrl.ec_ic").write(0);
+      hi.dispatch();
+    }else{
+      // Its EC
+      hi.getNode("datapath.region.fe_mgt.data_framer.ctrl.ec_ic").write(1);
+      hi.dispatch();
+    }
+  
+    //Write command word for reading 
+    co.getSCCIC().icWrite(i2c_master_base+1, target_addr, gbtx_addr);
+  
+    if (len == 1){
+      co.getSCCIC().icWrite(i2c_master_base+6, 0x3 , gbtx_addr);
+    }
+    else{
+      //configure number of words
+      co.getSCCIC().icWrite(i2c_master_base+2, (len<<2)+i2c_speed , gbtx_addr);
+      co.getSCCIC().icWrite(i2c_master_base+6, 0x0 , gbtx_addr);
+      // multi-byte read
+      co.getSCCIC().icWrite(i2c_master_base+6, 0xd , gbtx_addr);
+    }  
+  
+   
+    //Check the status of the transaction  
+    unsigned int status = co.getSCCIC().icRead(i2c_master_status_base+2, gbtx_addr);
+    //std::cout << "Status of I2C read transaction : " << std::hex << status <<std::endl;
+    int retry = 0;
+    while (not (status & 0x4)){
+      if (retry > 5) 
+	break;
+      if (status & 0x40){
+	std::cout << "Problem: I2C NACK" << std::endl;
+	//raise I2CException("I2C NACK encountered")
+      }
+      else if (status & 0x8) {
+	std::cout << "Problem: SDA low before starting transaction" << std::endl;
+	//raise I2CException("SDA low before starting transaction")
+      }
+      else{
+	//std::cout << "Status of I2C read transaction : " << std::hex << status <<std::endl;
+      }
+      retry ++;
+    }
+    // Now try reading 
+    // Write command word for reading 
+  
+    unsigned int temp_read=0;
+  
+    if (len == 1){
+      output.push_back(co.getSCCIC().icRead(i2c_master_status_base+4, gbtx_addr));
+    }
+    else{
+      for (unsigned i=0; i<len; i++){
+	temp_read = co.getSCCIC().icRead(i2c_master_status_base+20-i, gbtx_addr);
+	output.push_back(temp_read); // copy?
+      }
+    }
+
+
+    return output;
+  }
+
+
+  int i2c_write(/*HwInterface hi,*/ unsigned char ch, unsigned int gbtx_addr, unsigned int target_addr, std::vector<unsigned int> data) {
+    HwInterface &hi(lHW);
+
+    // assume M0 for now i.e. test
+    // Updating registes for LpGBTv1 
+    //  i2c_map = {"M0":(0x100,0x16f),
+    //             "M1":(0x107,0x184),
+    //             "M2":(0x10e,0x199)}
+    // ** To do: RMW
+  
+    unsigned char len = data.size();
+
+    if (len>16){
+      std::cout<<"Error: I2C write can only write 16 bytes in one transaction" << std::endl;
+      return -1;
+    } 
+  
+    unsigned int i2c_master_base = 0x100;
+    unsigned int i2c_master_status_base = 0x16f;
+    //unsigned int i2c_speed = 0x1;
+    unsigned int i2c_speed = 0x2;
+
+    //emp controller
+    Controller  co(hi); 
+
+    //setting region of datapath
+    co.getDatapath().selectLink(ch);
+    co.getSCC().reset();
+  
+    if (gbtx_addr == 0x70){
+      //Its IC
+      hi.getNode("datapath.region.fe_mgt.data_framer.ctrl.ec_ic").write(0);
+      hi.dispatch();
+    }else{
+      // Its EC
+      hi.getNode("datapath.region.fe_mgt.data_framer.ctrl.ec_ic").write(1);
+      hi.dispatch();
+    }
+  
+    //set speed, and write nbytes 
+    co.getSCCIC().icWrite(i2c_master_base+2, (len<<2)+i2c_speed , gbtx_addr);
+    // go
+    co.getSCCIC().icWrite(i2c_master_base+6, 0x0 , gbtx_addr);
+  
+    // Configure write address
+    co.getSCCIC().icWrite(i2c_master_base+1, target_addr , gbtx_addr);
+    if(len > 1){
+      for (int i=0; i<len; i++ ){
+	//std::cout << "DEbug: in I2C write : write data byte " << i << " val = " << std::hex << data[i] << std::endl;
+	co.getSCCIC().icWrite(i2c_master_base+2+(i%4), data[i] , gbtx_addr);
+	if ( (i % 4) == 3 || i == len-1){
+	  //end of set of 4
+	  std::cout << i %4 << "   " << int(i/4) << std::endl;
+	  co.getSCCIC().icWrite(i2c_master_base+6, 0x8+int(i/4) , gbtx_addr);  
+	}
+                  
+      }
+  
+      //initiate actual write 
+      co.getSCCIC().icWrite(i2c_master_base+6, 0xC , gbtx_addr);
+    }
+    else{
+      //std::cout << "DEbug: in I2C write : single write data byte  = " << std::hex << data[0] << std::endl;
+      co.getSCCIC().icWrite(i2c_master_base+2, data[0] , gbtx_addr);
+      co.getSCCIC().icWrite(i2c_master_base+6, 0x2 , gbtx_addr);
+    }
+
+    
+    //Check the status of the transaction  
+    unsigned int status = co.getSCCIC().icRead(i2c_master_status_base+2, gbtx_addr);
+    //std::cout << "Status of I2C write transaction : " << std::hex << status <<std::endl;
+    int retry = 0;
+    while (not (status & 0x4)){
+      if (retry > 5) 
+	return -1;
+      if (status & 0x40){
+	std::cout << "Problem: I2C NACK" << std::endl;
+	//raise I2CException("I2C NACK encountered")
+      }
+      else if (status & 0x8) {
+	std::cout << "Problem: SDA low before starting transaction" << std::endl;
+	//raise I2CException("SDA low before starting transaction")
+      }
+      else{
+	//std::cout << "Status of I2C write transaction : " << std::hex << status <<std::endl;
+      }
+        
+      retry ++;
+    }
+  
+    return 0;
   }
 
   

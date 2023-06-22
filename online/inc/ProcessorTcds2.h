@@ -99,10 +99,10 @@ namespace Hgcal10gLinkReceiver {
     bool starting() {
 
       // Enable sequencer (even if masked)
-      _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",3);
+      _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_run_ctrl",3);
 
       // Release throttle
-      _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",1);
+      _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",1);
       return true;
 	
     }
@@ -119,10 +119,10 @@ namespace Hgcal10gLinkReceiver {
       _eventNumberInConfiguration+=_eventNumberInRun;
 
       // Impose throttle
-      _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0);
+      _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",0);
 	
       // Disable sequencer
-      _serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_run_ctrl",0);
+      _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_run_ctrl",0);
 
       return true;
     }
@@ -166,7 +166,12 @@ namespace Hgcal10gLinkReceiver {
 
       std::unordered_map<std::string,uint32_t> m;
       _serenityTcds2.configuration(m);
-      
+
+      YAML::Node n;
+      _serenityTcds2.configuration(n);
+      n["Serenity"]=0;
+      std::cout << "Yaml" << std::endl << n << std::endl;
+
       if(_printEnable) {
 	std::cout << "Serenity configuration" << std::endl;
 	_serenityTcds2.print();

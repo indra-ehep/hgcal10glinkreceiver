@@ -35,6 +35,19 @@ namespace Hgcal10gLinkReceiver {
       return SerenityUhal::makeTable("payload.fc_ctrl.fc_lpgbt_pair");
     }
 
+    void configuration(YAML::Node &m) {
+      m=YAML::Node();
+
+      for(unsigned i(0);i<8;i++) {
+        std::ostringstream sout;
+        sout << "_" << i;
+
+	m[std::string("ctrl.calpulse_type")+sout.str()]=uhalRead("ctrl.calpulse_type");
+	m[std::string("ctrl.user_bx"      )+sout.str()]=uhalRead("ctrl.user_bx");
+	m[std::string("fc_cmd.user"       )+sout.str()]=uhalRead("fc_cmd.user");
+      }
+    }
+
     void configuration(std::unordered_map<std::string,uint32_t> &m) {
       m.clear();
 

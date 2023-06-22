@@ -10,15 +10,17 @@
 #include <string>
 #include <cstring>
 
+#include <yaml-cpp/yaml.h>
+
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
 
 
-
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
 #include "RecordConfigured.h"
+#include "RecordHalted.h"
 
 
 
@@ -53,28 +55,32 @@ namespace Hgcal10gLinkReceiver {
     }
   
     virtual bool initializing() {
+      const Record *r((Record*)&(_ptrFsmInterface->record()));
+      _haltedUtc=r->utc();
       return true;
     }
 
     bool configuring() {
-	RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
+      RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
 
-	if(r.relayNumber()<0xffffffff) {
-	  std::ostringstream sout;
-	  sout << "dat/Relay" << std::setfill('0')
-	       << std::setw(10) << r.relayNumber();
-	  system((std::string("mkdir ")+sout.str()).c_str());
-	
-	  _fileWriter.setDirectory(sout.str());
-	}
-	
-	_fileWriter.openRelay(r.relayNumber());
-	_fileWriter.write(&(_ptrFsmInterface->record()));
+      _relayNumber=r.relayNumber();
 
-	_cfgSeqCounter=1;
-	_evtSeqCounter=1;
+      if(r.relayNumber()<0xffffffff) {
+	std::ostringstream sout;
+	sout << "dat/Relay" << std::setfill('0')
+	     << std::setw(10) << r.relayNumber();
 
-
+	_relayDirectory=sout.str();
+	system((std::string("mkdir ")+_relayDirectory).c_str());	
+	_fileWriter.setDirectory(sout.str());
+      }
+      
+      _fileWriter.openRelay(r.relayNumber());
+      _fileWriter.write(&(_ptrFsmInterface->record()));
+      
+      _cfgSeqCounter=1;
+      _evtSeqCounter=1;
+      
       return true;
     }
     
@@ -123,6 +129,9 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool halting() {
+      const Record *r((Record*)&(_ptrFsmInterface->record()));
+      _haltedUtc=r->utc();
+	
       _eventNumberInRelay+=_eventNumberInConfiguration;
       _fileWriter.write(&(_ptrFsmInterface->record()));
       _fileWriter.close();
@@ -141,6 +150,43 @@ namespace Hgcal10gLinkReceiver {
 
     //////////////////////////////////////////////
     
+    virtual void halted() {
+      _ptrFsmInterface->setProcessState(FsmState::Halted);
+      while(_ptrFsmInterface->systemState()==FsmState::Halted) usleep(1000);
+
+      std::cout << "*** HALTED ***" << std::endl;
+
+      const RecordYaml *r;
+ 
+      for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
+	//bool done(false);
+	//while(!done) {
+	while((r=(RecordYaml*)_ptrFifoShm[i]->readRecord())!=nullptr) {
+	    if(_printEnable) r->print();
+
+	    if(r->state()==FsmState::Halted) {
+	      std::ostringstream sout;
+	      sout << "dat/Serenity0Constants" << std::setfill('0')
+		   << std::setw(9) << _haltedUtc << ".yaml";
+	      
+	      YAML::Node n(YAML::Load(std::string(r->string())));
+	      std::ofstream fout(sout.str().c_str());
+	      fout << n << std::endl;
+	      fout.close();
+	    }
+
+	    if(r->state()!=FsmState::Continuing) {
+	      _fileWriter.write(r);
+	    } else {
+	      //done=true;
+	    }
+	    _ptrFifoShm[i]->readIncrement();
+	  }
+	  //}
+      }
+
+    }
+    
     virtual void configured() {
       if(_printEnable) std::cout << "ProcessRelay::configured()" << std::endl;
 
@@ -150,20 +196,41 @@ namespace Hgcal10gLinkReceiver {
 
       const Record *r;
 
-      for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
-	//bool done(false);
-	//while(!done) {
+      for(unsigned i(2);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
+	bool done(false);
+	while(!done) {
+	  std::cout << "i = " << i << std::endl;
+
 	  while((r=_ptrFifoShm[i]->readRecord())!=nullptr) {
 	    if(_printEnable) r->print();
-	    
+
+	    std::string s;
+	    if(r->state()==FsmState::Configured) {
+	      const RecordConfigured *rc((const RecordConfigured*)r);
+	      s=rc->string();
+	    }
+	    if(r->state()==FsmState::Halted) {
+	      const RecordHalted *rh((const RecordHalted*)r);
+	      s=rh->string();
+	    }
+
+	    if(s!="") {
+	      if(_relayNumber<0xffffffff) {
+		YAML::Node n(YAML::Load(s));
+		std::ofstream fout((_relayDirectory+"/Serenity0.yaml").c_str());
+		fout << n << std::endl;
+		fout.close();
+	      }
+	    }
+
 	    if(r->state()!=FsmState::Continuing) {
 	      _fileWriter.write(r);
 	    } else {
-	      //done=true;
+	      done=true;
 	    }
 	    _ptrFifoShm[i]->readIncrement();
 	  }
-	  //}
+	}
       }
 #ifdef NOT_YET
 
@@ -375,8 +442,11 @@ namespace Hgcal10gLinkReceiver {
     uint32_t _evtSeqCounter;
     uint32_t _pauseCounter;
 
+    uint32_t _haltedUtc;
+    
     uint32_t _relayNumber;
     uint32_t _runNumber;
+    std::string _relayDirectory;
 
     uint32_t _runNumberInRelay;
 

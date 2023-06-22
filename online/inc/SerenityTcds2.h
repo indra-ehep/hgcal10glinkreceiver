@@ -11,6 +11,8 @@
 #include <cstring>
 #include <unordered_map>
 
+#include <yaml-cpp/yaml.h>
+
 #include "SerenityUhal.h"
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
@@ -34,6 +36,35 @@ namespace Hgcal10gLinkReceiver {
     
     bool makeTable() {
       return SerenityUhal::makeTable("payload.fc_ctrl.tcds2_emu");
+    }
+
+    void configuration(YAML::Node &m) {
+      m=YAML::Node();
+
+      m["ctrl_stat.ctrl.en_l1a_physics"]=uhalRead("ctrl_stat.ctrl.en_l1a_physics");
+      m["ctrl_stat.ctrl.en_l1a_random"]=uhalRead("ctrl_stat.ctrl.en_l1a_random");
+      m["ctrl_stat.ctrl.en_l1a_software"]=uhalRead("ctrl_stat.ctrl.en_l1a_software");
+      m["ctrl_stat.ctrl.en_l1a_regular"]=uhalRead("ctrl_stat.ctrl.en_l1a_regular");
+      m["ctrl_stat.ctrl.calpulse_delay"]=uhalRead("ctrl_stat.ctrl.calpulse_delay");
+
+      m["ctrl_stat.ctrl1.en_nzs_reg"]=uhalRead("ctrl_stat.ctrl1.en_nzs_reg");
+      m["ctrl_stat.ctrl1.en_nzs_rand"]=uhalRead("ctrl_stat.ctrl1.en_nzs_rand");
+      m["ctrl_stat.ctrl1.en_nzs_physics"]=uhalRead("ctrl_stat.ctrl1.en_nzs_physics");
+      m["ctrl_stat.ctrl1.l1a_prbs_threshold"]=uhalRead("ctrl_stat.ctrl1.l1a_prbs_threshold");
+
+      m["ctrl_stat.ctrl2.tts_tcds2"]=uhalRead("ctrl_stat.ctrl2.tts_tcds2");
+      m["ctrl_stat.ctrl2.tts_mask"]=uhalRead("ctrl_stat.ctrl2.tts_mask");
+      m["ctrl_stat.ctrl2.l1a_physics_mask"]=uhalRead("ctrl_stat.ctrl2.l1a_physics_mask");
+
+      uint32_t length(uhalRead("ctrl_stat.ctrl.seq_length"));
+      m["ctrl_stat.ctrl.seq_length"]=length;
+      m["seq_mem.pointer"]=uhalRead("seq_mem.pointer");
+
+      for(unsigned i(0);i<length && i<1024;i++) {
+	std::ostringstream sout;
+        sout << "seq_mem.data_" << std::setfill('0') << std::setw(4) << i;
+        m[sout.str()]=uhalRead("seq_mem.data");
+      }
     }
 
     void configuration(std::unordered_map<std::string,uint32_t> &m) {
