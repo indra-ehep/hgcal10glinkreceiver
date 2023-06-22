@@ -269,7 +269,7 @@ namespace Hgcal10gLinkReceiver {
    
     //Check the status of the transaction  
     unsigned int status = co.getSCCIC().icRead(i2c_master_status_base+2, gbtx_addr);
-    std::cout << "Staus of I2C read transaction : " << std::hex << status <<std::endl;
+    //std::cout << "Status of I2C read transaction : " << std::hex << status <<std::endl;
     int retry = 0;
     while (not (status & 0x4)){
       if (retry > 5) 
@@ -283,7 +283,7 @@ namespace Hgcal10gLinkReceiver {
 	//raise I2CException("SDA low before starting transaction")
       }
       else{
-	std::cout << "Staus of I2C read transaction : " << std::hex << status <<std::endl;
+	//std::cout << "Status of I2C read transaction : " << std::hex << status <<std::endl;
       }
       retry ++;
     }
@@ -355,7 +355,7 @@ namespace Hgcal10gLinkReceiver {
     co.getSCCIC().icWrite(i2c_master_base+1, target_addr , gbtx_addr);
     if(len > 1){
       for (int i=0; i<len; i++ ){
-	std::cout << "DEbug: in I2C write : write data byte " << i << " val = " << std::hex << data[i] << std::endl;
+	//std::cout << "DEbug: in I2C write : write data byte " << i << " val = " << std::hex << data[i] << std::endl;
 	co.getSCCIC().icWrite(i2c_master_base+2+(i%4), data[i] , gbtx_addr);
 	if ( (i % 4) == 3 || i == len-1){
 	  //end of set of 4
@@ -369,7 +369,7 @@ namespace Hgcal10gLinkReceiver {
       co.getSCCIC().icWrite(i2c_master_base+6, 0xC , gbtx_addr);
     }
     else{
-      std::cout << "DEbug: in I2C write : single write data byte  = " << std::hex << data[0] << std::endl;
+      //std::cout << "DEbug: in I2C write : single write data byte  = " << std::hex << data[0] << std::endl;
       co.getSCCIC().icWrite(i2c_master_base+2, data[0] , gbtx_addr);
       co.getSCCIC().icWrite(i2c_master_base+6, 0x2 , gbtx_addr);
     }
@@ -377,7 +377,7 @@ namespace Hgcal10gLinkReceiver {
     
     //Check the status of the transaction  
     unsigned int status = co.getSCCIC().icRead(i2c_master_status_base+2, gbtx_addr);
-    std::cout << "Staus of I2C write transaction : " << std::hex << status <<std::endl;
+    //std::cout << "Status of I2C write transaction : " << std::hex << status <<std::endl;
     int retry = 0;
     while (not (status & 0x4)){
       if (retry > 5) 
@@ -391,7 +391,7 @@ namespace Hgcal10gLinkReceiver {
 	//raise I2CException("SDA low before starting transaction")
       }
       else{
-	std::cout << "Staus of I2C write transaction : " << std::hex << status <<std::endl;
+	//std::cout << "Status of I2C write transaction : " << std::hex << status <<std::endl;
       }
         
       retry ++;
