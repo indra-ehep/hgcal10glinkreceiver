@@ -26,6 +26,8 @@ int main(int argc, char** argv) {
   std::istringstream issRelay(argv[1]);
   issRelay >> relayNumber;
 
+  std::string directory(std::string("dat/Relay")+argv[1]);
+  
   FsmState::State state(FsmState::Halted);
   FsmState::State previousState(FsmState::EndOfStateEnum);
 
@@ -46,6 +48,7 @@ int main(int argc, char** argv) {
   for(unsigned i(0);i<=FsmState::EndOfStateEnum;i++) nRecord[i]=0;
   
   RelayReader relayReader;
+  relayReader.setDirectory(directory);
   assert(relayReader.openRelay(relayNumber));
 
   unsigned nCfgA(0);

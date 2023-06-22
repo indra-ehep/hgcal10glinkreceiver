@@ -53,8 +53,8 @@ namespace Hgcal10gLinkReceiver {
 
 	if(_printLevel>0) _goodFsmInterface[i]->print();
 
-	//usleep(200000);
-	sleep(2);
+	usleep(500000);
+	//sleep(2);
 
 	if(_printLevel>0) _goodFsmInterface[i]->print();
 
