@@ -11,7 +11,7 @@
 
 //#define ProcessorHardware
 
-#include "SerenityUhal.h"
+#include "SerenityHgcroc.h"
 #include "ProcessorFastControlPlusDaq.h"
 
 using namespace Hgcal10gLinkReceiver;
@@ -31,6 +31,15 @@ int main(int argc, char *argv[]) {
   SerenityUhal::setUhalLogLevel();
 
   // info.versions.payload = 0x1234567b
+
+  SerenityHgcroc sh;
+  std::cout << "i2c_read = 0x" << std::hex << sh.i2c_read(13,0x72,0x1a)[0] << std::endl;
+  std::cout << "i2cRead  = 0x" << std::hex << sh.i2cRead(13,-1,1,0x579)[0] << std::endl;
+  std::cout << "i2cRead  = 0x" << std::hex << sh.i2cRead(13,-1,1,0x57a)[0] << std::endl;
+
+  sh.i2cReadAll(13,-1,1);
+
+  return 0;
 
   SerenityUhal su;
   su.setPrintEnable(printEnable);

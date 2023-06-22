@@ -8,6 +8,14 @@
 #include "LinkCheckShm.h"
 
 int main(int argc, char *argv[]) {
+  unsigned sleepSecs(1);
+
+  if(argc>1) {
+    std::istringstream sin(argv[1]);
+    sin >> sleepSecs;
+    std::cout << "Setting sleepSecs = " << sleepSecs << std::endl;
+  }
+  
   ShmSingleton<LinkCheckShm> shm;
   shm.setup(0xce2302);
   LinkCheckShm* const p(shm.payload());
@@ -33,8 +41,7 @@ int main(int argc, char *argv[]) {
     lcs[i]=*p;
 
     j=(i+1)%2;
-    //if(lcs[i]._array[LinkCheckShm::NumberOfPacketSkips]!=lcs[j]._array[LinkCheckShm::NumberOfPacketSkips]) {
-    if(true) {
+    if(sleepSecs>0 || lcs[i]._array[LinkCheckShm::NumberOfPacketSkips]!=lcs[j]._array[LinkCheckShm::NumberOfPacketSkips]) {
 
     uint64_t t(time(0));
     std::cout << ctime((time_t*)(&t)) << std::endl;
@@ -102,7 +109,7 @@ int main(int argc, char *argv[]) {
     bOld[1]=bNew;
     */
     }
-    sleep(1);    
+    if(sleepSecs>0) sleep(std::max(sleepSecs,1U));
   }
 
   return 0;

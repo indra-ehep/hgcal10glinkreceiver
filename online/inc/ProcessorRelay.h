@@ -196,9 +196,11 @@ namespace Hgcal10gLinkReceiver {
 
       const Record *r;
 
-      for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
-	//bool done(false);
-	//while(!done) {
+      for(unsigned i(2);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
+	bool done(false);
+	while(!done) {
+	  std::cout << "i = " << i << std::endl;
+
 	  while((r=_ptrFifoShm[i]->readRecord())!=nullptr) {
 	    if(_printEnable) r->print();
 
@@ -220,15 +222,15 @@ namespace Hgcal10gLinkReceiver {
 		fout.close();
 	      }
 	    }
-	    
+
 	    if(r->state()!=FsmState::Continuing) {
 	      _fileWriter.write(r);
 	    } else {
-	      //done=true;
+	      done=true;
 	    }
 	    _ptrFifoShm[i]->readIncrement();
 	  }
-	  //}
+	}
       }
 #ifdef NOT_YET
 
