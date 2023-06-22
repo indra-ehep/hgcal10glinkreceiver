@@ -140,7 +140,7 @@ public:
   RecordT<BufferWidth-1> _buffer[BufferDepth];
 };
 
- typedef DataFifoT<6,1024> RelayWriterDataFifo;
+ typedef DataFifoT<4,4*1024> RelayWriterDataFifo;
  typedef DataFifoT<6,1024> RunWriterDataFifo;
  
 }

@@ -49,8 +49,12 @@ namespace Hgcal10gLinkReceiver {
       ShmSingleton<RelayWriterDataFifo> shm2;
       _ptrFifoShm.push_back(shm2.setup(fifoKey2));
       
-      for(unsigned i(0);i<_ptrFifoShm.size();i++) _ptrFifoShm[i]->coldStart();
-
+      _fifoShmAlive.resize(_ptrFifoShm.size());
+      for(unsigned i(0);i<_ptrFifoShm.size();i++) {
+	_fifoShmAlive[i]=true;
+	_ptrFifoShm[i]->coldStart();
+      }
+      
       startFsm(rcKey);
     }
   
@@ -93,7 +97,70 @@ namespace Hgcal10gLinkReceiver {
     }
 
     bool starting() {
-	_fileWriter.write(&(_ptrFsmInterface->record()));
+      _fileWriter.write(&(_ptrFsmInterface->record()));
+      _runNumber=((const RecordStarting*)&(_ptrFsmInterface->record()))->runNumber();
+      
+      const Record *r;
+
+      for(unsigned i(2);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
+	bool done(false);
+	while(!done) {
+	  std::cout << "i = " << i << std::endl;
+
+	  while((r=_ptrFifoShm[i]->readRecord())!=nullptr) {
+
+	    std::string s;
+	    if(r->state()==FsmState::Configured) {
+	      const RecordYaml *rc((const RecordYaml*)r);
+	      if(_printEnable) rc->print();
+	      s=rc->string();
+	    }
+	    /*
+	    if(r->state()==FsmState::Halted) {
+	      const RecordYaml *rh((const RecordYaml*)r);
+	      if(_printEnable) rh->print();
+	      s=rh->string();
+	    }
+	    */
+	    if(s!="") {
+	      if(_relayNumber<0xffffffff) {
+		YAML::Node n(YAML::Load(s));
+
+		std::ostringstream sout;
+		sout << std::setfill('0')
+		     << "Run" << _runNumber << "_";
+
+		std::cout << "HERE0" << std::endl;
+		if(n["Source"].as<std::string>()=="LpGBT" )
+		  sout << "Lpgbt"  << std::setw(3) << n["Lpgbt" ].as<unsigned>();
+		std::cout << "HERE1" << std::endl;
+		if(n["Source"].as<std::string>()=="ECOND" )
+		  sout << "EconD"  << std::setw(3) << n["EconD" ].as<int>();
+		std::cout << "HERE2" << std::endl;
+		if(n["Source"].as<std::string>()=="ECONT" )
+		  sout << "EconT"  << std::setw(3) << n["EconT" ].as<int>();
+		std::cout << "HERE3" << std::endl;
+		if(n["Source"].as<std::string>()=="HGCROC")
+		  sout << "Hgcroc" << std::setw(3) << 3*n["EconD" ].as<int>()+n["Hgcroc"].as<int>();
+		std::cout << "HERE4" << std::endl;
+
+		sout << ".yaml";
+
+		std::ofstream fout((_relayDirectory+"/"+sout.str()).c_str());
+		fout << n << std::endl;
+		fout.close();
+	      }
+	    }
+
+	    if(r->state()!=FsmState::Continuing) {
+	      _fileWriter.write(r);
+	    } else {
+	      done=true;
+	    }
+	    _ptrFifoShm[i]->readIncrement();
+	  }
+	}
+      }
 
 	_pauseCounter=0;
 	_eventNumberInRun=0;
@@ -194,44 +261,7 @@ namespace Hgcal10gLinkReceiver {
 
       while(_ptrFsmInterface->systemState()==FsmState::Configured) usleep(1000);
 
-      const Record *r;
 
-      for(unsigned i(2);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
-	bool done(false);
-	while(!done) {
-	  std::cout << "i = " << i << std::endl;
-
-	  while((r=_ptrFifoShm[i]->readRecord())!=nullptr) {
-	    if(_printEnable) r->print();
-
-	    std::string s;
-	    if(r->state()==FsmState::Configured) {
-	      const RecordConfigured *rc((const RecordConfigured*)r);
-	      s=rc->string();
-	    }
-	    if(r->state()==FsmState::Halted) {
-	      const RecordHalted *rh((const RecordHalted*)r);
-	      s=rh->string();
-	    }
-
-	    if(s!="") {
-	      if(_relayNumber<0xffffffff) {
-		YAML::Node n(YAML::Load(s));
-		std::ofstream fout((_relayDirectory+"/Serenity0.yaml").c_str());
-		fout << n << std::endl;
-		fout.close();
-	      }
-	    }
-
-	    if(r->state()!=FsmState::Continuing) {
-	      _fileWriter.write(r);
-	    } else {
-	      done=true;
-	    }
-	    _ptrFifoShm[i]->readIncrement();
-	  }
-	}
-      }
 #ifdef NOT_YET
 
 
@@ -433,6 +463,7 @@ namespace Hgcal10gLinkReceiver {
         
   protected:
     std::vector<RelayWriterDataFifo*> _ptrFifoShm;
+    std::vector<bool> _fifoShmAlive;
 
     FileWriter _fileWriter;
 

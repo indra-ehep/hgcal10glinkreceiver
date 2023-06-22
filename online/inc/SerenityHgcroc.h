@@ -10,6 +10,7 @@
 #include <string>
 #include <cstring>
 #include <cassert>
+#include <unordered_map>
 
 #include "SerenityUhal.h"
 #include "I2cInstruction.h"

@@ -26,6 +26,7 @@ namespace Hgcal10gLinkReceiver {
     ProcessorFrontEnd() {
       _fifoCounter=0;
       _sequenceCount=0;
+      _cfgForRunStart=false;
     }
 
     virtual ~ProcessorFrontEnd() {
@@ -49,6 +50,8 @@ namespace Hgcal10gLinkReceiver {
     }
 
     bool configuring() {
+      _cfgForRunStart=true;
+      
       RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
       if(_printEnable) r.print();
 
@@ -87,6 +90,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool reconfiguring() {
+      _cfgForRunStart=true;
       RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
       if(_printEnable) r.print();
 
@@ -156,6 +160,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool stopping() {
+      _cfgForRunStart=false;
       _eventNumberInConfiguration+=_eventNumberInRun;
       return true;
     }
@@ -185,33 +190,108 @@ namespace Hgcal10gLinkReceiver {
 
     //////////////////////////////////////////////
 
+    virtual void halted() {
+      writeContinuing();
+    }
+    
     virtual void configured() {
       if(_printEnable) {
 	std::cout << "ProcessorFrontEnd::configured()" << std::endl;
       }
 
+      if(_cfgForRunStart) {
+      
+      unsigned fed(18);
+      unsigned slink(9);
+      
       RecordYaml *r;
-      while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
 
+      while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
       r->setHeader(_sequenceCount++);
-      //r->setState(FsmState::Configured);
-      if(_printEnable) r->print();
 
       YAML::Node n;
-      n["Source"]="HGCROC";
-      n["Fed"]=0;
-      n["Slink"]=0;
-      n["Econd"]=0;
-      n["Hgcroc"]=0;
-      n["Configuration"]=YAML::LoadFile("cfg/Hgcroc00000000.yaml");
+      n["Source"]="LpGBT";
+      n["Fed"]=fed;
+      n["Slink"]=slink;
+      n["Lpgbt"]=13;
+	
+       std::ostringstream soutl;
+       soutl << "cfg/LpGBT" << 0 << ".yaml";
+       n["Configuration"]=YAML::LoadFile(soutl.str());
 
-      std::ostringstream sout;
-      sout << n;
-      r->setString(sout.str());
+       std::ostringstream sout0;
+       sout0 << n;
+       r->setString(sout0.str());
+	
+       if(_printEnable) r->print();
+       ptrFifoShm2->writeIncrement();
 
-      if(_printEnable) r->print();
-      ptrFifoShm2->writeIncrement();
+	
+       for(unsigned e(0);e<2;e++) {
+       	while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
+       	r->setHeader(_sequenceCount++);
 
+       	YAML::Node n0;
+       	n0["Source"]="ECOND";
+       	n0["Fed"]=fed;
+       	n0["Slink"]=slink;
+       	n0["EconD"]=e;
+	
+       	std::ostringstream soute0;
+       	soute0 << "cfg/ECOND" << e << ".yaml";
+       	n0["Configuration"]=YAML::LoadFile(soute0.str());
+
+       	std::ostringstream sout0;
+       	sout0 << n0;
+       	r->setString(sout0.str());
+	
+       	if(_printEnable) r->print();
+       	ptrFifoShm2->writeIncrement();
+	
+       	while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
+       	r->setHeader(_sequenceCount++);
+
+       	YAML::Node n1;
+       	n1["Source"]="ECONT";
+       	n1["Fed"]=fed;
+       	n1["Slink"]=slink;
+       	n1["EconT"]=e;
+	
+       	std::ostringstream soute1;
+       	soute1 << "cfg/ECONT" << e << ".yaml";
+       	n1["Configuration"]=YAML::LoadFile(soute1.str());
+
+       	std::ostringstream sout1;
+       	sout1 << n1;
+	r->setString(sout1.str());
+	
+	if(_printEnable) r->print();
+	ptrFifoShm2->writeIncrement();
+	
+	for(unsigned h(0);h<3;h++) {
+	  while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
+	  r->setHeader(_sequenceCount++);
+
+	  YAML::Node n;
+	  n["Source"]="HGCROC";
+	  n["Fed"]=fed;
+	  n["Slink"]=slink;
+	  n["EconD"]=e;
+	  n["Hgcroc"]=h;
+	  
+	  std::ostringstream south;
+	  south << "cfg/HGCROC" << 3*e+h << ".yaml";
+	  n["Configuration"]=YAML::LoadFile(south.str());
+
+	  std::ostringstream sout;
+	  sout << n;
+	  r->setString(sout.str());
+	  
+	  if(_printEnable) r->print();
+	  ptrFifoShm2->writeIncrement();
+	}
+      }
+      }
       /*
 	RecordConfigured *r;
 	while((r=(RecordConfigured*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
@@ -287,6 +367,8 @@ namespace Hgcal10gLinkReceiver {
         
   protected:
     RelayWriterDataFifo *ptrFifoShm2;
+
+    bool _cfgForRunStart;
 
     uint32_t _fifoCounter;
     uint32_t _sequenceCount;

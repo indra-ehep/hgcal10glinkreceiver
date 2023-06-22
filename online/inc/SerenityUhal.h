@@ -218,8 +218,11 @@ namespace Hgcal10gLinkReceiver {
     o << std::dec << std::setfill(' ');
   }
 
-
   std::vector<unsigned int> i2c_read(/*HwInterface hi,*/ unsigned char ch, unsigned int gbtx_addr, unsigned int target_addr, unsigned int len=1){
+    std::vector<unsigned int> output;
+
+#ifdef ProcessorHardware
+
     HwInterface &hi(lHW);
 
     // assume M0 for now i.e. test
@@ -234,7 +237,6 @@ namespace Hgcal10gLinkReceiver {
     //unsigned int i2c_speed = 0x3;
     unsigned int i2c_speed = 0x2;
 
-    std::vector<unsigned int> output;
     //emp controller
     Controller  co(hi); 
 
@@ -303,11 +305,15 @@ namespace Hgcal10gLinkReceiver {
     }
 
 
+#endif
+
     return output;
   }
 
 
   int i2c_write(/*HwInterface hi,*/ unsigned char ch, unsigned int gbtx_addr, unsigned int target_addr, std::vector<unsigned int> data) {
+
+#ifdef ProcessorHardware
     HwInterface &hi(lHW);
 
     // assume M0 for now i.e. test
@@ -397,9 +403,10 @@ namespace Hgcal10gLinkReceiver {
       retry ++;
     }
   
+#endif
+
     return 0;
   }
-
   
  protected:
   bool _printEnable;
