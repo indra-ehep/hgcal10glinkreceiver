@@ -43,22 +43,26 @@ namespace Hgcal10gLinkReceiver {
 
       _writeEnable=(r<0xffffffff);
       _numberOfBytesInFile=0;
-
+      
       if(_writeEnable) {
 	std::cout << "FileWriter::open() opening file "
 		  << _fileName.c_str() << std::endl;
 	_outputFile.open(_directory+_fileName.c_str(),std::ios::binary);
 	if(!_outputFile) return false;
+
+      } else {
+	_outputFile.open("/dev/null",std::ios::binary);
       }
+
       return true;
     }
 
     //bool write(uint64_t *d, unsigned n) {
     bool write(const Record* h) {
-      if(_writeEnable) {
-	_outputFile.write((char*)h,8*h->totalLength());
-	if(_flushRecords) _outputFile.flush();
-      }
+    //if(_writeEnable) {
+    _outputFile.write((char*)h,8*h->totalLength());
+    if(_flushRecords) _outputFile.flush();
+    //}
 
       _numberOfBytesInFile+=8*h->totalLength();
 
@@ -82,6 +86,9 @@ namespace Hgcal10gLinkReceiver {
 	  if(_protectFiles) {
 	    if(system((std::string("chmod 444 ")+_fileName).c_str())!=0) return 1;
 	  }
+
+	} else {
+	  _outputFile.close();
 	}
 
 	_fileNumber++;
@@ -99,6 +106,9 @@ namespace Hgcal10gLinkReceiver {
 
 	  _outputFile.write((char*)(&rc),sizeof(RecordContinuing));
 	  if(_flushRecords) _outputFile.flush();
+
+	} else {
+	  _outputFile.open("/dev/null",std::ios::binary);
 	}
       }
       
