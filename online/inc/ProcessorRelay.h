@@ -222,7 +222,7 @@ namespace Hgcal10gLinkReceiver {
 
 	    if(r->state()==FsmState::Halted) {
 	      if(_printEnable) r->print();
-	      _fileWriter.write(r);
+	      //_fileWriter.write(r); NO BIN FILE!!!
 
 	      std::ostringstream sout;
 	      sout << "dat/Constants" << std::setfill('0')
