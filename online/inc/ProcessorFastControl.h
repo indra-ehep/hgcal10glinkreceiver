@@ -259,22 +259,29 @@ namespace Hgcal10gLinkReceiver {
       while((r=(RecordHalted*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
       r->setHeader(_cfgSeqCounter++);
 
+      unsigned daqBoard(18);
+
       // Replace with "constants" call to Serenity
       YAML::Node n;
-      n["Serenity"]=0;
+      n["Source"]="Serenity";
       n["PayloadVersion"]=_serenityEncoder.payloadVersion();
-      
+      n["ElectronicsId"]=daqBoard<<22|0x3fffff;
+       
       std::ostringstream sout;
       sout << n;
       r->setString(sout.str());
       r->print();
       
       ptrFifoShm2->writeIncrement();
+
+      writeContinuing();
     }
     
     virtual void configured() {
 
       std::cout << "configured() relay = " << _relayNumber << std::endl;
+
+      unsigned daqBoard(18);
 
 #ifdef HGCROC_JUNK
       RecordConfigured *r;
@@ -345,28 +352,31 @@ namespace Hgcal10gLinkReceiver {
 #endif
 
 #ifndef USE_CONFIGURED
-      RecordHalted *ry;
-      while((ry=(RecordHalted*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
+      RecordYaml *ry;
+      while((ry=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(1000);
       ry->setHeader(_cfgSeqCounter++);
+      ry->setState(FsmState::Configured);
       ry->print();
       
       YAML::Node total;
-      total["Serenity"]=0;
+      total["Source"]="Serenity";
+      total["DaqBoard"]=daqBoard;
+      total["ElectronicsId"]=daqBoard<<22|0x3fffff;
 
       YAML::Node ne;
       _serenityEncoder.configuration(ne);
       total["FcEncoder"]=ne;
 
-      total["LpgbtPair"][0]["Id"]=0;
+      total["LpgbtPair"]["0"]["Id"]=0;
 
       YAML::Node nm;
       nm[0]="NULL";
       //_serenityMiniDaq.configuration(nm);
-      total["LpgbtPair"][0]["MiniDaq"]=nm;
+      total["LpgbtPair"]["0"]["MiniDaq"]=nm;
 
       YAML::Node nl;
       _serenityLpgbt.configuration(nl);
-      total["LpgbtPair"][0]["FcStream"]=nl;
+      total["LpgbtPair"]["0"]["FcStream"]=nl;
       /*
       total["LpgbtPair"][0]["FcStream"]["fc_cmd.user"]=0x36;
       total["LpgbtPair"][0]["FcStream0"]["ctrl.user_bx"]=0xfff;
@@ -393,45 +403,45 @@ namespace Hgcal10gLinkReceiver {
       total["LpgbtPair"][0]["FcStream7"]["ctrl.user_bx"]=0xfff;
       total["LpgbtPair"][0]["FcStream7"]["ctrl.calpulse_type"]=0;
       */
-      total["LpgbtPair"][0]["Unpacker"][0]["Id"]=0;
-      total["LpgbtPair"][0]["Unpacker"][1]["Id"]=1;
-      total["LpgbtPair"][0]["Unpacker"][2]["Id"]=2;
-      total["LpgbtPair"][0]["Unpacker"][3]["Id"]=3;
+      total["LpgbtPair"]["0"]["Unpacker"]["0"]["Id"]=0;
+      total["LpgbtPair"]["0"]["Unpacker"]["1"]["Id"]=1;
+      total["LpgbtPair"]["0"]["Unpacker"]["2"]["Id"]=2;
+      total["LpgbtPair"]["0"]["Unpacker"]["3"]["Id"]=3;
 
 
-      total["LpgbtPair"][1]["Id"]=1;
+      total["LpgbtPair"]["1"]["Id"]=1;
 
-      total["LpgbtPair"][1]["MiniDaq"]="XXX: YYY";
+      total["LpgbtPair"]["1"]["MiniDaq"]="XXX: YYY";
 
-      total["LpgbtPair"][1]["FcStream0"]["fc_cmd.user"]=0x36;
-      total["LpgbtPair"][1]["FcStream0"]["ctrl.user_bx"]=0xfff;
-      total["LpgbtPair"][1]["FcStream0"]["ctrl.calpulse_type"]=0;
-      total["LpgbtPair"][1]["FcStream1"]["fc_cmd.user"]=0x36;
-      total["LpgbtPair"][1]["FcStream1"]["ctrl.user_bx"]=0xfff;
-      total["LpgbtPair"][1]["FcStream1"]["ctrl.calpulse_type"]=0;
-      total["LpgbtPair"][1]["FcStream2"]["fc_cmd.user"]=0x36;
-      total["LpgbtPair"][1]["FcStream2"]["ctrl.user_bx"]=0xfff;
-      total["LpgbtPair"][1]["FcStream2"]["ctrl.calpulse_type"]=0;
-      total["LpgbtPair"][1]["FcStream3"]["fc_cmd.user"]=0x36;
-      total["LpgbtPair"][1]["FcStream3"]["ctrl.user_bx"]=0xfff;
-      total["LpgbtPair"][1]["FcStream3"]["ctrl.calpulse_type"]=0;
-      total["LpgbtPair"][1]["FcStream4"]["fc_cmd.user"]=0x36;
-      total["LpgbtPair"][1]["FcStream4"]["ctrl.user_bx"]=0xfff;
-      total["LpgbtPair"][1]["FcStream4"]["ctrl.calpulse_type"]=0;
-      total["LpgbtPair"][1]["FcStream5"]["fc_cmd.user"]=0x36;
-      total["LpgbtPair"][1]["FcStream5"]["ctrl.user_bx"]=0xfff;
-      total["LpgbtPair"][1]["FcStream5"]["ctrl.calpulse_type"]=0;
-      total["LpgbtPair"][1]["FcStream6"]["fc_cmd.user"]=0x36;
-      total["LpgbtPair"][1]["FcStream6"]["ctrl.user_bx"]=0xfff;
-      total["LpgbtPair"][1]["FcStream6"]["ctrl.calpulse_type"]=0;
-      total["LpgbtPair"][1]["FcStream7"]["fc_cmd.user"]=0x36;
-      total["LpgbtPair"][1]["FcStream7"]["ctrl.user_bx"]=0xfff;
-      total["LpgbtPair"][1]["FcStream7"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"]["1"]["FcStream0"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"]["1"]["FcStream0"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"]["1"]["FcStream0"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"]["1"]["FcStream1"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"]["1"]["FcStream1"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"]["1"]["FcStream1"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"]["1"]["FcStream2"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"]["1"]["FcStream2"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"]["1"]["FcStream2"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"]["1"]["FcStream3"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"]["1"]["FcStream3"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"]["1"]["FcStream3"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"]["1"]["FcStream4"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"]["1"]["FcStream4"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"]["1"]["FcStream4"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"]["1"]["FcStream5"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"]["1"]["FcStream5"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"]["1"]["FcStream5"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"]["1"]["FcStream6"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"]["1"]["FcStream6"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"]["1"]["FcStream6"]["ctrl.calpulse_type"]=0;
+      total["LpgbtPair"]["1"]["FcStream7"]["fc_cmd.user"]=0x36;
+      total["LpgbtPair"]["1"]["FcStream7"]["ctrl.user_bx"]=0xfff;
+      total["LpgbtPair"]["1"]["FcStream7"]["ctrl.calpulse_type"]=0;
 
-      total["LpgbtPair"][1]["Unpacker"][0]["Id"]=0;
-      total["LpgbtPair"][1]["Unpacker"][1]["Id"]=1;
-      total["LpgbtPair"][1]["Unpacker"][2]["Id"]=2;
-      total["LpgbtPair"][1]["Unpacker"][3]["Id"]=3;
+      total["LpgbtPair"]["1"]["Unpacker"]["0"]["Id"]=0;
+      total["LpgbtPair"]["1"]["Unpacker"]["1"]["Id"]=1;
+      total["LpgbtPair"]["1"]["Unpacker"]["2"]["Id"]=2;
+      total["LpgbtPair"]["1"]["Unpacker"]["3"]["Id"]=3;
 
 
       YAML::Node lp;
@@ -610,10 +620,12 @@ namespace Hgcal10gLinkReceiver {
 	 assert(ptrFifoShm2->write(h.totalLength(),(uint64_t*)(&h)));
 	 }
       */      
-      RecordContinuing *rc((RecordContinuing*)(ptrFifoShm2->getWriteRecord()));
-      rc->setHeader();
-      if(_printEnable) rc->print();
-      ptrFifoShm2->writeIncrement();
+      //RecordContinuing *rc((RecordContinuing*)(ptrFifoShm2->getWriteRecord()));
+      //rc->setHeader();
+      //if(_printEnable) rc->print();
+      //ptrFifoShm2->writeIncrement();
+
+      writeContinuing();
     }
 
     virtual void running() {
@@ -625,18 +637,19 @@ namespace Hgcal10gLinkReceiver {
       
       _serenityEncoder.uhalWrite("ctrl.tts",0);
       
-      RecordContinuing *rc((RecordContinuing*)(ptrFifoShm2->getWriteRecord()));
-      rc->setHeader();
-      if(_printEnable) rc->print();
-      ptrFifoShm2->writeIncrement();
+      writeContinuing();
     }
     
     void paused() {
       _pauseCounter++;
 
-      RecordContinuing *rc((RecordContinuing*)(ptrFifoShm2->getWriteRecord()));
-      rc->setHeader();
-      if(_printEnable) rc->print();
+      writeContinuing();
+    }
+
+    void writeContinuing() {
+      Record *r;
+      while((r=ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
+      r->reset(FsmState::Continuing);
       ptrFifoShm2->writeIncrement();
     }
 

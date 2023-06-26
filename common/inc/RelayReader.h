@@ -29,13 +29,14 @@ namespace Hgcal10gLinkReceiver {
 
 	  RecordStarting rs2;
 	  for(unsigned i(0);i<2;i++) {
-	    _runReader[i].openRun(rs->runNumber(),i);
+	    //_runReader[i].openRun(rs->runNumber(),i);
+	    _runReader[i].openRun(rs->utc(),i);
 
 	    if(_runReader[i].read(&rs2)) {
-	      assert(rs2.runNumber() ==rs->runNumber());
-	      assert(rs2.maxEvents() ==rs->maxEvents());
-	      assert(rs2.maxSeconds()==rs->maxSeconds());
-	      assert(rs2.maxSpills() ==rs->maxSpills());
+	      //assert(rs2.runNumber() ==rs->runNumber());
+	      //assert(rs2.maxEvents() ==rs->maxEvents());
+	      //assert(rs2.maxSeconds()==rs->maxSeconds());
+	      //assert(rs2.maxSpills() ==rs->maxSpills());
 	    } else {
 	      _runActive=false;
 	    }

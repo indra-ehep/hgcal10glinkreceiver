@@ -7,6 +7,8 @@
 #include <csignal>
 #include <unistd.h>
 
+#include <yaml-cpp/yaml.h>
+
 #include "SystemParameters.h"
 #include "FsmInterface.h"
 #include "ShmSingleton.h"
@@ -132,7 +134,7 @@ int main(int argc, char *argv[]) {
       
     } else {
       unsigned nx(999);
-      unsigned nt(1000000000);
+      unsigned numberOfSecs(1000000000);
       //while(nx==0 || nx>1000) {
       while(nx>38 && nx!=123 && nx!=124) {
 	//std::cout << "Relay number of runs"
@@ -141,10 +143,10 @@ int main(int argc, char *argv[]) {
 	std::cin >> nx;
       }
 
-      while(nt>1000001) {
+      while(numberOfSecs>1000001) {
 	std::cout << "Time per run (secs)"
 		<< std::endl;
-	std::cin >> nt;
+	std::cin >> numberOfSecs;
       }
 
       x='z';
@@ -213,14 +215,21 @@ int main(int argc, char *argv[]) {
 	  RecordStarting rsa;
 	  rsa.setHeader();
 
-	  if(x=='y') rsa.setRunNumber();
-	  else rsa.setRunNumber(0xffffffff);
-
 	  rsa.setMaxEvents(1000000000);
 	  //rsa.setMaxSeconds(nx==0?1000000000:60);
-	  rsa.setMaxSeconds(nt);
+	  rsa.setMaxSeconds(numberOfSecs);
 	  rsa.setMaxSpills(0);
       
+	  YAML::Node nRsa;
+	  nRsa["RunNumber"]=(x=='y'?uint32_t(time(0)):0xffffffff);
+
+	  std::ostringstream sRsa;
+	  sRsa << nRsa;
+	  rsa.setString(sRsa.str());
+	  
+	  //if(x=='y') rsa.setRunNumber();
+	  //else rsa.setRunNumber(0xffffffff);
+
 	  //fcp.setCommand(FsmCommand::Start);
 	  //fcp.setRecord(rsa);
 	  std::cout  << std::endl << "HERES!" << std::endl << std::endl;
@@ -233,7 +242,7 @@ int main(int argc, char *argv[]) {
 	  unsigned np(999);
 	  //unsigned np(0);
 	  uint32_t dt(time(0)-rsa.utc());
-	  while(dt<rsa.maxSeconds() && continueRelay) {
+	  while(dt<numberOfSecs && continueRelay) {
 	    usleep(1000);
 	    dt=time(0)-rsa.utc();
 
@@ -267,7 +276,7 @@ int main(int argc, char *argv[]) {
 
 	  RecordStopping rsb;
 	  rsb.setHeader();
-	  rsb.setRunNumber(rsa.runNumber());
+	  //rsb.setRunNumber(rsa.runNumber());
 	  rsb.setNumberOfEvents(0xffffffff);
 	  rsb.setNumberOfSeconds(rsb.utc()-rsa.utc());
 	  rsb.setNumberOfSpills(0);

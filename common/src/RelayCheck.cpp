@@ -11,6 +11,7 @@
 
 #include "RelayReader.h"
 #include "RecordPrinter.h"
+#include "RecordYaml.h"
 
 using namespace Hgcal10gLinkReceiver;
 
@@ -31,7 +32,7 @@ int main(int argc, char** argv) {
   FsmState::State state(FsmState::Halted);
   FsmState::State previousState(FsmState::EndOfStateEnum);
 
-  RecordT<1023> r;
+  RecordT<4*1024-1> r;
 
   RecordConfiguring   &rca((RecordConfiguring&  )r);
   RecordReconfiguring &rcb((RecordReconfiguring&)r);
@@ -43,6 +44,7 @@ int main(int argc, char** argv) {
   RecordResuming      &rrs((RecordResuming&     )r);
   RecordStopping      &rsp((RecordStopping&     )r);
   RecordHalting       &rha((RecordHalting&      )r);
+  RecordYaml          &ryl((RecordYaml&         )r);
 
   uint32_t nRecord[FsmState::EndOfStateEnum+1];
   for(unsigned i(0);i<=FsmState::EndOfStateEnum;i++) nRecord[i]=0;
@@ -93,9 +95,10 @@ int main(int argc, char** argv) {
     if(r.state()<FsmState::EndOfStateEnum) nRecord[r.state()]++;
     else nRecord[FsmState::EndOfStateEnum]++;
 
-    //if(r.state()!=FsmState::Running &&
-    // r.state()!=FsmState::Configured) RecordPrinter(&r);
-    if(r.state()!=FsmState::Running) RecordPrinter(&r);
+    if(r.state()!=FsmState::Running &&
+       r.state()!=FsmState::Configured) RecordPrinter(&r);
+    if(r.state()==FsmState::Configured) ryl.print();
+    //if(r.state()!=FsmState::Running) RecordPrinter(&r);
     
     // Check the change of state is allowed
 
@@ -120,10 +123,10 @@ int main(int argc, char** argv) {
     // Check values for each case
     if(r.state()==FsmState::Configuring) {
       assert(rca.valid());
-      assert(rca.utc()==relayNumber);
+      //assert(rca.utc()==relayNumber);
       assert(rca.payloadLength()==rca.maxNumberOfPayloadWords());
 
-      assert(rca.relayNumber()==relayNumber);
+      //assert(rca.relayNumber()==relayNumber);
       assert(nCfgA==0);
       nCfgA++;
     }
@@ -133,7 +136,7 @@ int main(int argc, char** argv) {
       assert(rcb.utc()>=previousRecordHeader.utc());
       assert(rcb.payloadLength()<=rcb.maxNumberOfPayloadWords());
 
-      assert(rcb.relayNumber()==relayNumber);
+      //assert(rcb.relayNumber()==relayNumber);
       //assert(rcb.configurationCounter()==(++nCfgB));
       assert(rcb.maxNumberOfRuns()==1);
 
@@ -153,16 +156,17 @@ int main(int argc, char** argv) {
     else if(r.state()==FsmState::Starting) {
       assert(rst.valid());
       assert(rst.utc()>=previousRecordHeader.utc());
-      assert(rst.payloadLength()==rst.maxNumberOfPayloadWords());
+      //assert(rst.payloadLength()==rst.maxNumberOfPayloadWords());
 
-      assert(rst.runNumber()==rst.utc());
+      //assert(rst.runNumber()==rst.utc());
       assert(nSt==0);
       assert(nSt==nSp);
 
-      runNumber=rst.runNumber();
-      maxEvents=rst.maxEvents();
-      maxSeconds=rst.maxSeconds();
-      maxSpills=rst.maxSpills();
+      runNumber=rst.utc();
+      //runNumber=rst.runNumber();
+      //maxEvents=rst.maxEvents();
+      //maxSeconds=rst.maxSeconds();
+      //maxSpills=rst.maxSpills();
 
       nSt++;
 
@@ -206,10 +210,10 @@ int main(int argc, char** argv) {
       assert(rsp.utc()>=previousRecordHeader.utc());
       assert(rsp.payloadLength()==rsp.maxNumberOfPayloadWords());
 
-      assert(rsp.runNumber()==runNumber);
-      assert(rsp.numberOfEvents() <=maxEvents);
-      assert(rsp.numberOfSeconds()<=maxSeconds);
-      assert(rsp.numberOfSpills() <=maxSpills);
+      //assert(rsp.runNumber()==runNumber);
+      //assert(rsp.numberOfEvents() <=maxEvents);
+      //assert(rsp.numberOfSeconds()<=maxSeconds);
+      //assert(rsp.numberOfSpills() <=maxSpills);
 
       assert(nPs==rsp.numberOfPauses());
       assert(nRs==rsp.numberOfPauses());
@@ -246,11 +250,11 @@ int main(int argc, char** argv) {
     else if(r.state()==FsmState::Halting) {
       assert(rha.valid());
       assert(rha.utc()>=previousRecordHeader.utc());
-      assert(rha.payloadLength()==rha.maxNumberOfPayloadWords());
+      //assert(rha.payloadLength()==rha.maxNumberOfPayloadWords());
 
-      assert(rha.relayNumber()==relayNumber);
+      //assert(rha.relayNumber()==relayNumber);
       //assert(rha.numberOfConfigurations()==nCfgInRelay);
-      assert(rha.numberOfRuns()==nRunInRelay);
+      //assert(rha.numberOfRuns()==nRunInRelay);
       //assert(rha.numberOfEvents()==nEvtInRelay);
     }
 

@@ -29,7 +29,7 @@ namespace Hgcal10gLinkReceiver {
 
     void setString(const std::string &s) {
       unsigned n((s.size()+8)/8);
-      _payload[n-1]=0xffffffff;
+      _payload[n-1]=0;
       std::memcpy(_payload,s.c_str(),s.size()+1);
       setPayloadLength(n);
     }
@@ -41,16 +41,16 @@ namespace Hgcal10gLinkReceiver {
     void print(std::ostream &o=std::cout, std::string s="") const {
       o << s << "RecordYaml::print()" << std::endl;
       RecordHeader::print(o,s+" ");
-      
+      /*      
       for(unsigned i(0);i<payloadLength();i++) {
 	o << s << "   Payload word " << std::setw(5) << " = 0x"
 	  << std::hex << std::setfill('0')
 	  << std::setw(16) << _payload[i]
 	  << std::dec << std::setfill(' ') << std::endl;
       }
-
+      */
       std::string st(string());
-      o << s << " String:" << std::endl;
+      o << s << " String contents" << std::endl;
       o << st << std::endl;
     }
 

@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <cstring>
 
+#include <yaml-cpp/yaml.h>
+
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
@@ -65,18 +67,24 @@ namespace Hgcal10gLinkReceiver {
       _ptrFifoShm->starting();
 
       assert(_ptrFsmInterface->record().state()==FsmState::Starting);
+
+      const RecordStarting *ry((const RecordStarting*)&(_ptrFsmInterface->record()));
+      if(_printEnable) ry->print();
+      YAML::Node nRsa(YAML::Load(ry->string()));
+      _runNumber=nRsa["RunNumber"].as<uint32_t>();
+
       RecordStarting r;
       std::cout << "HERE0 starting" << std::endl;
       r.deepCopy(_ptrFsmInterface->record());
       r.print();
-      _fileWriter.openRun(r.runNumber(),_linkNumber);
+      _fileWriter.openRun(_runNumber,_linkNumber);
       _fileWriter.write(&r);
 
       /*
 	while(_ptrFifoShm->read((uint64_t*)(&r))==0) usleep(10);
 	std::cout << "HERE1 starting" << std::endl;
 	r.print();
-	_fileWriter.open(r.runNumber(),0,false,true);
+	_fileWriter.open(_runNumber,0,false,true);
 	_fileWriter.write(&r);
       */
 
@@ -258,6 +266,7 @@ namespace Hgcal10gLinkReceiver {
     FileWriter _fileWriter;
     unsigned _linkNumber;
     unsigned _eventNumber;
+    unsigned _runNumber;
 
     bool _dummyReader;
   };

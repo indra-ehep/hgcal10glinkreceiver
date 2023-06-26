@@ -9,7 +9,8 @@
 
 namespace Hgcal10gLinkReceiver {
 
-  class RecordStarting : public RecordT<2> {
+  //class RecordStarting : public RecordT<2> {
+  class RecordStarting : public RecordYaml {
   
   public:
     RecordStarting() {
@@ -20,14 +21,17 @@ namespace Hgcal10gLinkReceiver {
     }
     
     void setHeader(uint32_t t=time(0)) {
-      setState(FsmState::Starting);
-      setPayloadLength(2);
+      reset(FsmState::Starting);
       setUtc(t);
-    }
 
+
+      //setPayloadLength(2);
+    }
+    /*
     uint32_t runNumber() const {
       return _payload[0]&0xffffffff;
     }
+    */
     uint32_t maxEvents() const {
       return _payload[0]>>32;
     }
@@ -62,7 +66,7 @@ namespace Hgcal10gLinkReceiver {
    
     void print(std::ostream &o=std::cout, std::string s="") const {
       o << s << "RecordStarting::print()" << std::endl;
-      RecordHeader::print(o,s+" ");
+      RecordYaml::print(o,s+" ");
       
       for(unsigned i(0);i<payloadLength();i++) {
 	o << s << "   Payload word " << std::setw(5) << " = 0x"
@@ -70,6 +74,7 @@ namespace Hgcal10gLinkReceiver {
 	  << std::setw(16) << _payload[i]
 	  << std::dec << std::setfill(' ') << std::endl;
       }
+      /*
       o << s << "  Run number                = "
 	<< std::setw(10) << runNumber() << std::endl;
       o << s << "  Maximum number of events  = "
@@ -78,6 +83,7 @@ namespace Hgcal10gLinkReceiver {
 	<< std::setw(10) << maxSeconds() << std::endl;
       o << s << "  Maximum number of spills  = "
 	<< std::setw(10) << maxSpills() << std::endl;
+      */
     }
   private:
   };

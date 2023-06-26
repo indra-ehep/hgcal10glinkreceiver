@@ -20,8 +20,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     void setHeader(uint32_t t=time(0)) {
-      setState(FsmState::Resetting);
-      setPayloadLength(0);
+      reset(FsmState::Resetting);
       setUtc(t);
     }
 

@@ -5,26 +5,28 @@
 #include <iomanip>
 #include <cassert>
 
-#include "Record.h"
+#include "RecordYaml.h"
 
 namespace Hgcal10gLinkReceiver {
 
-  class RecordHalting : public RecordT<2> {
+  //class RecordHalting : public RecordT<2> {
+  class RecordHalting : public RecordYaml {
   
   public:
     RecordHalting() {
     }
     
     void setHeader(uint32_t t=time(0)) {
-      setState(FsmState::Halting);
-      setPayloadLength(2);
+      reset(FsmState::Halting);
       setUtc(t);
+
+      setPayloadLength(2);
     }
 
     bool valid() const {
       return validPattern() && state()==FsmState::Halting;
     }
-    
+    /*    
     uint32_t relayNumber() const {
       return _payload[0]&0xffffffff;
     }
@@ -40,7 +42,7 @@ namespace Hgcal10gLinkReceiver {
     uint32_t numberOfEvents() const {
       return _payload[1]>>32;
     }
-
+    */
     void setRelayNumber(uint32_t t=time(0)) {
       _payload[0]&=0xffffffff00000000;
       _payload[0]|=t;
@@ -71,15 +73,17 @@ namespace Hgcal10gLinkReceiver {
 	  << std::setw(16) << _payload[i]
 	  << std::dec << std::setfill(' ') << std::endl;
       }
+      /*
       o << s << " Relay number             = "
-	<< std::setw(10) << relayNumber() << std::endl;
+      << std::setw(10) << relayNumber() << std::endl;
       o << s << " Number of configurations = "
 	<< std::setw(10) << numberOfConfigurations() << std::endl;
       o << s << " Number of runs           = "
 	<< std::setw(10) << numberOfRuns() << std::endl;
       o << s << " Number of events         = "
 	<< std::setw(10) << numberOfEvents() << std::endl;
-    }
+    */
+	}
     
   private:
   };

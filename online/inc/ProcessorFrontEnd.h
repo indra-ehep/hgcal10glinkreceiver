@@ -191,6 +191,27 @@ namespace Hgcal10gLinkReceiver {
     //////////////////////////////////////////////
 
     virtual void halted() {
+     if(_printEnable) {
+	std::cout << "ProcessorFrontEnd::halted()" << std::endl;
+      }
+     
+      RecordYaml *r;
+
+      while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(1000);
+      r->setHeader(_sequenceCount++);
+      r->setState(FsmState::Halted);
+
+      YAML::Node n;
+      n["Source"]="FE";
+      n["ElectronicsId"]=123456789;
+
+      std::ostringstream sout0;
+      sout0 << n;
+      r->setString(sout0.str());
+      
+      if(_printEnable) r->print();
+      ptrFifoShm2->writeIncrement();
+      
       writeContinuing();
     }
     
@@ -199,21 +220,24 @@ namespace Hgcal10gLinkReceiver {
 	std::cout << "ProcessorFrontEnd::configured()" << std::endl;
       }
 
-      if(_cfgForRunStart) {
+      //if(_cfgForRunStart) {
       
-      unsigned fed(18);
+      unsigned daqBoard(18);
       unsigned slink(9);
+      unsigned lpgbtPair(3);
       
       RecordYaml *r;
 
-      while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(100);
+      while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(1000);
       r->setHeader(_sequenceCount++);
 
       YAML::Node n;
       n["Source"]="LpGBT";
-      n["Fed"]=fed;
+      n["DaqBoard"]=daqBoard;
       n["Slink"]=slink;
-      n["Lpgbt"]=13;
+      n["LpgbtPair"]=lpgbtPair;
+      n["Lpgbt"]=0;
+      n["ElectronicsId"]=daqBoard<<22|slink<<18|lpgbtPair<<14|0<<10|0x3ff;
 	
        std::ostringstream soutl;
        soutl << "cfg/LpGBT" << 0 << ".yaml";
@@ -233,9 +257,11 @@ namespace Hgcal10gLinkReceiver {
 
        	YAML::Node n0;
        	n0["Source"]="ECOND";
-       	n0["Fed"]=fed;
-       	n0["Slink"]=slink;
+	n0["DaqBoard"]=daqBoard;
+	n0["Slink"]=slink;
+	n0["LpgbtPair"]=lpgbtPair;
        	n0["EconD"]=e;
+	n0["ElectronicsId"]=daqBoard<<22|slink<<18|lpgbtPair<<14|e<<10|0x3ff;
 	
        	std::ostringstream soute0;
        	soute0 << "cfg/ECOND" << e << ".yaml";
@@ -253,9 +279,11 @@ namespace Hgcal10gLinkReceiver {
 
        	YAML::Node n1;
        	n1["Source"]="ECONT";
-       	n1["Fed"]=fed;
-       	n1["Slink"]=slink;
+	n1["DaqBoard"]=daqBoard;
+	n1["Slink"]=slink;
+	n1["LpgbtPair"]=lpgbtPair;
        	n1["EconT"]=e;
+	n1["ElectronicsId"]=daqBoard<<22|slink<<18|lpgbtPair<<14|e<<10|0x3ff;
 	
        	std::ostringstream soute1;
        	soute1 << "cfg/ECONT" << e << ".yaml";
@@ -274,10 +302,12 @@ namespace Hgcal10gLinkReceiver {
 
 	  YAML::Node n;
 	  n["Source"]="HGCROC";
-	  n["Fed"]=fed;
+	  n["DaqBoard"]=daqBoard;
 	  n["Slink"]=slink;
+	  n["LpgbtPair"]=lpgbtPair;
 	  n["EconD"]=e;
 	  n["Hgcroc"]=h;
+	  n["ElectronicsId"]=daqBoard<<22|slink<<18|lpgbtPair<<14|e<<10|h<<6|0x3f;
 	  
 	  std::ostringstream south;
 	  south << "cfg/HGCROC" << 3*e+h << ".yaml";
@@ -291,7 +321,7 @@ namespace Hgcal10gLinkReceiver {
 	  ptrFifoShm2->writeIncrement();
 	}
       }
-      }
+       //}
       /*
 	RecordConfigured *r;
 	while((r=(RecordConfigured*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
