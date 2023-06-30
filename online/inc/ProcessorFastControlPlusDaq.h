@@ -37,8 +37,8 @@ namespace Hgcal10gLinkReceiver {
       std::cout << "SHM HERE" << std::endl;
 
       ShmSingleton<RunWriterDataFifo> shm1;
-      ptrFifoShm1=shm1.setup(fifoKey1);
-      //ptrFifoShm1=0;
+      //ptrFifoShm1=shm1.setup(fifoKey1);
+      ptrFifoShm1=0;
       
       ProcessorFastControl::setUpAll(rcKey,fifoKey2);
     }
@@ -111,10 +111,12 @@ namespace Hgcal10gLinkReceiver {
 	  uint64_t bc((bxNumberInRun%3564)+1);
 	  uint64_t oc(bxNumberInRun/3564);
 
-	  bool hgcrocData(true);
+	  bool hgcrocData(false);
+
+	  std::vector<uint64_t> v64;
 
 	  if(hgcrocData) readRxSummaryFile(1);
-
+	  else _serenityEncoder.captureTx(56,v64);
 	  
 	  uint64_t miniDaq[120]={
 	    0xfe00b34ffffffffb,
@@ -312,14 +314,15 @@ namespace Hgcal10gLinkReceiver {
 	    }
 
 	  } else {
-	    r->setPayloadLength(4+120);
+	    //r->setPayloadLength(4+120);
+	    r->setPayloadLength(4+v64.size());
 	    SlinkBoe *boe(r->getSlinkBoe());
 	    *boe=SlinkBoe();
 	    boe->setEventId(_eventNumberInRun);
 	    boe->setL1aSubType(rand()%256);
 	    boe->setL1aType(rand()%64);
 	    boe->setSourceId(ProcessorDaqLink0FifoShmKey);
-	    
+	    /*	    
 	    uint32_t *ptr(r->getDaqPayload());
 	    for(unsigned i(0);i<120;i++) {
 	      //ptr[2*i+1]=p32[2*i  ];
@@ -327,11 +330,16 @@ namespace Hgcal10gLinkReceiver {
 	      ptr[2*i  ]=p32[2*i  ];
 	      ptr[2*i+1]=p32[2*i+1];
 	    }
+	    */
+	    uint64_t *ptr((uint64_t*)(r->getDaqPayload()));
+	    for(unsigned i(0);i<v64.size();i++) {
+	      ptr[i]=v64[i];
+	    }
 	    
 	    SlinkEoe *eoe(r->getSlinkEoe());
 	    *eoe=SlinkEoe();
 	    
-	    eoe->setEventLength(2+60);
+	    eoe->setEventLength(2+v64.size()/2);
 	    eoe->setCrc(0xdead);
 	    boe->setEventId(_eventNumberInRun);
 	    

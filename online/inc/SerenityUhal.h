@@ -17,6 +17,15 @@
 #include "uhal/uhal.hpp"
 #include "uhal/ValMem.hpp"
 
+
+#include "emp/ChannelManager.hpp"
+#include "emp/Controller.hpp"
+#include "emp/CtrlNode.hpp"
+#include "emp/TTCNode.hpp"
+#include "emp/exception.hpp"
+#include "emp/utilities/misc.hpp"
+#include "emp/BoardData.hpp"
+
 #include "emp/logger/logger.hpp"
 #include "/home/cmx/rshukla/emp-toolbox/core/include/emp/Controller.hpp"
 #include "emp/DatapathNode.hpp"
@@ -308,6 +317,74 @@ namespace Hgcal10gLinkReceiver {
 #endif
 
     return output;
+  }
+
+  
+  void captureTx(uint32_t nTx, std::vector<uint64_t> &packet) {
+    packet.resize(0);
+    
+#ifdef ProcessorHardware
+
+    HwInterface &hi(lHW);
+    Controller  aController(hi); 
+    
+    //setting region of datapath
+    //aController.getDatapath().selectRegion(ch/4);
+    
+    const std::vector<uint32_t> aTxChannels = {nTx};
+    const uint32_t aCaptureLength = 1024;
+    
+    aController.getTTC().forceBTest();
+    // And check it's done
+    ChannelManager(aController).waitCaptureDone();
+    // read out the Rx buffers
+    //BoardData aBoardData = ChannelManager(aController, aRxChannels).readBuffers(kRx, aCaptureLength);
+    BoardData aBoardData = ChannelManager(aController, aTxChannels).readBuffers(kTx, aCaptureLength);
+    
+    uint64_t word64;
+    unsigned nWord(0);
+    
+    for (size_t i = 0; i < aBoardData.depth(); i++) {
+      std::cout << "Frame " << std::setw(4) << i << "  ";
+      bool l56(true);
+      bool pack(true);
+      
+      for (BoardData::const_iterator linkIt = aBoardData.begin(); linkIt != aBoardData.end(); linkIt++) {
+	
+        const emp::Frame& dataWord = linkIt->second.at(i);
+	
+	uint32_t v=dataWord.valid;
+	if(l56) {
+	  word64=dataWord.data;
+	  pack=(v==1);
+	  if(pack) nWord++;
+	}
+	
+	std::cout << " " << l56 << pack << v << " ";
+	
+        if (linkIt->second.strobed()) {
+	  std::cout << std::setw(1) << (dataWord.strobe);
+        }
+	std::cout << std::setw(1) << dataWord.startOfOrbit << dataWord.startOfPacket << dataWord.endOfPacket << dataWord.valid;
+	std::cout << " " << std::setw(16) << std::hex << (dataWord.data) << std::dec;
+	
+	l56=false;
+      }
+      std::cout << std::endl;
+      if(pack && nWord!=2 && nWord!=0x7a) packet.push_back(word64);
+    }
+    
+    std::cout << std::hex << std::setfill('0');
+    for(unsigned i(0);i<packet.size();i++) {
+      std::cout << std::setw(2) << i << " " 
+		<< std::setw(16) << packet[i]
+		<< std::endl;
+    }
+    std::cout << std::dec << std::setfill(' ');
+
+#endif
+
+    return;
   }
 
 

@@ -307,7 +307,7 @@ namespace Hgcal10gLinkReceiver {
 	  n["LpgbtPair"]=lpgbtPair;
 	  n["EconD"]=e;
 	  n["Hgcroc"]=h;
-	  n["ElectronicsId"]=daqBoard<<22|slink<<18|lpgbtPair<<14|e<<10|h<<6|0x3f;
+	  n["ElectronicsId"]=daqBoard<<22|slink<<18|lpgbtPair<<14|e<<10|h<<7|0x3f;
 	  
 	  std::ostringstream south;
 	  south << "cfg/HGCROC" << 3*e+h << ".yaml";

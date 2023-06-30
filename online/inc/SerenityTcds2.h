@@ -140,10 +140,13 @@ namespace Hgcal10gLinkReceiver {
       v.push_back(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl3"));
 
       // Sequencer 
-      uint32_t length(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length"));
-      uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+      //uint32_t length(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length"));
+      uint32_t length(uhalRead("ctrl_stat.ctrl.seq_length"));
+      //uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
+      uhalWrite("seq_mem.pointer",0);
       for(unsigned i(0);i<length;i++) {
-        v.push_back(uhalRead("payload.fc_ctrl.tcds2_emu.seq_mem.data"));
+        //v.push_back(uhalRead("payload.fc_ctrl.tcds2_emu.seq_mem.data"));
+        v.push_back(uhalRead("seq_mem.data"));
       }
     }  
 
@@ -165,13 +168,13 @@ namespace Hgcal10gLinkReceiver {
       }
       o << std::dec << std::setfill(' ');
 
-      uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
-      uint32_t seqLength(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length"));
+      uhalWrite("seq_mem.pointer",0);
+      uint32_t seqLength(uhalRead("ctrl_stat.ctrl.seq_length"));
       if(seqLength==999) seqLength=0; // CLUDGE
 
       for(unsigned i(0);i<seqLength;i++) {
-	uint32_t seqMemPointer=uhalRead("payload.fc_ctrl.tcds2_emu.seq_mem.pointer");
-	uint32_t seqMemData=uhalRead("payload.fc_ctrl.tcds2_emu.seq_mem.data");
+	uint32_t seqMemPointer=uhalRead("seq_mem.pointer");
+	uint32_t seqMemData=uhalRead("seq_mem.data");
 	std::cout << "Seq l, mp, md = " << seqLength << ", " << seqMemPointer
 		  << ", 0x" << std::hex << std::setfill('0') 
 		  << std::setw(8) << seqMemData 

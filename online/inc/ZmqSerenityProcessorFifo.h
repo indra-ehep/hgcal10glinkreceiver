@@ -18,8 +18,9 @@ bool ZmqSerenityProcessorFifo(uint32_t key, uint16_t port) {
   std::cout << "ZmqSerenityProcessorFifo called with key = 0x"
 	    << std::hex << std::setfill('0')
 	    << std::setw(8) << key << ", port = 0x"
-	    << std::setw(4) << port
+	    << std::setw(4) << port << " = "
 	    << std::dec << std::setfill(' ')
+	    << std::setw(5) << port
 	    << std::endl;
 
   // initialize the zmq context with a single IO thread
@@ -33,7 +34,10 @@ bool ZmqSerenityProcessorFifo(uint32_t key, uint16_t port) {
     //socket.connect("tcp://cebrown-desktop:5556");
 
     std::ostringstream sout;
-    sout << "tcp://cebrown-desktop:" << port;
+    //sout << "tcp://cebrown-desktop:" << port;
+    sout << "tcp://hgcbeamtestpc:" << port;
+
+    std::cout << "Connecting to " << sout.str() << std::endl;
     socket.connect(sout.str());
 
 
@@ -75,6 +79,8 @@ bool ZmqSerenityProcessorFifo(uint32_t key, uint16_t port) {
 
       // Send data to PC
       socket.send(zmq::buffer(r,r->totalLengthInBytes()), zmq::send_flags::none);
+
+      prcfs->readIncrement();
       
       zmq::message_t reply{};
       socket.recv(reply, zmq::recv_flags::none);

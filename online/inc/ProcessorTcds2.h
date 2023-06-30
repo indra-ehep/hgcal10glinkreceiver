@@ -75,7 +75,13 @@ namespace Hgcal10gLinkReceiver {
 	//_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",1);
 	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3510<<16)|0x0004);
       }
-	
+
+      if(_keyCfgA==125) {
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
+	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	_serenityTcds2.uhalWrite("seq_mem.data",(25<<16)|0x0004);
+      }
+
       _configuringBCounter=0;
 
       return true;

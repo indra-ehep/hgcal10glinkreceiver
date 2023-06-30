@@ -256,7 +256,11 @@ namespace Hgcal10gLinkReceiver {
 
     virtual void halted() {
       RecordHalted *r;
-      while((r=(RecordHalted*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
+      if(_printEnable) {
+	std::cout << "halted() waiting for record" << std::endl;
+	ptrFifoShm2->print();
+      }
+      while((r=(RecordHalted*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(1000);
       r->setHeader(_cfgSeqCounter++);
 
       unsigned daqBoard(18);
@@ -264,6 +268,7 @@ namespace Hgcal10gLinkReceiver {
       // Replace with "constants" call to Serenity
       YAML::Node n;
       n["Source"]="Serenity";
+      n["HardwareVersion"]="PrototypeV1.1";
       n["PayloadVersion"]=_serenityEncoder.payloadVersion();
       n["ElectronicsId"]=daqBoard<<22|0x3fffff;
        
