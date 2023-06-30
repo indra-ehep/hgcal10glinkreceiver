@@ -47,18 +47,23 @@ namespace Hgcal10gLinkReceiver {
       ShmSingleton<RelayWriterDataFifo> shm1;
       _ptrFifoShm.push_back(shm1.setup(fifoKey1));
 
-      //ShmSingleton<RelayWriterDataFifo> shm2;
-      //_ptrFifoShm.push_back(shm2.setup(fifoKey2));
+      ShmSingleton<RelayWriterDataFifo> shm2;
+      _ptrFifoShm.push_back(shm2.setup(fifoKey2));
 
       _yamlCfg.resize(_ptrFifoShm.size());
-      _fifoShmAlive.resize(_ptrFifoShm.size());
 
       for(unsigned i(0);i<_ptrFifoShm.size();i++) {
-	_fifoShmAlive[i]=true;
 	_ptrFifoShm[i]->coldStart();
       }
       
       startFsm(rcKey);
+    }
+  
+    void setInputFifoEnables(unsigned b) {
+      for(unsigned i(0);i<3;i++) {
+	_fifoShmAlive.push_back((b&(1<<i))!=0);
+	if(!_fifoShmAlive[i]) std::cout << "Input FIFO " << i << " disabled" << std::endl;
+      }
     }
   
     virtual bool initializing() {
@@ -211,6 +216,7 @@ namespace Hgcal10gLinkReceiver {
       const RecordYaml *r;
  
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
+	if(_fifoShmAlive[i]) {
 	if(_printEnable) {
 	  std::cout << "Fifo number " << i << std::endl;
 	  _ptrFifoShm[i]->print();
@@ -255,6 +261,7 @@ namespace Hgcal10gLinkReceiver {
 	    _ptrFifoShm[i]->readIncrement();
 	  }
 	}
+	}
       }
     }
     
@@ -268,6 +275,7 @@ namespace Hgcal10gLinkReceiver {
       const Record *r;
 
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
+	if(_fifoShmAlive[i]) {
 	if(_printEnable) {
 	  std::cout << "Fifo = " << i << std::endl;
 	  _ptrFifoShm[i]->print();
@@ -330,6 +338,7 @@ namespace Hgcal10gLinkReceiver {
 	    
 	    _ptrFifoShm[i]->readIncrement();
 	  }
+	}
 	}
       }
 
@@ -490,6 +499,7 @@ namespace Hgcal10gLinkReceiver {
       const Record *r;
 
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
+	if(_fifoShmAlive[i]) {
 	if(_printEnable) {
 	  std::cout << "Fifo = " << i << std::endl;
 	  _ptrFifoShm[i]->print();
@@ -508,6 +518,7 @@ namespace Hgcal10gLinkReceiver {
 	    _ptrFifoShm[i]->readIncrement();
 	  }
 	}
+	}
       }
     }
 
@@ -521,6 +532,7 @@ namespace Hgcal10gLinkReceiver {
       const Record *r;
 
       for(unsigned i(0);i<_ptrFifoShm.size() && !_ignoreInputs;i++) {
+	if(_fifoShmAlive[i]) {
 	bool done(false);
 	while(!done) {
 	  while((r=_ptrFifoShm[i]->readRecord())==nullptr) {
@@ -533,6 +545,7 @@ namespace Hgcal10gLinkReceiver {
 	    }
 	    _ptrFifoShm[i]->readIncrement();
 	  }
+	}
 	}
       }
       _pauseCounter++;

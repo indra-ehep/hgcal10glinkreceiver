@@ -15,6 +15,8 @@ using namespace Hgcal10gLinkReceiver;
 
 int main(int argc, char *argv[]) {
 
+  unsigned iBits(0x7);
+
   // Turn off printing
   bool printEnable(false);
   bool checkEnable(false);
@@ -38,16 +40,25 @@ int main(int argc, char *argv[]) {
       std::cout << "Setting assertEnable to true" << std::endl;
       assertEnable=true;
     }
+    
+    if(std::string(argv[i])=="-i") {
+      std::istringstream sin(argv[i+1]);
+      sin >> iBits;
+      std::cout << "Setting input bits to 0x" << std::hex 
+		<< iBits << std::dec << std::endl;
+    }
   }
   
   ProcessorRelay pb;
   pb.setPrintEnable(  printEnable);
   pb.setCheckEnable(  checkEnable);
   pb.setAssertEnable(assertEnable);
+  pb.setInputFifoEnables(iBits);
   
   pb.setUpAll(ProcessorRelayFsmShmKey,
 	      ProcessorRelayCl0FifoShmKey,
   	      ProcessorRelayCl1FifoShmKey,
   	      ProcessorRelayCl2FifoShmKey);
+
   return 0;
 }
