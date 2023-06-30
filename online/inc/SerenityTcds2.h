@@ -58,7 +58,7 @@ namespace Hgcal10gLinkReceiver {
 
       uint32_t length(uhalRead("ctrl_stat.ctrl.seq_length"));
       m["ctrl_stat.ctrl.seq_length"]=length;
-      m["seq_mem.pointer"]=uhalRead("seq_mem.pointer");
+      //m["seq_mem.pointer"]=uhalRead("seq_mem.pointer");
 
       for(unsigned i(0);i<length && i<1024;i++) {
 	std::ostringstream sout;
@@ -86,7 +86,7 @@ namespace Hgcal10gLinkReceiver {
       m["ctrl_stat.ctrl2.l1a_physics_mask"]=uhalRead("ctrl_stat.ctrl2.l1a_physics_mask");
 
       m["ctrl_stat.ctrl.seq_length"]=uhalRead("ctrl_stat.ctrl.seq_length");
-      m["seq_mem.pointer"]=uhalRead("seq_mem.pointer");
+      //m["seq_mem.pointer"]=uhalRead("seq_mem.pointer");
       
       for(unsigned i(0);i<m["ctrl_stat.ctrl.seq_length"] && i<1;i++) {
 	std::ostringstream sout;
@@ -128,6 +128,24 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("seq_mem.data",(1<<16)|0x0040);
 
       return true;
+    }  
+
+    void sendPulse(const std::string &s) {
+      if(uhalRead(s)==1) uhalWrite(s,0);
+      uhalWrite(s,1);
+      uhalWrite(s,0);
+    }  
+
+    void sendOcr() {
+      sendPulse("ctrl_stat.ctrl1.arm_ocr");
+    }  
+
+    void sendEbr() {
+      sendPulse("ctrl_stat.ctrl1.arm_ebr");
+    }  
+
+    void sendEcr() {
+      sendPulse("ctrl_stat.ctrl1.arm_ecr");
     }  
 
     void configuration(std::vector<uint32_t> &v) {

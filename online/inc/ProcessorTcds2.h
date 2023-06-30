@@ -107,6 +107,11 @@ namespace Hgcal10gLinkReceiver {
       // Enable sequencer (even if masked)
       _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_run_ctrl",3);
 
+      // Do resets
+      _serenityTcds2.sendEbr();
+      _serenityTcds2.sendEcr();
+      _serenityTcds2.sendOcr();
+
       // Release throttle
       _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",1);
       return true;

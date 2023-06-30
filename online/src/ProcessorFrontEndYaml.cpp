@@ -9,13 +9,11 @@
 #include <iostream>
 #include <cassert>
 
-#include "ProcessorRelay.h"
+#include "ProcessorFrontEndYaml.h"
 
 using namespace Hgcal10gLinkReceiver;
 
 int main(int argc, char *argv[]) {
-
-  unsigned iBits(0x7);
 
   // Turn off printing
   bool printEnable(false);
@@ -40,25 +38,13 @@ int main(int argc, char *argv[]) {
       std::cout << "Setting assertEnable to true" << std::endl;
       assertEnable=true;
     }
-    
-    if(std::string(argv[i])=="-i") {
-      std::istringstream sin(argv[i+1]);
-      sin >> iBits;
-      std::cout << "Setting input bits to 0x" << std::hex 
-		<< iBits << std::dec << std::endl;
-    }
   }
   
-  ProcessorRelay pb;
+  ProcessorFrontEndYaml pb;
   pb.setPrintEnable(  printEnable);
   pb.setCheckEnable(  checkEnable);
   pb.setAssertEnable(assertEnable);
-  pb.setInputFifoEnables(iBits);
   
-  pb.setUpAll(ProcessorRelayFsmShmKey,
-	      ProcessorRelayCl0FifoShmKey,
-  	      ProcessorRelayCl1FifoShmKey,
-  	      ProcessorRelayCl2FifoShmKey);
-
+  pb.setUpAll(ProcessorFrontEndFsmShmKey,ProcessorFrontEndCl2FifoShmKey);
   return 0;
 }
