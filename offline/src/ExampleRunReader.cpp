@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
       // We have an event record
       nEvents++;
 
-      bool print(nEvents<=1);
+      bool print(nEvents<=3);
 
       if(print) {
 	rEvent->print();
@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
 	if(print) {
 	  std::cout << "First 10 words of ECON-D packet" << std::endl;
 	  std::cout << std::hex << std::setfill('0');
-	  for(unsigned i(0);i<10;i++) {
+	  for(unsigned i(0);i<rEvent->payloadLength();i++) {
 	    std::cout << "0x" << std::setw(8) << pEcond[i] << std::endl;
 	  }
 	  std::cout << std::dec << std::setfill(' ');

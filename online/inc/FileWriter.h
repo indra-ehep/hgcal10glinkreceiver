@@ -1,7 +1,7 @@
 #ifndef Hgcal10gLinkReceiver_FileWriter_h
 #define Hgcal10gLinkReceiver_FileWriter_h
 
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include <fstream>
 
@@ -18,9 +18,8 @@ namespace Hgcal10gLinkReceiver {
       ////MaximumBytesPerFile=2000
     //};
     
-  FileWriter() : MaximumBytesPerFile(4000000000), _directory("dat/"), _protectFiles(false), _flushRecords(false), _rawCcode(true) {
-      
-      
+    FileWriter() : MaximumBytesPerFile(4000000000), _directory("dat/"), _protectFiles(false), _flushRecords(true), _rawCcode(false) {      
+      _outputFilePtr=nullptr;
     }
 
     void setDirectory(const std::string &s) {
@@ -72,6 +71,8 @@ namespace Hgcal10gLinkReceiver {
       } else {
 	if(_rawCcode) {
 	  _outputFilePtr=fopen("/dev/null","wb");
+	  if(_outputFilePtr==nullptr) return false;
+
 	} else {
 	  _outputFile.open("/dev/null",std::ios::binary);
 	}
@@ -85,7 +86,8 @@ namespace Hgcal10gLinkReceiver {
       std::cout << "FileWriter HERE4!" << std::endl;
       //if(_writeEnable) {
       if(_rawCcode) {
-	fwrite((char*)h,1,8*h->totalLength(),_outputFilePtr);
+	if(_outputFilePtr!=nullptr) 
+	  fwrite((char*)h,1,8*h->totalLength(),_outputFilePtr);
       } else {
 	_outputFile.write((char*)h,8*h->totalLength());
 	if(_flushRecords) _outputFile.flush();
@@ -110,24 +112,16 @@ namespace Hgcal10gLinkReceiver {
 		    << _fileName.c_str() << std::endl;
 
 	  if(_rawCcode) {
-	    fwrite((char*)(&rc),1,sizeof(RecordContinuing),_outputFilePtr);
-	    fclose(_outputFilePtr);
+	    if(_outputFilePtr!=nullptr) {
+	      fwrite((char*)(&rc),1,sizeof(RecordContinuing),_outputFilePtr);
+	    }
+	    
 	  } else {
 	    _outputFile.write((char*)(&rc),sizeof(RecordContinuing));
-	    _outputFile.close();
-	  }
-	  
-	  if(_protectFiles) {
-	    if(system((std::string("chmod 444 ")+_fileName).c_str())!=0) return 1;
-	  }
-
-	} else {
-	  if(_rawCcode) {
-	    fclose(_outputFilePtr);
-	  } else {
-	    _outputFile.close();
 	  }
 	}
+	
+	close();
 
 	_fileNumber++;
 	_fileName=FileReader::setRunFileName(_runNumber,_linkNumber,_fileNumber);
@@ -157,6 +151,8 @@ namespace Hgcal10gLinkReceiver {
 	} else {
 	  if(_rawCcode) {
 	    _outputFilePtr=fopen("/dev/null","wb");
+	    if(_outputFilePtr==nullptr) return false;
+
 	  } else {
 	    _outputFile.open("/dev/null",std::ios::binary);
 	  }
@@ -167,23 +163,25 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool close() {
+      std::cout << "FileWriter::close() closing file "
+		<< _fileName.c_str() << std::endl;
+      
       if(_rawCcode) {
-	fclose(_outputFilePtr);
-	if(_protectFiles) {
-	  if(system((std::string("chmod 444 ")+_fileName).c_str())!=0) return 1;
+	if(_outputFilePtr!=nullptr) {
+	  fclose(_outputFilePtr);
+	  _outputFilePtr=nullptr;
 	}
 	
       } else {
 	if(_outputFile.is_open()) {
-	  std::cout << "FileWriter::close() closing file "
-		    << _fileName.c_str() << std::endl;
 	  _outputFile.close();
-	
-	  if(_protectFiles) {
-	    if(system((std::string("chmod 444 ")+_fileName).c_str())!=0) return 1;
-	  }
 	}
       }
+	
+      if(_writeEnable && _protectFiles) {
+	system((std::string("chmod 444 ")+_fileName).c_str());
+      }
+
       return true;
     }
     
