@@ -47,8 +47,8 @@ namespace Hgcal10gLinkReceiver {
       ShmSingleton<RelayWriterDataFifo> shm1;
       _ptrFifoShm.push_back(shm1.setup(fifoKey1));
 
-      ShmSingleton<RelayWriterDataFifo> shm2;
-      _ptrFifoShm.push_back(shm2.setup(fifoKey2));
+      //ShmSingleton<RelayWriterDataFifo> shm2;
+      //_ptrFifoShm.push_back(shm2.setup(fifoKey2));
 
       _yamlCfg.resize(_ptrFifoShm.size());
       _fifoShmAlive.resize(_ptrFifoShm.size());

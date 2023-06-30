@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
     if(r.state()!=FsmState::Running &&
        r.state()!=FsmState::Configured) RecordPrinter(&r);
     if(r.state()==FsmState::Configured) ryl.print();
-    //if(r.state()!=FsmState::Running) RecordPrinter(&r);
+    if(r.state()==FsmState::Running) RecordPrinter(&r);
     
     // Check the change of state is allowed
 

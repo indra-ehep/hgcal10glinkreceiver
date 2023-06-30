@@ -17,7 +17,8 @@ bool ZmqPcProcessorFifo(uint32_t key, uint16_t port) {
             << std::hex << std::setfill('0')
             << std::setw(8) << key << ", port = 0x"
             << std::setw(4) << port
-            << std::dec << std::setfill(' ')
+            << std::dec << std::setfill(' ') << " = " 
+            << std::setw(5) << port
             << std::endl;
   
   //using namespace std::chrono_literals;
@@ -60,6 +61,7 @@ bool ZmqPcProcessorFifo(uint32_t key, uint16_t port) {
     //assert(prcfs->write((request.size()+7)/8,(uint64_t*)request.data()));
     assert(prcfs->writeable()>0);
     prcfs->getWriteRecord()->deepCopy((Record*)request.data());
+    prcfs->writeIncrement();
     prcfs->print();
 
     socket.send(zmq::buffer(&z,1), zmq::send_flags::none);
