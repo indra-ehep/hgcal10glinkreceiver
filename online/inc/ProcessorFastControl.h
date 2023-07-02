@@ -98,6 +98,17 @@ namespace Hgcal10gLinkReceiver {
       _evtSeqCounter=1;
 
 
+      RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
+      if(_printEnable) r.print();
+
+      _configuringBCounter=0;
+
+      _keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
+
+       if(_keyCfgA==125) {
+	 _serenityEncoder.uhalWrite("ctrl.l1a_stretch",_configuringBCounter/32);
+       }
+
       // Do configuration; ones which could have been changed
       _serenityEncoder.uhalWrite("calpulse_ctrl.calpulse_int_del",8);
 	
@@ -106,6 +117,9 @@ namespace Hgcal10gLinkReceiver {
 	ptrFifoShm2->print();
 	std::cout << std::endl;
       }
+
+
+ 
       /*
 	RecordConfiguringA *r;
 	while((r=(RecordConfiguringA*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
@@ -146,6 +160,12 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool reconfiguring() {
+      _configuringBCounter++;
+
+       if(_keyCfgA==125) {
+	 _serenityEncoder.uhalWrite("ctrl.l1a_stretch",_configuringBCounter/32);
+       }
+
       /*
 	RecordConfiguringB rcb;
 	rcb.deepCopy(_ptrFsmInterface->commandPacket().record());
@@ -225,6 +245,16 @@ namespace Hgcal10gLinkReceiver {
 	//ptrFifoShm2->print();
 	//assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
 	*/
+
+      std::unordered_map<std::string,uint32_t> m;
+      _serenityEncoder.status(m);
+
+      if(_printEnable) {
+	std::cout << "Encoder status" << std::endl;
+	for(auto i(m.begin());i!=m.end();i++) {
+	  std::cout << " " << i->first << " = " << i->second << std::endl;
+	}
+      }
 
       return true;
     }
@@ -665,6 +695,9 @@ namespace Hgcal10gLinkReceiver {
     uint32_t _cfgSeqCounter;
     uint32_t _evtSeqCounter;
     uint32_t _pauseCounter;
+
+    uint32_t _configuringBCounter;
+    uint32_t _keyCfgA;
 
     uint32_t _relayNumber;
     uint32_t _runNumber;

@@ -60,6 +60,7 @@ namespace Hgcal10gLinkReceiver {
       m["ctrl_stat.ctrl.seq_length"]=length;
       //m["seq_mem.pointer"]=uhalRead("seq_mem.pointer");
 
+      uhalWrite("seq_mem.pointer",0);
       for(unsigned i(0);i<length && i<1024;i++) {
 	std::ostringstream sout;
         sout << "seq_mem.data_" << std::setfill('0') << std::setw(4) << i;
@@ -88,6 +89,7 @@ namespace Hgcal10gLinkReceiver {
       m["ctrl_stat.ctrl.seq_length"]=uhalRead("ctrl_stat.ctrl.seq_length");
       //m["seq_mem.pointer"]=uhalRead("seq_mem.pointer");
       
+      uhalWrite("seq_mem.pointer",0);
       for(unsigned i(0);i<m["ctrl_stat.ctrl.seq_length"] && i<1;i++) {
 	std::ostringstream sout;
 	sout << "seq_mem.data_" << std::setfill('0') << std::setw(4) << i;

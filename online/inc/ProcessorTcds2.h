@@ -61,6 +61,8 @@ namespace Hgcal10gLinkReceiver {
       RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
       if(_printEnable) r.print();
 
+      _configuringBCounter=0;
+
       _keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
 	
       if((_keyCfgA>0 && _keyCfgA<=38) || _keyCfgA==123) {
@@ -79,10 +81,13 @@ namespace Hgcal10gLinkReceiver {
       if(_keyCfgA==125) {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
-	_serenityTcds2.uhalWrite("seq_mem.data",(25<<16)|0x0004);
+
+	uint16_t l1aBc(((3548+(_configuringBCounter%32))%3564)+1);
+	std::cout << "L1A BC = " << l1aBc << std::endl;
+
+	_serenityTcds2.uhalWrite("seq_mem.data",(l1aBc<<16)|0x0040);
       }
 
-      _configuringBCounter=0;
 
       return true;
     }
@@ -91,13 +96,23 @@ namespace Hgcal10gLinkReceiver {
       RecordReconfiguring &r((RecordReconfiguring&)(_ptrFsmInterface->record()));
       if(_printEnable) r.print();
 
+      _configuringBCounter++;
+
       _keyCfgB=r.processorKey(RunControlTcds2FsmShmKey);
 
       if(_keyCfgA==123) {
 	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",_keyCfgB);
       }
 	
-      _configuringBCounter++;
+      if(_keyCfgA==125) {
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
+	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
+
+	uint16_t l1aBc(((3548+(_configuringBCounter%32))%3564)+1);
+	std::cout << "L1A BC = " << l1aBc << std::endl;
+
+	_serenityTcds2.uhalWrite("seq_mem.data",(l1aBc<<16)|0x0040);
+      }
 
       return true;
     }
@@ -134,6 +149,8 @@ namespace Hgcal10gLinkReceiver {
 	
       // Disable sequencer
       _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_run_ctrl",0);
+
+
 
       return true;
     }

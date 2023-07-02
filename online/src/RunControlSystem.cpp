@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
       if(nx== 38) rca.setMaxNumberOfConfigurations(8*37);
       if(nx==123) rca.setMaxNumberOfConfigurations(80);
       if(nx==124) rca.setMaxNumberOfConfigurations( 4);
-      if(nx==125) rca.setMaxNumberOfConfigurations( 1);
+      if(nx==125) rca.setMaxNumberOfConfigurations( 4);
 
       // Configuration
       rca.setProcessKey(RunControlDummyFsmShmKey,nx);
