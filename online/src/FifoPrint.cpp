@@ -13,17 +13,24 @@ using namespace Hgcal10gLinkReceiver;
 
 int main() {
 
-  ShmSingleton< DataFifoT<6,1024> > shmU[4];
-  DataFifoT<6,1024> *ptr[4];
+  ShmSingleton<RunWriterDataFifo> shmD[2];
+  RunWriterDataFifo *ptrD[2];
+  ShmSingleton<RelayWriterDataFifo> shmC[3];
+  RelayWriterDataFifo *ptrC[3];
   
-  ptr[0]=shmU[0].setup(ProcessorFastControlDl0FifoShmKey);
-  ptr[1]=shmU[1].setup(ProcessorFastControlDl1FifoShmKey);
-  ptr[2]=shmU[2].setup(ProcessorFastControlCl0FifoShmKey);
-  ptr[3]=shmU[3].setup(ProcessorTcds2Cl1FifoShmKey);
+  ptrD[0]=shmD[0].setup(ProcessorFastControlDl0FifoShmKey);
+  ptrD[1]=shmD[1].setup(ProcessorFastControlDl1FifoShmKey);
+
+  ptrC[0]=shmC[0].setup(ProcessorFastControlCl0FifoShmKey);
+  ptrC[1]=shmC[1].setup(ProcessorTcds2Cl1FifoShmKey);
+  ptrC[2]=shmC[2].setup(ProcessorFrontEndCl2FifoShmKey);
 
   while(true) {
-    for(unsigned i(0);i<4;i++) {
-      ptr[i]->print();
+    for(unsigned i(0);i<2;i++) {
+      ptrD[i]->print();
+    }
+    for(unsigned i(0);i<3;i++) {
+      ptrC[i]->print();
     }
     system("df -h dat");
     usleep(1000000);
