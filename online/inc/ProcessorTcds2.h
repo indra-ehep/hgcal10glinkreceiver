@@ -53,6 +53,7 @@ namespace Hgcal10gLinkReceiver {
 
     virtual bool initializing() {
       _serenityTcds2.setDefaults();
+      _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",1); // Throttle
       if(_printEnable) _serenityTcds2.print();
       return true;
     }
@@ -119,16 +120,17 @@ namespace Hgcal10gLinkReceiver {
 
     bool starting() {
 
-      // Enable sequencer (even if masked)
-      _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_run_ctrl",3);
-
       // Do resets
       _serenityTcds2.sendEbr();
       _serenityTcds2.sendEcr();
       _serenityTcds2.sendOcr();
 
+      // Enable sequencer (even if masked)
+      _serenityTcds2.resetSequencer();
+      _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_run_ctrl",3);
+
       // Release throttle
-      _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",1);
+      _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",0);
       return true;
 	
     }
@@ -145,7 +147,7 @@ namespace Hgcal10gLinkReceiver {
       _eventNumberInConfiguration+=_eventNumberInRun;
 
       // Impose throttle
-      _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",0);
+      _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",1);
 	
       // Disable sequencer
       _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_run_ctrl",0);

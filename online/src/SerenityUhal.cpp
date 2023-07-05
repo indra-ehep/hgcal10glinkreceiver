@@ -12,6 +12,7 @@
 //#define ProcessorHardware
 
 #include "SerenityHgcroc.h"
+#include "SerenityMiniDaq.h"
 #include "ProcessorFastControlPlusDaq.h"
 
 using namespace Hgcal10gLinkReceiver;
@@ -29,6 +30,12 @@ int main(int argc, char *argv[]) {
   }
 
   SerenityUhal::setUhalLogLevel();
+
+  SerenityMiniDaq smd;
+  smd.makeTable();
+  smd.print();
+  //smd.reset();
+  return 0;
 
   // info.versions.payload = 0x1234567b
 
