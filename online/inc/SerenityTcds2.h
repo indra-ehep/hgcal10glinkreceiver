@@ -133,7 +133,7 @@ namespace Hgcal10gLinkReceiver {
     }  
 
     void sendPulse(const std::string &s) {
-      if(uhalRead(s)==1) uhalWrite(s,0);
+      if(uhalRead(s)!=0) uhalWrite(s,0);
       uhalWrite(s,1);
       uhalWrite(s,0);
     }  
@@ -148,6 +148,11 @@ namespace Hgcal10gLinkReceiver {
 
     void sendEcr() {
       sendPulse("ctrl_stat.ctrl1.arm_ecr");
+    }  
+
+    void resetSequencer() {
+      uhalWrite("ctrl_stat.ctrl.seq_run_ctrl",0);
+      sendPulse("ctrl_stat.ctrl1.reset_seq_add");
     }  
 
     void configuration(std::vector<uint32_t> &v) {

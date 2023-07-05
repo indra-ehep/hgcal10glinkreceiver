@@ -40,8 +40,9 @@ namespace Hgcal10gLinkReceiver {
 
       for(unsigned i(0);i<14;i++) {
 	std::ostringstream sout;
-	sout << "Elink_mapping.Elink" << std::setfill('0')
-	     << std::setw(2) << i << ".";
+	//sout << "Elink_mapping.Elink" << std::setfill('0')
+	//   << std::setw(2) << i << ".";
+	sout << "Elink_mapping.Elink" << i << ".";
 
 	m[sout.str()+"ID"        ]=uhalRead(sout.str()+"ID");
 	m[sout.str()+"start_addr"]=uhalRead(sout.str()+"start_addr");
@@ -59,8 +60,9 @@ namespace Hgcal10gLinkReceiver {
 
       for(unsigned i(0);i<14;i++) {
 	std::ostringstream sout;
-	sout << "Elink_mapping.Elink" << std::setfill('0')
-	     << std::setw(2) << i << ".";
+	//sout << "Elink_mapping.Elink" << std::setfill('0')
+	//   << std::setw(2) << i << ".";
+	sout << "Elink_mapping.Elink" << i << ".";
 
 	m[sout.str()+"ID"        ]=uhalRead(sout.str()+"ID");
 	m[sout.str()+"start_addr"]=uhalRead(sout.str()+"start_addr");
@@ -75,21 +77,24 @@ namespace Hgcal10gLinkReceiver {
     
     bool setDefaults() {
       uhalWrite("rstn",0);
-
+      /*
       for(unsigned i(0);i<14;i++) {
 	std::ostringstream sout;
-	sout << "Elink_mapping.Elink" << std::setfill('0')
-	     << std::setw(2) << i << ".";
+	//sout << "Elink_mapping.Elink" << std::setfill('0')
+	//   << std::setw(2) << i << ".";
+	sout << "Elink_mapping.Elink" << i << ".";
 
 	uhalWrite(sout.str()+"ID",i<6?0x0:0xf);
 	uhalWrite(sout.str()+"start_addr",i<1?0x0000:0x3fff);
 	uhalWrite(sout.str()+"end_addr",i<1?0x37ff:0x3fff);
       }
-
+      */
       uhalWrite("Elink_mapping.Elink_config2",1);
 
       uhalWrite("ECOND_pkt_conf.Header",0x154);
-      uhalWrite("ECOND_pkt_conf.Idle",0x555555);
+      //uhalWrite("ECOND_pkt_conf.Header",0xac);
+      //uhalWrite("ECOND_pkt_conf.Idle",0x555555);
+      uhalWrite("ECOND_pkt_conf.Idle",0xaaaa);
 
       uhalWrite("rstn",1);
 

@@ -60,7 +60,8 @@ namespace Hgcal10gLinkReceiver {
     void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
       _serenityEncoder.makeTable();
       _serenityLpgbt.makeTable();
-      //_serenityMiniDaq.makeTable();
+      _serenityMiniDaq.makeTable();
+      _serenityMiniDaq.print();
 
       ShmSingleton<RelayWriterDataFifo> shm2;
       ptrFifoShm2=shm2.setup(fifoKey);
@@ -72,8 +73,10 @@ namespace Hgcal10gLinkReceiver {
       _serenityEncoder.print();
       _serenityLpgbt.setDefaults();
       _serenityLpgbt.print();
-      //_serenityMiniDaq.setDefaults();
-      //_serenityMiniDaq.print();
+
+      //_serenityMiniDaq.reset();
+      _serenityMiniDaq.setDefaults();
+      _serenityMiniDaq.print();
       return true;
     }
 
@@ -110,13 +113,7 @@ namespace Hgcal10gLinkReceiver {
        }
 
       // Do configuration; ones which could have been changed
-      _serenityEncoder.uhalWrite("calpulse_ctrl.calpulse_int_del",8);
-	
-      if(_printEnable) {
-	std::cout << "Waiting for space in buffer" << std::endl;
-	ptrFifoShm2->print();
-	std::cout << std::endl;
-      }
+       //_serenityEncoder.uhalWrite("calpulse_ctrl.calpulse_int_del",8);
 
 
  
@@ -264,8 +261,8 @@ namespace Hgcal10gLinkReceiver {
       _serenityEncoder.print();
       _serenityLpgbt.setDefaults();
       _serenityLpgbt.print();
-      //_serenityMiniDaq.setDefaults();
-      //_serenityMiniDaq.print();
+      _serenityMiniDaq.setDefaults();
+      _serenityMiniDaq.print();
       return true;
     }
     
@@ -405,8 +402,8 @@ namespace Hgcal10gLinkReceiver {
       total["LpgbtPair"]["0"]["Id"]=0;
 
       YAML::Node nm;
-      nm[0]="NULL";
-      //_serenityMiniDaq.configuration(nm);
+      //nm[0]="NULL";
+      _serenityMiniDaq.configuration(nm);
       total["LpgbtPair"]["0"]["MiniDaq"]=nm;
 
       YAML::Node nl;

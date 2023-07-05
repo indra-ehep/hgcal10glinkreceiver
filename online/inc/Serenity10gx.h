@@ -32,34 +32,17 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool makeTable() {
-      SerenityUhal::makeTable("payload");
+      SerenityUhal::makeTable("payload.eth");
       return true;
     }
   
     bool setDefaults() {
-      /*
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_physics",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_random",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_software",1);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_regular",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.en_nzs_reg",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.en_nzs_rand",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.en_nzs_physics",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.l1a_prbs_threshold",0xf000);
+      uhalWrite("ctrl.reg.en",0);
+      uhalWrite("ctrl.reg.duty_cycle",3);
+      uhalWrite("ctrl.pkt_len",0x20);
+      uhalWrite("ctrl.reg.decrement_len",0);
+      uhalWrite("ctrl.pause_interval",0);
 
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_mask",0x7);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.l1a_physics_mask",0xff);
-      //uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_all",1);
-      //uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_ext",1);
-      //uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_hgcroc",1);
-     
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
-    
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",1);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(1<<16)|0x0040);
-      */
       return true;
     }  
 

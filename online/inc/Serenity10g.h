@@ -37,29 +37,97 @@ namespace Hgcal10gLinkReceiver {
     }
   
     bool setDefaults() {
-      /*
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_physics",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_random",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_software",1);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.en_l1a_regular",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.en_nzs_reg",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.en_nzs_rand",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.en_nzs_physics",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1.l1a_prbs_threshold",0xf000);
+      //channel 0
+      uint32_t local_ip0(0xC0A80352);
+      uint32_t remote_ip0(0xC0A80302);
+      uint32_t local_port0(0x04D2);
+      uint32_t remote_port0(0x04D2);
+      uint32_t run_id0(0xFEC);
+      uint32_t aggregate_en0(0x1);
+      uint32_t aggregate_limit0(0xFF);
+      uint32_t watchdog_threshold0(0x60);
 
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_tcds2",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.tts_mask",0x7);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2.l1a_physics_mask",0xff);
-      //uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_all",1);
-      //uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_ext",1);
-      //uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_hgcroc",1);
-     
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
-    
-      uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",1);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
-      uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(1<<16)|0x0040);
-      */
+      //channel 1
+      uint32_t local_ip1(0xC0A80452);
+      uint32_t remote_ip1(0xC0A80402);
+      uint32_t local_port1(0x04D3);
+      uint32_t remote_port1(0x04D3);
+      uint32_t run_id1(0xFEC);
+      uint32_t aggregate_en1(0x0);
+      uint32_t aggregate_limit1(0xFF);
+      uint32_t watchdog_threshold1(0x60);
+
+
+      // disable the eth link
+      uhalWrite("quad_ctrl.select",0x0);
+
+      uhalWrite("quad.channel_ctrl.select",0x0);
+      uhalWrite("quad.channel.ctrl.reg.rst",1);
+
+      uhalWrite("quad.channel_ctrl.select",0x1);
+      uhalWrite("quad.channel.ctrl.reg.rst",1);
+      
+      // disable the echo server
+      uhalWrite("quad_ctrl.select",0x0);
+
+      uhalWrite("quad.channel_ctrl.select",0x0);
+      uhalWrite("quad.channel.ctrl.reg.echo",0);
+
+      uhalWrite("quad.channel_ctrl.select",0x1);
+      uhalWrite("quad.channel.ctrl.reg.echo",0);
+
+      // configure the eth interface
+      uhalWrite("quad_ctrl.select",0x0);
+
+      uhalWrite("quad.channel_ctrl.select",0x0);
+      uhalWrite("quad.channel.ctrl.local_ip",local_ip0);
+      uhalWrite("quad.channel.ctrl.remote_ip",remote_ip0);
+      uhalWrite("quad.channel.ctrl.ports.local",local_port0);
+      uhalWrite("quad.channel.ctrl.ports.remote",remote_port0);
+      uhalWrite("quad.channel.ctrl.reg.run",run_id0);
+
+      //uhalWrite("quad_ctrl.select",0x0);
+
+      uhalWrite("quad.channel_ctrl.select",0x1);
+      uhalWrite("quad.channel.ctrl.local_ip",local_ip1);
+      uhalWrite("quad.channel.ctrl.remote_ip",remote_ip1);
+      uhalWrite("quad.channel.ctrl.ports.local",local_port1);
+      uhalWrite("quad.channel.ctrl.ports.remote",remote_port1);
+      uhalWrite("quad.channel.ctrl.reg.run",run_id1);
+      
+      // small pkt aggregation
+      uhalWrite("quad_ctrl.select",0x0);
+
+      uhalWrite("quad.channel_ctrl.select",0x0);
+      uhalWrite("quad.channel.ctrl.reg.aggregate",aggregate_en0);
+      uhalWrite("quad.channel.ctrl.reg.aggregate_limit",aggregate_limit0);
+
+      uhalWrite("quad.channel_ctrl.select",0x1);
+      uhalWrite("quad.channel.ctrl.reg.aggregate",aggregate_en1);
+      uhalWrite("quad.channel.ctrl.reg.aggregate_limit",aggregate_limit1);
+      
+      // set the lff WD threshold
+      uhalWrite("quad_ctrl.select",0x0);
+
+      uhalWrite("quad.channel_ctrl.select",0x0);
+      uhalWrite("quad.channel.ctrl.watchdog_threshold",watchdog_threshold0);
+      uhalWrite("quad.channel.ctrl.reg.heartbeat",1);
+      uhalWrite("quad.channel.ctrl.heartbeat_threshold",0x13000000);
+
+      uhalWrite("quad.channel_ctrl.select",0x1);
+      uhalWrite("quad.channel.ctrl.watchdog_threshold",watchdog_threshold1);
+      uhalWrite("quad.channel.ctrl.reg.heartbeat",1);
+      uhalWrite("quad.channel.ctrl.heartbeat_threshold",0x13000000);
+      
+      // enable the eth link
+      uhalWrite("quad_ctrl.select",0x0);
+
+      uhalWrite("quad.channel_ctrl.select",0x0);
+      uhalWrite("quad.channel.ctrl.reg.rst",0);
+
+      uhalWrite("quad.channel_ctrl.select",0x1);
+      uhalWrite("quad.channel.ctrl.reg.rst",0);
+
       return true;
     }  
 
@@ -88,16 +156,22 @@ namespace Hgcal10gLinkReceiver {
 
       o << std::hex << std::setfill('0');
 
-      for(unsigned i(0);i<_uhalString.size();i++) {
-	uint32_t v(uhalRead(_uhalString[i]));
-	std::cout << "  " << _uhalString[i] << " = 0x"
-		  << std::hex << std::setfill('0')
-		  << std::setw(8) << v
-		  << std::dec << std::setfill(' ')
-		  << " = " << v
-		  << std::endl;
+      uhalWrite("quad_ctrl.select",0x0);
+      for(unsigned j(0);j<2;j++) {
+	uhalWrite("quad.channel_ctrl.select",j);
+	std::cout << " Quad channel " << j << std::endl;
+
+	for(unsigned i(0);i<_uhalString.size();i++) {
+	  uint32_t v(uhalRead(_uhalString[i]));
+	  std::cout << "   " << _uhalString[i] << " = 0x"
+		    << std::hex << std::setfill('0')
+		    << std::setw(8) << v
+		    << std::dec << std::setfill(' ')
+		    << " = " << v
+		    << std::endl;
+	}
+	o << std::dec << std::setfill(' ');
       }
-      o << std::dec << std::setfill(' ');
     }
 
   

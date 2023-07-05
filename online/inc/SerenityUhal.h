@@ -51,10 +51,10 @@ namespace Hgcal10gLinkReceiver {
       uhal::setLogLevelTo(uhal::Error());  
 #endif
     }
-
 #ifdef ProcessorHardware
   SerenityUhal() : lConnectionFilePath("etc/connections.xml"),
-      lDeviceId("x0"),
+      //lDeviceId("x0"),
+      lDeviceId("x0_current"),
       lConnectionMgr("file://" + lConnectionFilePath),
       lHW(lConnectionMgr.getDevice(lDeviceId)) {
       _printEnable=true;
@@ -90,7 +90,8 @@ namespace Hgcal10gLinkReceiver {
       //std::cout << "Firmware revision = " << ver.value() << std::endl;
 
       std::vector<std::string> temp;
-      temp=lHW.getNode(s).getNodes();
+      if(s=="TOP") temp=lHW.getNodes();
+      else temp=lHW.getNode(s).getNodes();
       //temp=lHW.getNodes();
       
       if(_printEnable) {

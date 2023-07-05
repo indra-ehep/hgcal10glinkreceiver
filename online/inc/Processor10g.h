@@ -50,14 +50,8 @@ namespace Hgcal10gLinkReceiver {
     }
 
     virtual bool initializing() {
-      _serenity10g.setDefaults();
-      _serenity10g.uhalWrite("quad.channel.ctrl.reg.heartbeat",1);
-
       _serenity10gx.setDefaults();
-      _serenity10gx.uhalWrite("ctrl.reg.en",0);
-      _serenity10gx.uhalWrite("ctrl.reg.duty_cycle",3);
-      _serenity10gx.uhalWrite("ctrl.pkt_len",0x20);
-      _serenity10gx.uhalWrite("ctrl.pause_interval",0);
+      _serenity10g.setDefaults();
 
       _serenity10g.print();
       _serenity10gx.print();

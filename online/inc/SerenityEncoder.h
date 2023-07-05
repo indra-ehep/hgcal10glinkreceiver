@@ -92,7 +92,7 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("ctrl_3",0);
 
       // Set specific values
-      uhalWrite("ctrl.tts",1);
+      uhalWrite("ctrl.tts",0);
       uhalWrite("ctrl.prel1a_offset",3);
       uhalWrite("ctrl.user_prel1a_off_en",1);
       uhalWrite("ctrl.l1a_stretch",0);
