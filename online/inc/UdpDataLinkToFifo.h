@@ -84,29 +84,58 @@ bool UdpDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
       exit(EXIT_FAILURE);
     }
 
+  RecordT<1023> *rt=new RecordT<1023>;
+  uint64_t *ptrt((uint64_t*)rt);
+  
   Record *r;
 
   bool continueLoop(true);
 
+  printEnable=true;
+  
   while(continueLoop) {
 
     // Receive data from Serenity
     //socket.recv(request, zmq::recv_flags::none);
 
     
-    while((r=(Record*)(ptrRunFileShm->getWriteRecord()))==nullptr) usleep(10);
-    
     //uint64_t *ptr(ptrRunFileShm->_buffer[ptrRunFileShm->_writePtr%RunFileShm::BufferDepth]);
-    n = recvfrom(sockfd, (char *)r, MAXLINE,
-		 MSG_WAITALL, ( struct sockaddr *) &cliaddr,
-		 &len);
+    do {
+      n = recvfrom(sockfd, (char *)rt, MAXLINE,
+		   MSG_WAITALL, ( struct sockaddr *) &cliaddr,
+		   &len);
 
+      if(printEnable) std::cout << "First word = " << std::hex << ptrt[0] << std::dec << std::endl;
+    } while(ptrt[0]==0xdddddddddddddddd);
+    
     if(printEnable) std::cout  << std::endl << "************ GOT DATA ******************" << std::endl << std::endl;
+
+
+
+    if(printEnable) {
+      std::cout << "Size = " << n << " ?= " << len << " ?= " << rt->totalLengthInBytes() << std::endl;
+      rt->RecordHeader::print();
+    }
+    
+    if(printEnable) ptrRunFileShm->print();
+
+    while((r=(Record*)(ptrRunFileShm->getWriteRecord()))==nullptr) usleep(10);
+
+    if(printEnable) std::cout  << std::endl << "************ GOT MEMORY ******************" << std::endl << std::endl;
+
+    memcpy(r,rt,n);
+	   
+    //printEnable=(len<=16 || n<=16);
+
+    if(printEnable) ptrRunFileShm->print();
+    
+    
 
     uint64_t *ptr((uint64_t*)r);
 
-    bool valid((ptr[0]>>56)==0xac);
-    if((ptr[0]>>56)!=0xac && ptr[0]!=0xdddddddddddddddd) {
+    bool valid((ptr[0]>>56)==0xac || (ptr[0]>>56)==0xaa);
+
+    if((ptr[0]>>56)!=0xac && (ptr[0]>>56)!=0xaa && ptr[0]!=0xdddddddddddddddd) {
       std::cerr << "BAD HEADER = 0x"
 		<< std::hex << std::setfill('0')
 		<< std::setw(16) << ptr[0]
@@ -134,8 +163,6 @@ bool UdpDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
     }
     
     
-    if(printEnable) std::cout << "Size = " << n << " ?= " << len << std::endl;
-    
     //std::memcpy(,request.data(),request.size());
     if(printEnable) ptrRunFileShm->print();
 
@@ -153,5 +180,7 @@ bool UdpDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
     //if(prcfs->isEnded()) continueLoop=false;
   }
 
+  delete rt;
+  
   return true;
 }

@@ -34,11 +34,14 @@ int main(int argc, char** argv) {
   // Defaults to the files being in directory "dat"
   // Can call setDirectory("blah") to change this
   //_fileReader.setDirectory("somewhere/else");
-  _fileReader.openRun(runNumber,0);
+  _fileReader.openRun(runNumber,1);
   
   bool anyError(false);
-  unsigned nEvents(0),nErrors(0);
+  unsigned nEvents(0),nErrors[10]={0,0,0,0,0,0,0,0,0,0};
   unsigned bc(0),oc(0),ec(0),seq(0);
+  unsigned ocOffset(0);
+  
+  bool doubleEvents(false);
   
   while(_fileReader.read(r)) {
     if(       r->state()==Hgcal10gLinkReceiver::FsmState::Starting) {
@@ -63,12 +66,15 @@ int main(int argc, char** argv) {
       */
 
       if(nEvents==1) seq=rEvent->sequenceCounter();
+
       if(seq!=rEvent->sequenceCounter()) {
 	std::cout << "Event " << nEvents << " Sequence error; seen = " << rEvent->sequenceCounter()
-		    << ", expected = " << seq << std::endl;
+		  << ", expected = " << seq << ", difference = "
+		  << rEvent->sequenceCounter()-seq << std::endl;
 	  seq=rEvent->sequenceCounter();
 	  print=true;
 	  anyError=true;
+	  nErrors[8]++;
       }
       seq++;
 
@@ -111,6 +117,7 @@ int main(int argc, char** argv) {
 	  bc=bph->bunchCounter();
 	  print=true;
 	  anyError=true;
+	  nErrors[0]++;
 	}
 	
 	if(bph->orbitCounter()!=(oc%8)) {
@@ -119,6 +126,7 @@ int main(int argc, char** argv) {
 	  oc=bph->orbitCounter();
 	  print=true;
 	  anyError=true;
+	  nErrors[1]++;
 	}
 	
 	if(bph->eventCounter()!=(ec%64)) {
@@ -127,11 +135,12 @@ int main(int argc, char** argv) {
 	  ec=bph->eventCounter();
 	  print=true;
 	  anyError=true;
+	  nErrors[2]++;
 	}
 
-	unsigned bcEcond((p64[3]>>20)&0xfff);
-	unsigned ecEcond((p64[3]>>14)&0x3f);
-	unsigned ocEcond(((p64[3]>>11)+1)&0x7); // CLUDGE +1
+	unsigned bcEcond((p64[doubleEvents?3:2]>>20)&0xfff);
+	unsigned ecEcond((p64[doubleEvents?3:2]>>14)&0x3f);
+	unsigned ocEcond(((p64[doubleEvents?3:2]>>11)+ocOffset)&0x7);
 	
 	if(bcEcond!=bc) {
 	  std::cout << "Event " << nEvents << " ECOND BC error; seen = " << bcEcond
@@ -139,14 +148,18 @@ int main(int argc, char** argv) {
 	  //bc=bcEcond;
 	  print=true;
 	  anyError=true;
+	  nErrors[3]++;
 	}
 	
 	if(ocEcond!=(oc%8)) {
-	  std::cout << "Event " << nEvents << " ECOND OC error; seen = " << ocEcond
+	  std::cout << "Event " << nEvents << " ECOND OC offset " << ocOffset << ", error; seen = " << ocEcond
 		    << ", expected = " << unsigned(oc%8) << std::endl;
-	  //oc=ocEcond;
+	  if(ocEcond>(oc%8)) ocOffset+=8-ocEcond+(oc%8);
+	  else ocOffset+=(oc%8)-ocEcond;
+	  ocOffset=(ocOffset%8);
 	  print=true;
 	  anyError=true;
+	  nErrors[4]++;
 	}
 	
 	if(ecEcond!=(ec%64)) {
@@ -155,13 +168,14 @@ int main(int argc, char** argv) {
 	  //ec=ecEcond;
 	  print=true;
 	  anyError=true;
+	  nErrors[5]++;
 	}
 
 	if(print) bph->print();
 
 	oc++;
 	ec++;
-	
+	if(doubleEvents) {
 	bph=(const Hgcal10gLinkReceiver::BePacketHeader*)(p64+122);
 	for(unsigned i(0);i<121;i++) {
 	  if(p64[i]==0xcdcdcdcdcdcdcdcd) {
@@ -200,13 +214,14 @@ int main(int argc, char** argv) {
 
         oc++;
         ec++;
-
-	if(anyError) nErrors++;
+	}
+	if(anyError) nErrors[9]++;
 
 	
-	if(print) {
-	  std::cout << "First words of ECON-D packet " << nEvents << std::endl;
-	  
+	if(print && nEvents<100) {
+	  std::cout << "Header and words of ECON-D packet " << nEvents << std::endl;
+	  rEvent->RecordHeader::print();
+
 	  for(unsigned i(0);i<rEvent->payloadLength();i++) {
 	    std::cout << "Word " << std::setw(3) << i << " ";
 	    std::cout << std::hex << std::setfill('0');
@@ -224,8 +239,12 @@ int main(int argc, char** argv) {
 
   std::cout << "Total number of event records seen = "
 	    << nEvents << std::endl;
-  std::cout << "Total number of event records with errors = "
-	    << nErrors << std::endl;
+  for(unsigned i(0);i<10;i++) {
+    std::cout << "Total number of event records with error " << i << " = "
+	      << nErrors[i] << std::endl;
+  }
+  std::cout << "Final OC offset = " << ocOffset << std::endl;
+
 
   delete r;
 
