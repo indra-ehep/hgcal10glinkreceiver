@@ -109,7 +109,7 @@ namespace Hgcal10gLinkReceiver {
       _keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
 
        if(_keyCfgA==125) {
-	 _serenityEncoder.uhalWrite("ctrl.l1a_stretch",_configuringBCounter/32);
+	 _serenityEncoder.uhalWrite("ctrl.l1a_stretch",1+(_configuringBCounter/32));
        }
 
       // Do configuration; ones which could have been changed
@@ -160,7 +160,7 @@ namespace Hgcal10gLinkReceiver {
       _configuringBCounter++;
 
        if(_keyCfgA==125) {
-	 _serenityEncoder.uhalWrite("ctrl.l1a_stretch",_configuringBCounter/32);
+	 _serenityEncoder.uhalWrite("ctrl.l1a_stretch",1+(_configuringBCounter/32));
        }
 
       /*
