@@ -52,7 +52,7 @@ namespace Hgcal10gLinkReceiver {
       m["ctrl_stat.ctrl1.en_nzs_physics"]=uhalRead("ctrl_stat.ctrl1.en_nzs_physics");
       m["ctrl_stat.ctrl1.l1a_prbs_threshold"]=uhalRead("ctrl_stat.ctrl1.l1a_prbs_threshold");
 
-      m["ctrl_stat.ctrl2.tts_tcds2"]=uhalRead("ctrl_stat.ctrl2.tts_tcds2");
+      //m["ctrl_stat.ctrl2.tts_tcds2"]=uhalRead("ctrl_stat.ctrl2.tts_tcds2");
       m["ctrl_stat.ctrl2.tts_mask"]=uhalRead("ctrl_stat.ctrl2.tts_mask");
       m["ctrl_stat.ctrl2.l1a_physics_mask"]=uhalRead("ctrl_stat.ctrl2.l1a_physics_mask");
 
@@ -118,7 +118,7 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xf000);
 
       uhalWrite("ctrl_stat.ctrl2.tts_tcds2",0);
-      uhalWrite("ctrl_stat.ctrl2.tts_mask",0x7);
+      uhalWrite("ctrl_stat.ctrl2.tts_mask",0x7); // ?????????
       uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",0xff);
 
       //uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.stat0.tts_all",1);
