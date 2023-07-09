@@ -2,6 +2,8 @@
 #include <iomanip>
 #include <cassert>
 
+#include "TFileHandler.h"
+
 #include "FileReader.h"
 
 int main(int argc, char** argv) {
@@ -20,6 +22,9 @@ int main(int argc, char** argv) {
     return 2;
   }
 
+  TFileHandler tfh("Hacked");
+
+  
   // Create the file reader
   Hgcal10gLinkReceiver::FileReader _fileReader;
 
