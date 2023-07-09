@@ -165,18 +165,32 @@ int main(int argc, char *argv[]) {
       RecordConfiguring rca;
       rca.setHeader();
 
-      if(x=='y') rca.setRelayNumber();
-      else rca.setRelayNumber(0xffffffff);
-      uint32_t srNumber(rca.relayNumber());
+      //if(x=='y') rca.setRelayNumber();
+      //else rca.setRelayNumber(0xffffffff);
+      uint32_t srNumber(x=='y'?uint32_t(time(0)):0xffffffff);
 
-      if(nx==  0) rca.setMaxNumberOfConfigurations( 1);
-      if(nx>0 && nx<38) rca.setMaxNumberOfConfigurations(8);
-      if(nx== 38) rca.setMaxNumberOfConfigurations(8*37);
-      if(nx==123) rca.setMaxNumberOfConfigurations(80);
-      if(nx==124) rca.setMaxNumberOfConfigurations( 4);
-      if(nx==125) rca.setMaxNumberOfConfigurations(64);
+      YAML::Node nRca;
+      nRca["RelayNumber"]=srNumber;
+
+      nRca["RunType"]="Default";
+      unsigned maxNumberOfConfigurations(1);
+
+      if(nx==  0) maxNumberOfConfigurations=1;
+      if(nx>0 && nx<38) maxNumberOfConfigurations=8;
+      if(nx== 38) maxNumberOfConfigurations=8*37;
+      if(nx==123) maxNumberOfConfigurations=80;
+      if(nx==124) maxNumberOfConfigurations=4;
+      if(nx==125) {
+	nRca["RunType"]="L1aBxScan";
+	maxNumberOfConfigurations=64;
+      }
+
+      //rca.setMaxNumberOfConfigurations(maxNumberOfConfigurations);
+
+      nRca["MaxNumberOfConfigurations"]=maxNumberOfConfigurations;
 
       // Configuration
+      /*
       rca.setProcessKey(RunControlDummyFsmShmKey,nx);
       rca.setProcessKey(RunControlFrontEndFsmShmKey,nx);
       rca.setProcessKey(RunControlFastControlFsmShmKey,0);
@@ -185,6 +199,13 @@ int main(int argc, char *argv[]) {
       rca.setProcessKey(RunControlStageFsmShmKey,0);
       rca.setProcessKey(RunControlDaqLink0FsmShmKey,0);
       rca.setProcessKey(RunControlDaqLink1FsmShmKey,0);
+      */
+      
+      nRca["ProcessorKey"]=nx;
+
+      std::ostringstream sRca;
+      sRca << nRca;
+      rca.setString(sRca.str());
 
       //fcp.setCommand(FsmCommand::ConfigureA);
       //fcp.setRecord(rca);
@@ -193,7 +214,7 @@ int main(int argc, char *argv[]) {
       //fcp.print();
       engine.command(&rca);
 
-      for(nc=0;nc<rca.maxNumberOfConfigurations() && continueRelay;nc++) {
+      for(nc=0;nc<maxNumberOfConfigurations && continueRelay;nc++) {
 	if(nc>0) {
 	  RecordReconfiguring rcb;
 	  rcb.setHeader();
@@ -216,10 +237,10 @@ int main(int argc, char *argv[]) {
 	  RecordStarting rsa;
 	  rsa.setHeader();
 
-	  rsa.setMaxEvents(1000000000);
+	  //rsa.setMaxEvents(1000000000);
 	  //rsa.setMaxSeconds(nx==0?1000000000:60);
-	  rsa.setMaxSeconds(numberOfSecs);
-	  rsa.setMaxSpills(0);
+	  //rsa.setMaxSeconds(numberOfSecs);
+	  //rsa.setMaxSpills(0);
       
 	  YAML::Node nRsa;
 	  nRsa["RunNumber"]=(x=='y'?uint32_t(time(0)):0xffffffff);

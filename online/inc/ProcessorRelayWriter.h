@@ -1,5 +1,5 @@
-#ifndef Hgcal10gLinkReceiver_ProcessorRelay_h
-#define Hgcal10gLinkReceiver_ProcessorRelay_h
+#ifndef Hgcal10gLinkReceiver_ProcessorRelayWriter_h
+#define Hgcal10gLinkReceiver_ProcessorRelayWriter_h
 
 #include <iostream>
 #include <iomanip>
@@ -29,15 +29,15 @@
 
 namespace Hgcal10gLinkReceiver {
 
-  class ProcessorRelay : public ProcessorBase {
+  class ProcessorRelayWriter : public ProcessorBase {
     
   public:
 
-    ProcessorRelay() : _ignoreInputs(false) {
+    ProcessorRelayWriter() : _ignoreInputs(false) {
       _cfgWriteYaml=false;
     }
 
-    virtual ~ProcessorRelay() {
+    virtual ~ProcessorRelayWriter() {
     }
   
     void setUpAll(uint32_t rcKey, uint32_t fifoKey0, uint32_t fifoKey1, uint32_t fifoKey2) {
@@ -76,20 +76,23 @@ namespace Hgcal10gLinkReceiver {
       _cfgWriteYaml=true;
 
       RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
+      
+      if(_printEnable) r.print();
+      YAML::Node nRsa(YAML::Load(r.string()));
+      _relayNumber=nRsa["RelayNumber"].as<uint32_t>();
+      //_relayNumber=r.relayNumber();
 
-      _relayNumber=r.relayNumber();
-
-      if(r.relayNumber()<0xffffffff) {
+      if(_relayNumber<0xffffffff) {
 	std::ostringstream sout;
 	sout << "dat/Relay" << std::setfill('0')
-	     << std::setw(10) << r.relayNumber();
+	     << std::setw(10) << _relayNumber;
 
 	_relayDirectory=sout.str();
 	system((std::string("mkdir ")+_relayDirectory).c_str());	
 	_fileWriter.setDirectory(sout.str());
       }
       
-      _fileWriter.openRelay(r.relayNumber());
+      _fileWriter.openRelay(_relayNumber);
       _fileWriter.write(&(_ptrFsmInterface->record()));
       
       _cfgSeqCounter=1;

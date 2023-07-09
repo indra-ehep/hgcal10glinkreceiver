@@ -9,7 +9,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "ProcessorRelay.h"
+#include "ProcessorRelayWriter.h"
 
 using namespace Hgcal10gLinkReceiver;
 
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
     }
   }
   
-  ProcessorRelay pb;
+  ProcessorRelayWriter pb;
   pb.setPrintEnable(  printEnable);
   pb.setCheckEnable(  checkEnable);
   pb.setAssertEnable(assertEnable);

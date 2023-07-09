@@ -15,6 +15,12 @@ namespace Hgcal10gLinkReceiver {
     
     RelayReader() {
       _runActive=false;
+      _enableLink.push_back(true);
+      _enableLink.push_back(true);
+    }
+    
+    void enableLink(unsigned l, bool b=true) {
+      if(l<_enableLink.size()) _enableLink[l]=b;
     }
     
     bool read(Record *r) {
@@ -28,17 +34,19 @@ namespace Hgcal10gLinkReceiver {
 	  const RecordStarting *rs((const RecordStarting*)r);
 
 	  RecordStarting rs2;
-	  for(unsigned i(0);i<2;i++) {
-	    //_runReader[i].openRun(rs->runNumber(),i);
-	    _runReader[i].openRun(rs->utc(),i);
+	  for(unsigned i(0);i<_enableLink.size();i++) {
+	    if(_enableLink[i]) {
+	      //_runReader[i].openRun(rs->runNumber(),i);
+	      _runReader[i].openRun(rs->utc(),i);
 
-	    if(_runReader[i].read(&rs2)) {
-	      //assert(rs2.runNumber() ==rs->runNumber());
-	      //assert(rs2.maxEvents() ==rs->maxEvents());
-	      //assert(rs2.maxSeconds()==rs->maxSeconds());
-	      //assert(rs2.maxSpills() ==rs->maxSpills());
-	    } else {
-	      _runActive=false;
+	      if(_runReader[i].read(&rs2)) {
+		//assert(rs2.runNumber() ==rs->runNumber());
+		//assert(rs2.maxEvents() ==rs->maxEvents());
+		//assert(rs2.maxSeconds()==rs->maxSeconds());
+		//assert(rs2.maxSpills() ==rs->maxSpills());
+	      } else {
+		_runActive=false;
+	      }
 	    }
 	  }
 

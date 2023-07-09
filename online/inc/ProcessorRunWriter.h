@@ -51,10 +51,13 @@ namespace Hgcal10gLinkReceiver {
     bool configuring() {
       RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
 
-      if(r.relayNumber()<0xffffffff) {
+      YAML::Node nRsa(YAML::Load(r.string()));
+      _relayNumber=nRsa["RelayNumber"].as<uint32_t>();
+
+      if(_relayNumber<0xffffffff) {
 	std::ostringstream sout;
 	sout << "dat/Relay" << std::setfill('0')
-	     << std::setw(10) << r.relayNumber();
+	     << std::setw(10) << _relayNumber;
       _fileWriter.setDirectory(sout.str());
       }
       
@@ -267,6 +270,7 @@ namespace Hgcal10gLinkReceiver {
     unsigned _linkNumber;
     unsigned _eventNumber;
     unsigned _runNumber;
+    unsigned _relayNumber;
 
     bool _dummyReader;
   };

@@ -244,7 +244,7 @@ namespace Hgcal10gLinkReceiver {
 	  miniDaq[0]&=0xfe00000fffffffff;
 	  miniDaq[0]|=bc<<45|uint64_t(_eventNumberInRun%64)<<39|(oc%8)<<36;
 
-	  uint32_t *p32((uint32_t*)miniDaq);
+	  //uint32_t *p32((uint32_t*)miniDaq);
 
 
 

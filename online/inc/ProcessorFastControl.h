@@ -99,17 +99,17 @@ namespace Hgcal10gLinkReceiver {
 
       _cfgSeqCounter=1;
       _evtSeqCounter=1;
-
+      _configuringBCounter=0;
 
       RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
       if(_printEnable) r.print();
 
-      _configuringBCounter=0;
-
-      _keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
+      //_keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
+      YAML::Node nRsa(YAML::Load(r.string()));
+      _keyCfgA=nRsa["ProcessorKey"].as<uint32_t>();
 
        if(_keyCfgA==125) {
-	 _serenityEncoder.uhalWrite("ctrl.l1a_stretch",1+(_configuringBCounter/32));
+	 _serenityEncoder.uhalWrite("ctrl.l1a_stretch",_configuringBCounter/32);
        }
 
       // Do configuration; ones which could have been changed
@@ -160,7 +160,7 @@ namespace Hgcal10gLinkReceiver {
       _configuringBCounter++;
 
        if(_keyCfgA==125) {
-	 _serenityEncoder.uhalWrite("ctrl.l1a_stretch",1+(_configuringBCounter/32));
+	 _serenityEncoder.uhalWrite("ctrl.l1a_stretch",_configuringBCounter/32);
        }
 
       /*

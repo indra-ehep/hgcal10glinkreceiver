@@ -10,6 +10,8 @@
 #include <string>
 #include <cstring>
 
+#include <yaml-cpp/yaml.h>
+
 #include "Serenity10g.h"
 #include "Serenity10gx.h"
 #include "ShmSingleton.h"
@@ -20,7 +22,7 @@
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
 #include "RecordConfigured.h"
-
+#include "RecordYaml.h"
 
 
 #include "RecordPrinter.h"
@@ -64,7 +66,9 @@ namespace Hgcal10gLinkReceiver {
 	RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
 	if(_printEnable) r.print();
 
-	_keyCfgA=r.processorKey(RunControlDummyFsmShmKey);
+	//_keyCfgA=r.processorKey(RunControlDummyFsmShmKey);
+	YAML::Node nRsa(YAML::Load(r.string()));
+	_keyCfgA=nRsa["ProcessorKey"].as<uint32_t>();
 	
 	if(_keyCfgA==123) {
 	  /*

@@ -5,11 +5,12 @@
 #include <iomanip>
 #include <cassert>
 
-#include "Record.h"
+#include "RecordYaml.h"
 
 namespace Hgcal10gLinkReceiver {
 
-  class RecordConfiguring : public RecordT<9> {
+  //class RecordConfiguring : public RecordT<9> {
+  class RecordConfiguring : public RecordYaml {
   
   public:
     RecordConfiguring() {
@@ -17,14 +18,14 @@ namespace Hgcal10gLinkReceiver {
     
     void setHeader(uint32_t t=time(0)) {
       setState(FsmState::Configuring);
-      setPayloadLength(1);
+      //setPayloadLength(1);
       setUtc(t);
     }
 
     bool valid() const {
       return validPattern() && state()==FsmState::Configuring;
     }
-    
+    /*    
     uint32_t relayNumber() const {
       return _payload[0]&0xffffffff;
     }
@@ -39,7 +40,8 @@ namespace Hgcal10gLinkReceiver {
       }
       return 0;
     }
-
+    */
+    /*
     void setRelayNumber(uint32_t t=time(0)) {
       _payload[0]&=0xffffffff00000000;
       _payload[0]|=t;
@@ -55,11 +57,12 @@ namespace Hgcal10gLinkReceiver {
       _payload[payloadLength()]=uint64_t(id)<<32|key;
       incrementPayloadLength(1);
     }
-   
+    */   
+
     void print(std::ostream &o=std::cout, std::string s="") const {
       o << s << "RecordConfiguring::print()" << std::endl;
-      RecordHeader::print(o,s+" ");
-      
+      RecordYaml::print(o,s+" ");
+      /*  
       for(unsigned i(0);i<payloadLength();i++) {
 	o << s << "   Payload word " << std::setw(5) << " = 0x"
 	  << std::hex << std::setfill('0')
@@ -80,6 +83,7 @@ namespace Hgcal10gLinkReceiver {
 	  << std::setw(10) << processorKey(_payload[i]>>32)
 	  << std::endl;
       }
+      */
     }
   private:
   };

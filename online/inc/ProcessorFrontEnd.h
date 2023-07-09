@@ -55,7 +55,9 @@ namespace Hgcal10gLinkReceiver {
       RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
       if(_printEnable) r.print();
 
-      _keyCfgA=r.processorKey(RunControlFrontEndFsmShmKey);
+      //_keyCfgA=r.processorKey(RunControlFrontEndFsmShmKey);
+      YAML::Node nRsa(YAML::Load(r.string()));
+      _keyCfgA=nRsa["ProcessorKey"].as<uint32_t>();
 	
       if(_keyCfgA<=40) {
 	uint16_t add;
@@ -94,7 +96,7 @@ namespace Hgcal10gLinkReceiver {
       RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
       if(_printEnable) r.print();
 
-      _keyCfgB=r.processorKey(RunControlFrontEndFsmShmKey);
+      //_keyCfgB=r.processorKey(RunControlFrontEndFsmShmKey);
 
       if(_keyCfgA>0 && _keyCfgA<=40) {
 	uint16_t dac(0),chn(0);
@@ -410,7 +412,7 @@ namespace Hgcal10gLinkReceiver {
       uint32_t _runNumber;
     */
     uint32_t _keyCfgA;
-    uint32_t _keyCfgB;
+    //uint32_t _keyCfgB;
 
     uint32_t _configuringBCounter;
 

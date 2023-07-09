@@ -37,6 +37,8 @@ namespace Hgcal10gLinkReceiver {
   public:
     ProcessorTcds2() {
       _fifoCounter=0;
+      _cfgForRunStart=false;
+      _conForInitialize=true;
     }
 
     virtual ~ProcessorTcds2() {
@@ -52,19 +54,23 @@ namespace Hgcal10gLinkReceiver {
     }
 
     virtual bool initializing() {
+      _conForInitialize=true;
+
       _serenityTcds2.setDefaults();
-      _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",1); // Throttle
       if(_printEnable) _serenityTcds2.print();
       return true;
     }
 
     bool configuring() {
+      _cfgForRunStart=true;
+      _configuringBCounter=0;
+
       RecordConfiguring &r((RecordConfiguring&)(_ptrFsmInterface->record()));
       if(_printEnable) r.print();
 
-      _configuringBCounter=0;
-
-      _keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
+      //_keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
+      YAML::Node nRsa(YAML::Load(r.string()));
+      _keyCfgA=nRsa["ProcessorKey"].as<uint32_t>();
 	
       if((_keyCfgA>0 && _keyCfgA<=38) || _keyCfgA==123) {
 
@@ -84,7 +90,7 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
 
 	uint16_t l1aBc(((3548+(_configuringBCounter%32))%3564)+1);
-	std::cout << "L1A BC = " << l1aBc << std::endl;
+	if(_printEnable) std::cout << "L1A BC = " << l1aBc << std::endl;
 
 	_serenityTcds2.uhalWrite("seq_mem.data",(l1aBc<<16)|0x0040);
       }
@@ -94,15 +100,17 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool reconfiguring() {
+      _cfgForRunStart=true;
+
       RecordReconfiguring &r((RecordReconfiguring&)(_ptrFsmInterface->record()));
       if(_printEnable) r.print();
 
       _configuringBCounter++;
 
-      _keyCfgB=r.processorKey(RunControlTcds2FsmShmKey);
+      //_keyCfgB=r.processorKey(RunControlTcds2FsmShmKey);
 
       if(_keyCfgA==123) {
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",_keyCfgB);
+	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",_configuringBCounter);
       }
 	
       if(_keyCfgA==125) {
@@ -129,8 +137,11 @@ namespace Hgcal10gLinkReceiver {
       _serenityTcds2.resetSequencer();
       _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_run_ctrl",3);
 
+      // Reset counters
+      _serenityTcds2.resetCounters();
+
       // Release throttle
-      _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",0);
+      _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",1);
       return true;
 	
     }
@@ -144,24 +155,27 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool stopping() {
+      _cfgForRunStart=false;
+
       _eventNumberInConfiguration+=_eventNumberInRun;
 
       // Impose throttle
-      _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",1);
+      _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",0);
 	
       // Disable sequencer
       _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_run_ctrl",0);
-
-
 
       return true;
     }
     
     bool halting() {
+      _conForInitialize=false;
       return true;
     }
     
     bool resetting() {
+      _conForInitialize=false;
+      _cfgForRunStart=false;
       return true;
     }
 
@@ -181,26 +195,28 @@ namespace Hgcal10gLinkReceiver {
 	std::cout << "ProcessorTcds2::halted()" << std::endl;
       }
 
-      RecordYaml *r;
-      while((r=(RecordYaml*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(1000);
-      r->setHeader(++_fifoCounter);
-      r->setState(FsmState::Halted);
-      
-      // Replace with "constants" call to SerenityTcds2
-      YAML::Node n;
-      n["Source"]="TCDS2";
-      n["PayloadVersion"]=_serenityTcds2.payloadVersion();
-      n["ElectronicsId"]=0x0fffffff;
+      if(_conForInitialize) {
+	RecordYaml *r;
+	while((r=(RecordYaml*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(1000);
+	r->setHeader(++_fifoCounter);
+	r->setState(FsmState::Halted);
+	
+	// Replace with "constants" call to SerenityTcds2
+	YAML::Node n;
+	n["Source"]="TCDS2";
+	n["PayloadVersion"]=_serenityTcds2.payloadVersion();
+	n["ElectronicsId"]=0x0fffffff;
+	
+	std::ostringstream sout;
+	sout << n;
+	r->setString(sout.str());
+	
+	if(_printEnable) r->print();
 
-      std::ostringstream sout;
-      sout << n;
-      r->setString(sout.str());
-
-      if(_printEnable) r->print();
-      ptrFifoShm2->writeIncrement();
-      
+	if(_printEnable) ptrFifoShm2->print();
+	ptrFifoShm2->writeIncrement();
+      }
       writeContinuing();
-      if(_printEnable) ptrFifoShm2->print();
     }
 
     virtual void configured() {
@@ -208,83 +224,56 @@ namespace Hgcal10gLinkReceiver {
 	std::cout << "ProcessorTcds2::configured()" << std::endl;
       }
 
-      RecordYaml *r;
+      RecordYaml *r; 
       while((r=(RecordYaml*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(100);
 
       r->setHeader(++_fifoCounter);
       r->setState(FsmState::Configured);
-      
-      //std::vector<uint32_t> v;
-      //_serenityTcds2.configuration(v);
-      //for(unsigned i(0);i<v.size();i++) r->addData32(v[i]);
-
-      //r->setType(RecordConfigured::TCDS2);
-      //r->setLocation(0);
-
-      //std::unordered_map<std::string,uint32_t> m;
-      //_serenityTcds2.configuration(m);
-
+     
       YAML::Node n;
       n["Source"]="TCDS2";
       n["ElectronicsId"]=0x0fffffff;
-
-      //n["Configuration"]=0;
-      //_serenityTcds2.configuration(n["Configuration"]);
       
       YAML::Node nc;
       _serenityTcds2.configuration(nc);
       n["Configuration"]=nc;
 
-      std::cout << "Yaml" << std::endl << n << std::endl;
+      std::cout << "Yaml configuration" << std::endl << n << std::endl;
 
-      /*
-      if(_printEnable) {
-	std::cout << "Serenity configuration" << std::endl;
-	_serenityTcds2.print();
-	
-	std::cout << "Serenity map" << std::endl;
-	for(auto i(m.begin());i!=m.end();i++) {
-	  std::cout << " " << i->first << " = " << i->second << std::endl;
-	}
-      }
-      */
-      
       std::ostringstream sout;
       sout << n;
       r->setString(sout.str());
 
-      //r->setConfiguration(m);
-      /*      
-      if(_printEnable) {
-	std::unordered_map<std::string,uint32_t> m2;
-	r->configuration(m2);
-        
-	std::cout << "Record configuration unpacked" << std::endl;
-	for(auto i(m2.begin());i!=m2.end();i++) {
-	  std::cout << " " << i->first << " = " << i->second << std::endl;
-	}
-      }
-      */
       if(_printEnable) r->print();
-
-      /*
-	r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl"));
-	r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1"));
-	r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2"));
-	r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl3"));
-
-	// Sequencer
-	uint32_t length(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length"));
-	r->addData32(length);
-
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
-	for(unsigned i(0);i<length;i++) {
-	r->addData32(_serenityTcds2.uhalRead("payload.fc_ctrl.tcds2_emu.seq_mem.data"));
-	}
-      */
-
+      
       ptrFifoShm2->writeIncrement();
 
+      // Status only at run end
+      if(!_cfgForRunStart) {
+	while((r=(RecordYaml*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(100);
+	
+	r->setHeader(++_fifoCounter);
+	r->setState(FsmState::Configured);
+
+	YAML::Node n;
+	n["Source"]="TCDS2";
+	n["ElectronicsId"]=0x0fffffff;
+
+	YAML::Node ns;
+	_serenityTcds2.status(ns);
+	n["Status"]=ns;
+
+	if(_printEnable) std::cout << "Yaml status" << std::endl << n << std::endl;
+      
+	std::ostringstream sout;
+	sout << n;
+	r->setString(sout.str());
+
+	if(_printEnable) r->print();
+      
+	ptrFifoShm2->writeIncrement();
+      }
+      
       writeContinuing();
     }
 
@@ -345,15 +334,11 @@ namespace Hgcal10gLinkReceiver {
 
     uint32_t _fifoCounter;
 
-    /*
-      uint32_t _evtSeqCounter;
-      uint32_t _pauseCounter;
+    bool _conForInitialize;
+    bool _cfgForRunStart;
 
-      uint32_t _superRunNumber;
-      uint32_t _runNumber;
-    */
     uint32_t _keyCfgA;
-    uint32_t _keyCfgB;
+    //uint32_t _keyCfgB;
 
     uint32_t _configuringBCounter;
 

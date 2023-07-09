@@ -34,7 +34,7 @@ public:
   }
   
   void starting() {
-    memset(this,0,sizeof(this));
+    memset(this,0,sizeof(*this));
     _backPressure=false;
     _writePtr=0;
     _readPtr=0;

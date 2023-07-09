@@ -10,7 +10,7 @@
 
 namespace Hgcal10gLinkReceiver {
 
-  class RecordYaml : public RecordT<1023> {
+  class RecordYaml : public RecordT<4095> {
   
   public:
     RecordYaml() {
