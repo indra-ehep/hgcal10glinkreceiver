@@ -74,7 +74,6 @@ namespace Hgcal10gLinkReceiver {
       _serenityLpgbt.setDefaults();
       _serenityLpgbt.print();
 
-      //_serenityMiniDaq.reset();
       _serenityMiniDaq.setDefaults();
       _serenityMiniDaq.print();
       return true;
@@ -112,6 +111,13 @@ namespace Hgcal10gLinkReceiver {
 	 _serenityEncoder.uhalWrite("ctrl.l1a_stretch",_configuringBCounter/32);
        }
 
+       /*
+       if(_keyCfgA==126) {
+	 _serenityLpgbt.uhalWrite("ctrl.user_bx",3);
+	 _serenityLpgbt.uhalWrite("fc_cmd.user",0xa9);
+	 _serenityLpgbt.uhalWrite("ctrl.loop_user_cmd",1);
+       }
+       */
       // Do configuration; ones which could have been changed
        //_serenityEncoder.uhalWrite("calpulse_ctrl.calpulse_int_del",8);
 
@@ -152,8 +158,7 @@ namespace Hgcal10gLinkReceiver {
 	//rca.print();
 	//assert(ptrFifoShm2->write(rca.totalLength(),(uint64_t*)(&rca)));
 	*/
-
-      return true;
+       return true;
     }
     
     bool reconfiguring() {
@@ -194,6 +199,8 @@ namespace Hgcal10gLinkReceiver {
 	//ptrFifoShm2->print();
 	//assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
 	*/
+
+      _serenityMiniDaq.reset();
 
 
       return true;

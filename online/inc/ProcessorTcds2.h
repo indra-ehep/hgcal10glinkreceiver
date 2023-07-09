@@ -95,6 +95,15 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("seq_mem.data",(l1aBc<<16)|0x0040);
       }
 
+      if(_keyCfgA==126) {
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
+	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	_serenityTcds2.uhalWrite("seq_mem.data",(   1<<16)|0x0040);
+	//_serenityTcds2.uhalWrite("seq_mem.data",(1783<<16)|0x0040);
+	
+	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",0);
+      }
+
 
       return true;
     }
@@ -123,6 +132,14 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("seq_mem.data",(l1aBc<<16)|0x0040);
       }
 
+      if(_keyCfgA==126) {
+        _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1+_configuringBCounter);
+        _serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	for(unsigned i(0);i<1+_configuringBCounter;i++) {
+	  _serenityTcds2.uhalWrite("seq_mem.data",((1+i)<<16)|0x0040);
+	}
+      }
+
       return true;
     }
 
@@ -141,7 +158,7 @@ namespace Hgcal10gLinkReceiver {
       _serenityTcds2.resetCounters();
 
       // Release throttle
-      _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",1);
+      _serenityTcds2.setThrottle(false);
       return true;
 	
     }
@@ -160,7 +177,7 @@ namespace Hgcal10gLinkReceiver {
       _eventNumberInConfiguration+=_eventNumberInRun;
 
       // Impose throttle
-      _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.tts_tcds2",0);
+      _serenityTcds2.setThrottle(true);
 	
       // Disable sequencer
       _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_run_ctrl",0);

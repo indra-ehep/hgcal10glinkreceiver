@@ -44,6 +44,7 @@ namespace Hgcal10gLinkReceiver {
 
 	m[std::string("ctrl.calpulse_type")+sout.str()]=uhalRead("ctrl.calpulse_type");
 	m[std::string("ctrl.user_bx"      )+sout.str()]=uhalRead("ctrl.user_bx");
+	m[std::string("ctrl.loop_user_cmd")+sout.str()]=uhalRead("ctrl.loop_user_cmd");
 	m[std::string("fc_cmd.user"       )+sout.str()]=uhalRead("fc_cmd.user");
       }
     }
@@ -53,12 +54,14 @@ namespace Hgcal10gLinkReceiver {
 
       m["ctrl.calpulse_type"]=uhalRead("ctrl.calpulse_type");
       m["ctrl.user_bx"]=uhalRead("ctrl.user_bx");
+      m["ctrl.loop_user_cmd"]=uhalRead("ctrl.loop_user_cmd");
       m["fc_cmd.user"]=uhalRead("fc_cmd.user");
     }
     
     bool setDefaults() {
       uhalWrite("ctrl.calpulse_type",1);
       uhalWrite("ctrl.user_bx",1);
+      uhalWrite("ctrl.loop_user_cmd",0);
       uhalWrite("fc_cmd.user",0x36);
       return true;
     }  

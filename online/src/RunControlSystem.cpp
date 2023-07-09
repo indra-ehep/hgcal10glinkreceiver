@@ -136,9 +136,9 @@ int main(int argc, char *argv[]) {
       unsigned nx(999);
       unsigned numberOfSecs(1000000000);
       //while(nx==0 || nx>1000) {
-      while(nx>38 && nx!=123 && nx!=124 && nx!=125) {
+      while(nx>38 && nx!=123 && nx!=124 && nx!=125 && nx!=126) {
 	//std::cout << "Relay number of runs"
-	std::cout << "Relay type (0-38,123,124,125)"
+	std::cout << "Relay type (0-38,123,124,125,126)"
 		<< std::endl;
 	std::cin >> nx;
       }
@@ -183,6 +183,10 @@ int main(int argc, char *argv[]) {
       if(nx==125) {
 	nRca["RunType"]="L1aBxScan";
 	maxNumberOfConfigurations=64;
+      }
+      if(nx==126) {
+	nRca["RunType"]="BxResetCheck";
+	maxNumberOfConfigurations=8;
       }
 
       //rca.setMaxNumberOfConfigurations(maxNumberOfConfigurations);

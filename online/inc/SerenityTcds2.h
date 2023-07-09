@@ -152,7 +152,8 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("ctrl_stat.ctrl1.en_nzs_physics",0);
       uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xf000);
 
-      uhalWrite("ctrl_stat.ctrl2.tts_tcds2",0);
+      //uhalWrite("ctrl_stat.ctrl2.tts_tcds2",1);
+      setThrottle(true);
       uhalWrite("ctrl_stat.ctrl2.tts_mask",0x7); // ?????????
       uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",0xff);
 
@@ -162,6 +163,11 @@ namespace Hgcal10gLinkReceiver {
 
       return true;
     }  
+
+    void setThrottle(bool b) {
+      // Up to Version 0x116
+      uhalWrite("ctrl_stat.ctrl2.tts_tcds2",b?1:0);
+    }
 
     void sendPulse(const std::string &s) {
       if(uhalRead(s)!=0) uhalWrite(s,0);
