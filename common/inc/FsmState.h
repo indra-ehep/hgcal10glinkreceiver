@@ -35,6 +35,9 @@ namespace Hgcal10gLinkReceiver {
 
       // For file and buffer records only
       Continuing=EndOfTransientEnum,
+      Constants,
+      Configuration,
+      Status,
       EndOfStateEnum
     };
 
@@ -183,7 +186,10 @@ namespace Hgcal10gLinkReceiver {
     "Ending       ",
     
     // For file and buffer records only    
-    "Continuing   "
+    "Continuing   ",
+    "Constants    ",
+    "Configuration",
+    "Status       "
   };
 
 }

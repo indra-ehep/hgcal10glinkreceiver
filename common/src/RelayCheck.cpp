@@ -32,8 +32,10 @@ int main(int argc, char** argv) {
   FsmState::State state(FsmState::Halted);
   FsmState::State previousState(FsmState::EndOfStateEnum);
 
-  RecordT<4*1024-1> r;
-
+  //RecordT<4*1024-1> r;
+  RecordYaml ry;
+  Record &r((Record&)ry);
+  
   RecordConfiguring   &rca((RecordConfiguring&  )r);
   RecordReconfiguring &rcb((RecordReconfiguring&)r);
   RecordConfigured    &rdb((RecordConfigured&   )r);
@@ -103,18 +105,19 @@ int main(int argc, char** argv) {
     // Check the change of state is allowed
 
 
-    if(r.state()<FsmState::EndOfStateEnum) {
+    if(r.state()<FsmState::EndOfTransientEnum) {
 
-    if(FsmState::staticState(state)) {
-      if(state!=r.state()) {
-	assert(state==FsmState::staticStateBeforeTransient(r.state()));
-	state=FsmState::staticStateAfterTransient(r.state());
+      if(FsmState::staticState(state)) {
+	if(state!=r.state()) {
+	  assert(state==FsmState::staticStateBeforeTransient(r.state()));
+	  state=FsmState::staticStateAfterTransient(r.state());
+	}
+      } else if(FsmState::transientState(state)) {
+	assert(r.state()==FsmState::staticStateBeforeTransient(state));
+	state=r.state();      
+      } else {
       }
-    } else {
-      assert(r.state()==FsmState::staticStateBeforeTransient(state));
-      state=r.state();      
-    }
-
+      
     }
 
 
@@ -124,7 +127,7 @@ int main(int argc, char** argv) {
     if(r.state()==FsmState::Configuring) {
       assert(rca.valid());
       //assert(rca.utc()==relayNumber);
-      assert(rca.payloadLength()==rca.maxNumberOfPayloadWords());
+      //assert(rca.payloadLength()==rca.maxNumberOfPayloadWords());
 
       //assert(rca.relayNumber()==relayNumber);
       assert(nCfgA==0);
@@ -148,8 +151,8 @@ int main(int argc, char** argv) {
       nEvtInCfg=0;
     }
     
-    else if(r.state()==FsmState::Configured) {
-      assert(rdb.valid());      
+    else if(r.state()==FsmState::Configuration) {
+      assert(ry.validPattern());      
       //assert(rst.sequenceCounter()==?);
     }
     
@@ -215,8 +218,8 @@ int main(int argc, char** argv) {
       //assert(rsp.numberOfSeconds()<=maxSeconds);
       //assert(rsp.numberOfSpills() <=maxSpills);
 
-      assert(nPs==rsp.numberOfPauses());
-      assert(nRs==rsp.numberOfPauses());
+      //assert(nPs==rsp.numberOfPauses());
+      //assert(nRs==rsp.numberOfPauses());
 
       //assert(rsp.numberOfEvents()+1==nRunEv);
       if(nRunEv<rsp.numberOfEvents()) {
@@ -231,6 +234,11 @@ int main(int argc, char** argv) {
       assert(nPs==nRs);
     }
 
+    else if(r.state()==FsmState::Status) { 
+      assert(ry.validPattern());      
+      //assert(rst.sequenceCounter()==?);
+    }
+    
     /*
     else if(r.state()==FsmState::HaltingB) {
       assert(rhb.valid());
@@ -278,6 +286,7 @@ int main(int argc, char** argv) {
        ((FsmState::State)i)!=FsmState::HaltingB) {
       
       if(((FsmState::State)i)==FsmState::EndOfStaticEnum) std::cout << std::endl;
+      if(((FsmState::State)i)==FsmState::EndOfTransientEnum) std::cout << std::endl;
 
       std::cout << " State " << FsmState::stateName((FsmState::State)i)
 		<< ", number of records = " << std::setw(10)

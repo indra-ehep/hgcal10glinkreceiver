@@ -67,8 +67,66 @@ namespace Hgcal10gLinkReceiver {
     }
   
     virtual bool initializing() {
-      const Record *r((Record*)&(_ptrFsmInterface->record()));
-      _haltedUtc=r->utc();
+      //const Record *r((Record*)&(_ptrFsmInterface->record()));
+      //_haltedUtc=r->utc();
+      _haltedUtc=_ptrFsmInterface->record().utc();
+
+      const RecordYaml *r;
+ 
+      for(unsigned i(0);i<_ptrFifoShm.size();i++) {
+	if(_fifoShmAlive[i]) {
+	  if(_printEnable) {
+	    std::cout << "Initializing: Fifo = " << i << std::endl;
+	    _ptrFifoShm[i]->print();
+	  }
+	
+	  bool done(false);
+	  while(!done) {
+	    while((r=(RecordYaml*)_ptrFifoShm[i]->readRecord())!=nullptr) {
+
+	      if(r->state()==FsmState::Constants) {
+		if(_printEnable) r->print();
+		//_fileWriter.write(r); NO BIN FILE!!!
+
+		std::ostringstream sout;
+		sout << "dat/Constants" << std::setfill('0')
+		     << std::setw(9) << _haltedUtc << "_" << std::hex;
+	      
+		YAML::Node n(YAML::Load(r->string()));
+		sout << n["Source"] << std::setw(8)
+		     << n["ElectronicsId"].as<unsigned>() << ".yaml";
+
+		if(_printEnable) {
+		  std::cout << "Writing constants to "
+			    << sout.str() << std::endl;
+		}
+	      
+		std::ofstream fout(sout.str().c_str());
+		fout << n << std::endl;
+		fout.close();
+
+	      } else if(r->state()==FsmState::Continuing) {
+		if(_printEnable) {
+		  std::cout << "Continuing record seen" << std::endl;
+		}
+		done=true;
+
+	      } else {
+		if(_printEnable) r->print();
+		assert(false);
+	      }
+
+	      _ptrFifoShm[i]->readIncrement();
+
+	      if(_printEnable) {
+		_ptrFifoShm[i]->print();
+	      }
+	    }
+	  }
+	}
+      }
+
+
       return true;
     }
 
@@ -90,6 +148,10 @@ namespace Hgcal10gLinkReceiver {
 	_relayDirectory=sout.str();
 	system((std::string("mkdir ")+_relayDirectory).c_str());	
 	_fileWriter.setDirectory(sout.str());
+	
+	std::ofstream fout((sout.str()+"/Definition.yaml").c_str());
+	fout << nRsa << std::endl;
+	fout.close();
       }
       
       _fileWriter.openRelay(_relayNumber);
@@ -112,8 +174,55 @@ namespace Hgcal10gLinkReceiver {
     }
 
     bool starting() {
-      _fileWriter.write(&(_ptrFsmInterface->record()));
+      for(unsigned i(0);i<_ptrFifoShm.size();i++) {
+	if(_fifoShmAlive[i]) {
+	  if(_printEnable) {
+	    std::cout << "Starting: Fifo = " << i << std::endl;
+	    _ptrFifoShm[i]->print();
+	  }
 
+	  _yamlCfg[i].resize(0);
+	
+	  const RecordYaml *r;
+
+	  bool done(false);
+	  while(!done) {
+
+	    while((r=(RecordYaml*)_ptrFifoShm[i]->readRecord())!=nullptr) {
+	    
+	      if(r->state()==FsmState::Configuration) {
+		_fileWriter.write(r);
+
+		//const RecordYaml *rc((const RecordYaml*)r);
+		if(_printEnable) r->print();
+
+		YAML::Node n(YAML::Load(r->string()));
+		if(n["Configuration"].IsDefined()) {
+		  _yamlCfg[i].push_back(n);
+		}
+
+	      } else if(r->state()==FsmState::Continuing) {
+		if(_printEnable) {
+		  std::cout << "Continuing record seen" << std::endl;
+		}
+		done=true;
+
+	      } else {
+		if(_printEnable) r->print();
+		assert(false);
+	      }
+	    
+	      _ptrFifoShm[i]->readIncrement();
+
+	      if(_printEnable) {
+		_ptrFifoShm[i]->print();
+	      }
+	    }
+	  }
+	}
+      }
+
+      
       if(_relayNumber<0xffffffff) {
 
 	//_runNumber=((const RecordStarting*)&(_ptrFsmInterface->record()))->runNumber();
@@ -155,6 +264,9 @@ namespace Hgcal10gLinkReceiver {
 	}
       }
       
+      // Write Starting record last
+      _fileWriter.write(&(_ptrFsmInterface->record()));
+
       _pauseCounter=0;
       _eventNumberInRun=0;
       
@@ -163,7 +275,6 @@ namespace Hgcal10gLinkReceiver {
 
     bool pausing() {
       _fileWriter.write(&(_ptrFsmInterface->record()));
-
       return true;
     }
     
@@ -174,6 +285,10 @@ namespace Hgcal10gLinkReceiver {
     
     bool stopping() {
 
+      // Write Stopping record first
+      _fileWriter.write(&(_ptrFsmInterface->record()));
+
+      /*
       RecordStopping r;
       r.deepCopy((_ptrFsmInterface->record()));
 
@@ -184,6 +299,45 @@ namespace Hgcal10gLinkReceiver {
       if(_printEnable) r.print();
 
       _fileWriter.write(&r);
+      */
+
+      for(unsigned i(0);i<_ptrFifoShm.size();i++) {
+	if(_fifoShmAlive[i]) {
+	  if(_printEnable) {
+	    std::cout << "Stopping: Fifo = " << i << std::endl;
+	    _ptrFifoShm[i]->print();
+	  }
+
+	  const RecordYaml *r;
+
+	  bool done(false);
+	  while(!done) {
+
+	    while((r=(RecordYaml*)_ptrFifoShm[i]->readRecord())!=nullptr) {
+	    
+	      if(r->state()==FsmState::Status) {
+		_fileWriter.write(r);
+
+	      } else if(r->state()==FsmState::Continuing) {
+		if(_printEnable) {
+		  std::cout << "Continuing record seen" << std::endl;
+		}
+		done=true;
+
+	      } else {
+		if(_printEnable) r->print();
+		assert(false);
+	      }
+	    
+	      _ptrFifoShm[i]->readIncrement();
+
+	      if(_printEnable) {
+		_ptrFifoShm[i]->print();
+	      }
+	    }
+	  }
+	}
+      }
 
       return true;
     }
@@ -191,8 +345,9 @@ namespace Hgcal10gLinkReceiver {
     bool halting() {
       const Record *r((Record*)&(_ptrFsmInterface->record()));
       _haltedUtc=r->utc();
-	
+      /*	
       _eventNumberInRelay+=_eventNumberInConfiguration;
+      */
       _fileWriter.write(&(_ptrFsmInterface->record()));
       _fileWriter.close();
       return true;
@@ -220,58 +375,6 @@ namespace Hgcal10gLinkReceiver {
       _ptrFsmInterface->setProcessState(FsmState::Halted);
       while(_ptrFsmInterface->systemState()==FsmState::Halted) usleep(1000);
 
-      std::cout << "*** HALTED ***" << std::endl;
-
-      const RecordYaml *r;
- 
-      for(unsigned i(0);i<_ptrFifoShm.size();i++) {
-	if(_fifoShmAlive[i]) {
-	  if(_printEnable) {
-	    std::cout << "Fifo number " << i << std::endl;
-	    _ptrFifoShm[i]->print();
-	  }
-	
-	  bool done(false);
-	  while(!done) {
-	    while((r=(RecordYaml*)_ptrFifoShm[i]->readRecord())!=nullptr) {
-
-	      if(r->state()==FsmState::Halted) {
-		if(_printEnable) r->print();
-		//_fileWriter.write(r); NO BIN FILE!!!
-
-		std::ostringstream sout;
-		sout << "dat/Constants" << std::setfill('0')
-		     << std::setw(9) << _haltedUtc << "_" << std::hex;
-	      
-		YAML::Node n(YAML::Load(r->string()));
-		sout << n["Source"] << std::setw(8)
-		     << n["ElectronicsId"].as<unsigned>() << ".yaml";
-
-		if(_printEnable) {
-		  std::cout << "Writing constants to "
-			    << sout.str() << std::endl;
-		}
-	      
-		std::ofstream fout(sout.str().c_str());
-		fout << n << std::endl;
-		fout.close();
-
-	      } else if(r->state()==FsmState::Continuing) {
-		if(_printEnable) {
-		  std::cout << "Continuing record seen" << std::endl;
-		}
-		done=true;
-
-	      } else {
-		if(_printEnable) r->print();
-		assert(false);
-	      }
-
-	      _ptrFifoShm[i]->readIncrement();
-	    }
-	  }
-	}
-      }
     }
     
     virtual void configured() {
@@ -280,7 +383,7 @@ namespace Hgcal10gLinkReceiver {
       _ptrFsmInterface->setProcessState(FsmState::Configured);
 
       while(_ptrFsmInterface->systemState()==FsmState::Configured) usleep(1000);
-
+      /*
       const Record *r;
 
       for(unsigned i(0);i<_ptrFifoShm.size();i++) {
@@ -297,50 +400,21 @@ namespace Hgcal10gLinkReceiver {
 
 	    while((r=_ptrFifoShm[i]->readRecord())!=nullptr) {
 	    
-	      if(r->state()==FsmState::Configured) {
+	      if(r->state()==FsmState::Configuration) {
 		_fileWriter.write(r);
 
 		const RecordYaml *rc((const RecordYaml*)r);
 		if(_printEnable) rc->print();
 
-		YAML::Node n(YAML::Load(rc->string());
+		YAML::Node n(YAML::Load(rc->string()));
 		if(n["Configuration"].IsDefined()) {
 		  _yamlCfg[i].push_back(n);
 		}
 
-		/*
-		  std::string s;
-		  s=rc->string();
-	      
-		  YAML::Node n(YAML::Load(s));
-	      
-		  std::ostringstream sout;
-		  sout << std::setfill('0')
-		  << "Run" << std::setw(9) << _runNumber << "_";
-	      
-		  std::cout << "HERE0" << std::endl;
-		  if(n["Source"].as<std::string>()=="LpGBT" )
-		  sout << "Lpgbt"  << std::setw(3) << n["Lpgbt" ].as<unsigned>();
-		  std::cout << "HERE1" << std::endl;
-		  if(n["Source"].as<std::string>()=="ECOND" )
-		  sout << "EconD"  << std::setw(3) << n["EconD" ].as<int>();
-		  std::cout << "HERE2" << std::endl;
-		  if(n["Source"].as<std::string>()=="ECONT" )
-		  sout << "EconT"  << std::setw(3) << n["EconT" ].as<int>();
-		  std::cout << "HERE3" << std::endl;
-		  if(n["Source"].as<std::string>()=="HGCROC")
-		  sout << "Hgcroc" << std::setw(3) << 3*n["EconD" ].as<int>()+n["Hgcroc"].as<int>();
-		  std::cout << "HERE4" << std::endl;
-
-		  sout << ".yaml";
-
-		  std::ofstream fout((_relayDirectory+"/"+sout.str()).c_str());
-		  fout << n << std::endl;
-		  fout.close();
-		*/
-
-	      
 	      } else if(r->state()==FsmState::Continuing) {
+		if(_printEnable) {
+		  std::cout << "Continuing record seen" << std::endl;
+		}
 		done=true;
 
 	      } else {
@@ -349,11 +423,15 @@ namespace Hgcal10gLinkReceiver {
 	      }
 	    
 	      _ptrFifoShm[i]->readIncrement();
+
+	      if(_printEnable) {
+		_ptrFifoShm[i]->print();
+	      }
 	    }
 	  }
 	}
       }
-
+      */
       
 #ifdef NOT_YET
 
@@ -505,7 +583,7 @@ namespace Hgcal10gLinkReceiver {
       if(_printEnable) std::cout << "ProcessRelay::running()" << std::endl;
 
       _ptrFsmInterface->setProcessState(FsmState::Running);
-
+      /*
       while(_ptrFsmInterface->systemState()==FsmState::Running) usleep(1000);
 
       const Record *r;
@@ -528,17 +606,22 @@ namespace Hgcal10gLinkReceiver {
 		done=true;
 	      }
 	      _ptrFifoShm[i]->readIncrement();
+
+	      if(_printEnable) {
+		_ptrFifoShm[i]->print();
+	      }
 	    }
 	  }
 	}
       }
+      */
     }
 
     void paused() {
       if(_printEnable) std::cout << "ProcessRelay::paused()" << std::endl;
 
       _ptrFsmInterface->setProcessState(FsmState::Paused);
-
+      /*
       while(_ptrFsmInterface->systemState()==FsmState::Paused) usleep(1000);
 
       const Record *r;
@@ -556,10 +639,15 @@ namespace Hgcal10gLinkReceiver {
 		done=true;
 	      }
 	      _ptrFifoShm[i]->readIncrement();
+
+	      if(_printEnable) {
+		_ptrFifoShm[i]->print();
+	      }
 	    }
 	  }
 	}
       }
+      */
       _pauseCounter++;
     }
         

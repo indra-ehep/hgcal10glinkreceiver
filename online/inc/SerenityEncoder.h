@@ -69,8 +69,8 @@ namespace Hgcal10gLinkReceiver {
       m["ctrl_3"]=uhalRead("ctrl_3");
     }
 
-    void status(std::unordered_map<std::string,uint32_t> &m) {
-      m.clear();
+    void status(YAML::Node &m) {
+      m=YAML::Node();
       
       m["l1a_counter_l"]=uhalRead("l1a_counter_l");
       m["l1a_counter_h"]=uhalRead("l1a_counter_h");

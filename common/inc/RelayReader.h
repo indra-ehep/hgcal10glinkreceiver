@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 #include "FileReader.h"
 #include "RecordPrinter.h"
@@ -72,6 +73,8 @@ namespace Hgcal10gLinkReceiver {
     }
     
   protected:
+    std::vector<bool> _enableLink;
+    
     bool _runActive;
     unsigned _runRecord;
     FileReader _runReader[2];
