@@ -91,26 +91,68 @@ bool UdpDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
 
   bool continueLoop(true);
 
-  printEnable=true;
+  //printEnable=true;
+
+  uint64_t count[20];
+  memset(count,0,20*8);
   
   while(continueLoop) {
 
-    // Receive data from Serenity
-    //socket.recv(request, zmq::recv_flags::none);
-
-    
-    //uint64_t *ptr(ptrRunFileShm->_buffer[ptrRunFileShm->_writePtr%RunFileShm::BufferDepth]);
+    bool goodPacket(false);
     do {
+      
       n = recvfrom(sockfd, (char *)rt, MAXLINE,
 		   MSG_WAITALL, ( struct sockaddr *) &cliaddr,
 		   &len);
 
       if(printEnable) std::cout << "First word = " << std::hex << ptrt[0] << std::dec << std::endl;
-    } while(ptrt[0]==0xdddddddddddddddd);
+
+      if(ptrt[0]==0xdddddddddddddddd) {
+	count[0]++;
+	if(n!=24) {
+	  count[1]++;
+	  std::cerr << "BAD HEARTBEAT n = " << n << std::endl;
+	  for(unsigned i(0);i<(unsigned(n)+7)/8;i++) {
+	    std::cerr << " Word " << i << " = 0x"
+		      << std::hex << std::setfill('0')
+		      << std::setw(16) << ptrt[i]
+		      << std::dec << std::setfill(' ')
+		      << std::endl;
+	  }
+	}
+
+      } else if((ptrt[0]>>56)!=0xac && (ptrt[0]>>56)!=0xaa) {
+	count[2]++;
+	std::cerr << "BAD PACKET n = " << n << std::endl;
+	for(unsigned i(0);i<(unsigned(n)+7)/8;i++) {
+	    std::cerr << " Word " << i << " = 0x"
+		      << std::hex << std::setfill('0')
+		      << std::setw(16) << ptrt[i]
+		      << std::dec << std::setfill(' ')
+		      << std::endl;
+	}
+
+      } else {
+	if((8*((ptrt[0]>>48)&0xff)+8)!=unsigned(n)) {
+	  count[3]++;
+	  std::cerr << "BAD LENGTH n = " << n << std::endl;
+	  for(unsigned i(0);i<(unsigned(n)+7)/8;i++) {
+	    std::cerr << " Word " << i << " = 0x"
+		      << std::hex << std::setfill('0')
+		      << std::setw(16) << ptrt[i]
+		      << std::dec << std::setfill(' ')
+		      << std::endl;
+	  }
+	  
+	} else {
+	  count[4]++;
+	  goodPacket=true;
+	}
+      }
+      
+    } while(!goodPacket);
     
     if(printEnable) std::cout  << std::endl << "************ GOT DATA ******************" << std::endl << std::endl;
-
-
 
     if(printEnable) {
       std::cout << "Size = " << n << " ?= " << len << " ?= " << rt->totalLengthInBytes() << std::endl;
@@ -180,6 +222,11 @@ bool UdpDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
     //if(prcfs->isEnded()) continueLoop=false;
   }
 
+  std::cout << std::endl << "Packet counts" << std::endl;
+  for(unsigned i(0);i<10;i++) {
+    std::cout << " Count " << std::setw(2) << " = " << count[i] << std::endl;
+  }
+    
   delete rt;
   
   return true;

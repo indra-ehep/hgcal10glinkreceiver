@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
   }
   
   ShmSingleton<LinkCheckShm> shm;
-  shm.setup(0xce2302);
+  shm.setup(theKey);
   LinkCheckShm* const p(shm.payload());
 
   uint64_t pOld[2]={0,0};

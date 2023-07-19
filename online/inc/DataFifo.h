@@ -26,6 +26,10 @@ public:
     _readPtr=0;
   }
 
+  void flush() {
+    _readPtr=0xf0000000;
+  }
+
   void initialize() {
     _backPressure=false;
     _writePtr=0;
@@ -47,6 +51,10 @@ public:
 
   bool isEnded() {
     return _writePtr==0xffffffff && _readPtr==0xffffffff;
+  }
+  
+  bool isEmpty() {
+    return _writePtr==0 && _readPtr==0;
   }
   
   // Processor writing into FIFO

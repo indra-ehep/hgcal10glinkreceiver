@@ -197,9 +197,7 @@ namespace Hgcal10gLinkReceiver {
 		if(_printEnable) r->print();
 
 		YAML::Node n(YAML::Load(r->string()));
-		if(n["Configuration"].IsDefined()) {
-		  _yamlCfg[i].push_back(n);
-		}
+		_yamlCfg[i].push_back(n);
 
 	      } else if(r->state()==FsmState::Continuing) {
 		if(_printEnable) {
