@@ -108,8 +108,22 @@ int main(int argc, char *argv[]) {
 
     } else {
       if((n%8)!=0) {if(countEnable) p->_array[LinkCheckShm::NumberOfSocketSizeMod8]++;}
-      if(n>np) {if(countEnable) p->_array[LinkCheckShm::NumberOfSocketSizeGtPacket]++;}
-      if(n<np) {if(countEnable) p->_array[LinkCheckShm::NumberOfSocketSizeLtPacket]++;}
+      if(n>np) {
+	if(countEnable) p->_array[LinkCheckShm::NumberOfSocketSizeGtPacket]++;
+	std::cerr << "NumberOfSocketSizeGtPacket n = " << n << ", np = " << np << std::endl;
+	for(unsigned i(0);i<(n+7)/8;i++) {
+	  std::cerr << "Word " << std::setw(4) << i << " = 0x" << std::hex << std::setw(16)
+		    << buffer64[i] << std::dec << std::endl;
+	}
+      }
+      if(n<np) {
+	if(countEnable) p->_array[LinkCheckShm::NumberOfSocketSizeLtPacket]++;
+	std::cerr << "NumberOfSocketSizeLtPacket n = " << n << ", np = " << np << std::endl;
+	for(unsigned i(0);i<(n+7)/8;i++) {
+	  std::cerr << "Word " << std::setw(4) << i << " = 0x" << std::hex << std::setw(16)
+		    << buffer64[i] << std::dec << std::endl;
+	}
+      }
       if(n==np) {if(countEnable) p->_array[LinkCheckShm::NumberOfSocketSizeEqPacket]++;}
     
       //std::cerr << "Lengths " << n << ", " << np << std::endl;
@@ -133,7 +147,7 @@ int main(int argc, char *argv[]) {
 	  std::cerr << "n = " << n << ", buffer = " << 8*(((buffer64[0]>>48)&0xff)+1) << std::endl;
 	  } else {
 	*/
-	if((buffer64[ip]>>56)!=0xac) {
+	if((buffer64[ip]>>56)!=0xac && (buffer64[ip]>>56)!=0xaa && buffer64[ip]!=0xdddddddddddddddd) {
 	  if(countEnable) p->_array[LinkCheckShm::NumberOfPacketBadHeaders]++;
 	  //if(ip>0) {if(countEnable) p->_array[]++;;}
 	  /*

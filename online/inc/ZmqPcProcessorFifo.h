@@ -32,7 +32,9 @@ bool ZmqPcProcessorFifo(uint32_t key, uint16_t port) {
   sout << "tcp://*:" << port;
   //socket.bind("tcp://*:5556");
   //socket.connect("tcp://serenity-2368-03-i5:5556");
+  std::cout << "Binding to " << sout.str() << std::endl;
   socket.bind(sout.str());
+  std::cout << "Bound   to " << sout.str() << std::endl;
   
   ShmSingleton<RelayWriterDataFifo> shmU;
   shmU.setup(key);
