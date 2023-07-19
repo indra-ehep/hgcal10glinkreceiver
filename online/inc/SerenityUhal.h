@@ -53,8 +53,8 @@ namespace Hgcal10gLinkReceiver {
     }
 #ifdef ProcessorHardware
   SerenityUhal() : lConnectionFilePath("etc/connections.xml"),
-      //lDeviceId("x0"),
-      lDeviceId("x0_current"),
+      lDeviceId("x0"),
+      //lDeviceId("x0_current"),
       lConnectionMgr("file://" + lConnectionFilePath),
       lHW(lConnectionMgr.getDevice(lDeviceId)) {
       _printEnable=true;
@@ -145,9 +145,9 @@ namespace Hgcal10gLinkReceiver {
     }
   
 #ifdef ProcessorHardware
-  uint32_t uhalRead(const std::string &s) {
+  uint32_t uhalRead(const std::string &s, bool pl=false) {
     //const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
-    const uhal::Node& lNode = lHW.getNode(_uhalTopString+"."+s);
+    const uhal::Node& lNode = lHW.getNode((pl?"payload":_uhalTopString)+"."+s);
     uhal::ValWord<uint32_t> lReg = lNode.read();
     lHW.dispatch();
 
@@ -160,7 +160,7 @@ namespace Hgcal10gLinkReceiver {
     return lReg.value();
   }
   
-  bool uhalWrite(const std::string &s, uint32_t v) {
+  bool uhalWrite(const std::string &s, uint32_t v, bool pl=false) {
     std::cout << "uhalWrite: setting " << s << " to  0x"
 	      << std::hex << std::setfill('0')
 	      << std::setw(8) << v
@@ -168,7 +168,7 @@ namespace Hgcal10gLinkReceiver {
 	      << std::endl;
     
     //const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
-    const uhal::Node& lNode = lHW.getNode(_uhalTopString+"."+s);
+    const uhal::Node& lNode = lHW.getNode((pl?"payload":_uhalTopString)+"."+s);
     lNode.write(v);
     lHW.dispatch();
     

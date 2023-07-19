@@ -55,6 +55,7 @@ namespace Hgcal10gLinkReceiver {
 
       m["ctrl_stat.ctrl2.tts_mask"]=uhalRead("ctrl_stat.ctrl2.tts_mask");
       m["ctrl_stat.ctrl2.l1a_physics_mask"]=uhalRead("ctrl_stat.ctrl2.l1a_physics_mask");
+      m["ctrl_stat.ctrl2.l1a_regular_period"]=uhalRead("ctrl_stat.ctrl2.l1a_regular_period");
 
       uint32_t length(uhalRead("ctrl_stat.ctrl.seq_length"));
       m["ctrl_stat.ctrl.seq_length"]=length;
@@ -156,6 +157,7 @@ namespace Hgcal10gLinkReceiver {
       setThrottle(true);
       uhalWrite("ctrl_stat.ctrl2.tts_mask",0x7); // ?????????
       uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",0xff);
+      uhalWrite("ctrl_stat.ctrl2.l1a_regular_period",712); // 3565 = 5x23x31 = 5x713
 
       uhalWrite("ctrl_stat.ctrl.seq_length",1);
       uhalWrite("seq_mem.pointer",0);
@@ -165,8 +167,10 @@ namespace Hgcal10gLinkReceiver {
     }  
 
     void setThrottle(bool b) {
-      // Up to Version 0x116
-      uhalWrite("ctrl_stat.ctrl2.tts_tcds2",b?1:0);
+      // Up to Version 0x117
+      //uhalWrite("ctrl_stat.ctrl2.tts_tcds2",b?1:0);
+      // From Version 0x118
+      uhalWrite("ctrl_stat.ctrl2.tts_tcds2",b?0:1);
     }
 
     void sendPulse(const std::string &s) {

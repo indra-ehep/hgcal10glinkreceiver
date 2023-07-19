@@ -53,6 +53,9 @@ namespace Hgcal10gLinkReceiver {
 
       m["ECOND_pkt_conf.Header"      ]=uhalRead("ECOND_pkt_conf.Header");
       m["ECOND_pkt_conf.Idle"        ]=uhalRead("ECOND_pkt_conf.Idle");
+
+      m["DAQ_FC_config.BC_rst_value"]=uhalRead("DAQ_FC_config.BC_rst_value");
+      m["DAQ_FC_config.OC_rst_value"]=uhalRead("DAQ_FC_config.OC_rst_value");
     }
 
     void configuration(std::unordered_map<std::string,uint32_t> &m) {
@@ -75,26 +78,52 @@ namespace Hgcal10gLinkReceiver {
       m["ECOND_pkt_conf.Idle"        ]=uhalRead("ECOND_pkt_conf.Idle");
     }
     
-    bool setDefaults() {
+    bool setNumberOfEconds(unsigned nEcond) {
       uhalWrite("rstn",0);
-      /*
+
+      unsigned memPerEcond(1024*(15/nEcond));
+
       for(unsigned i(0);i<14;i++) {
 	std::ostringstream sout;
 	//sout << "Elink_mapping.Elink" << std::setfill('0')
 	//   << std::setw(2) << i << ".";
 	sout << "Elink_mapping.Elink" << i << ".";
 
-	uhalWrite(sout.str()+"ID",i<6?0x0:0xf);
-	uhalWrite(sout.str()+"start_addr",i<1?0x0000:0x3fff);
-	uhalWrite(sout.str()+"end_addr",i<1?0x37ff:0x3fff);
-      }
-      */
-      uhalWrite("Elink_mapping.Elink_config2",1);
+	if(i<2*nEcond) {
+	  uhalWrite(sout.str()+"ID",i/2);
+	} else {
+	  uhalWrite(sout.str()+"ID",0xf);
+	}
 
-      uhalWrite("ECOND_pkt_conf.Header",0x154);
+	if(i<nEcond) {
+	  uhalWrite(sout.str()+"start_addr",i*memPerEcond);
+	  uhalWrite(sout.str()+"end_addr",(1+i)*memPerEcond-1);
+
+	} else {
+	  uhalWrite(sout.str()+"start_addr",0x3fff);
+	  uhalWrite(sout.str()+"end_addr",0x3fff);
+	}
+      }
+
+      uhalWrite("Elink_mapping.Elink_config2",nEcond);
+
+      uhalWrite("rstn",1);
+
+      return true;
+    }  
+
+    bool setDefaults() {
+      setNumberOfEconds(1);
+
+      uhalWrite("rstn",0);
+
       //uhalWrite("ECOND_pkt_conf.Header",0xac);
       //uhalWrite("ECOND_pkt_conf.Idle",0x555555);
-      uhalWrite("ECOND_pkt_conf.Idle",0xaaaa);
+      uhalWrite("ECOND_pkt_conf.Header",0x154);
+      uhalWrite("ECOND_pkt_conf.Idle",0xaaaaff);
+
+      uhalWrite("DAQ_FC_config.BC_rst_value",4);
+      uhalWrite("DAQ_FC_config.OC_rst_value",0);
 
       uhalWrite("rstn",1);
 

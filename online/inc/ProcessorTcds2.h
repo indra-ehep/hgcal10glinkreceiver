@@ -1,6 +1,12 @@
 #ifndef Hgcal10gLinkReceiver_ProcessorTcds2_h
 #define Hgcal10gLinkReceiver_ProcessorTcds2_h
 
+
+
+//#define REMOVE_FOR_TESTING
+
+
+
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -121,14 +127,19 @@ namespace Hgcal10gLinkReceiver {
       }
 
       if(_keyCfgA==126) {
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",2);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
 	_serenityTcds2.uhalWrite("seq_mem.data",(   1<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",( 201<<16)|0x0040);
 	//_serenityTcds2.uhalWrite("seq_mem.data",(1783<<16)|0x0040);
 	
 	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",0);
       }
 
+      if(_keyCfgA==127) {
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_regular",1);
+      }
 
       return true;
     }
@@ -161,7 +172,7 @@ namespace Hgcal10gLinkReceiver {
         _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1+_configuringBCounter);
         _serenityTcds2.uhalWrite("seq_mem.pointer",0);
 	for(unsigned i(0);i<1+_configuringBCounter;i++) {
-	  _serenityTcds2.uhalWrite("seq_mem.data",((1+i)<<16)|0x0040);
+	  _serenityTcds2.uhalWrite("seq_mem.data",((1+200*i)<<16)|0x0040);
 	}
       }
 

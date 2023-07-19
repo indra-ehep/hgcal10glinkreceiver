@@ -52,6 +52,10 @@ namespace Hgcal10gLinkReceiver {
 
       m["ctrl_2"]=uhalRead("ctrl_2");
       m["ctrl_3"]=uhalRead("ctrl_3");      
+
+      // Cludge these in here for now; move them later
+      m["payload_ctrl_stat.ctrl0.fc_dec_force_lock"   ]=uhalRead("payload_ctrl_stat.ctrl0.fc_dec_force_lock",true);
+      m["payload_ctrl_stat.ctrl0.fc_dec_prel1a_offset"]=uhalRead("payload_ctrl_stat.ctrl0.fc_dec_prel1a_offset",true);
     }
 
     void configuration(std::unordered_map<std::string,uint32_t> &m) {
@@ -100,6 +104,10 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("calpulse_ctrl.calpulse_int_del",8);
       uhalWrite("calpulse_ctrl.calpulse_ext_del",10);
       uhalWrite("calpulse_ctrl.ocr_n",8);
+
+      // Cludge these in here for now; move them later
+      uhalWrite("payload_ctrl_stat.ctrl0.fc_dec_force_lock",0,true);
+      uhalWrite("payload_ctrl_stat.ctrl0.fc_dec_prel1a_offset",3,true);
 
       return true;
     }  

@@ -1,6 +1,14 @@
 #ifndef Hgcal10gLinkReceiver_ProcessorFastControl_h
 #define Hgcal10gLinkReceiver_ProcessorFastControl_h
 
+
+
+
+//#define REMOVE_FOR_TESTING
+
+
+
+
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -13,6 +21,8 @@
 #include "SerenityEncoder.h"
 #include "SerenityLpgbt.h"
 #include "SerenityMiniDaq.h"
+#include "Serenity10g.h"
+#include "Serenity10gx.h"
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
@@ -48,7 +58,8 @@ namespace Hgcal10gLinkReceiver {
       _serenityEncoder.makeTable();
       _serenityLpgbt.makeTable();
       _serenityMiniDaq.makeTable();
-      _serenityMiniDaq.print();
+      _serenity10g.makeTable();
+      _serenity10gx.makeTable();
 
       ShmSingleton<RelayWriterDataFifo> shm2;
       ptrFifoShm2=shm2.setup(fifoKey);
@@ -64,6 +75,12 @@ namespace Hgcal10gLinkReceiver {
       
       _serenityMiniDaq.setDefaults();
       _serenityMiniDaq.print();
+
+      //_serenity10g.setDefaults();
+      //_serenity10g.print();
+
+      //_serenity10gx.setDefaults();
+      //_serenity10gx.print();
 
       ///////////////////////////////////////////////////////
       
@@ -138,7 +155,9 @@ namespace Hgcal10gLinkReceiver {
       //_serenityEncoder.uhalWrite("calpulse_ctrl.calpulse_int_del",8);
 
 
- 
+ 	if(_keyCfgA==127) {
+	  //_serenityMiniDaq.setNumberOfEconds(2);
+	}
       /*
 	RecordConfiguringA *r;
 	while((r=(RecordConfiguringA*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
@@ -255,7 +274,10 @@ namespace Hgcal10gLinkReceiver {
 
       ///////////////////////////////////////////////////
       
-      _serenityMiniDaq.reset();
+      //_serenityMiniDaq.reset();
+      //_serenity10gx.uhalWrite("ctrl.reg.en",1);
+
+      //_serenity10g.reset();
 
       return true;
     }
@@ -283,6 +305,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool stopping() {
+      //_serenity10gx.uhalWrite("ctrl.reg.en",0);
       /*
 	_eventNumberInConfiguration+=_eventNumberInRun;
 
@@ -348,6 +371,13 @@ namespace Hgcal10gLinkReceiver {
       
       _serenityMiniDaq.setDefaults();
       _serenityMiniDaq.print();
+
+      //_serenity10g.setDefaults();
+      //_serenity10g.print();
+
+      //_serenity10gx.setDefaults();
+      //_serenity10gx.print();
+
       return true;
     }
     
@@ -645,6 +675,8 @@ namespace Hgcal10gLinkReceiver {
     SerenityEncoder _serenityEncoder;
     SerenityLpgbt _serenityLpgbt;
     SerenityMiniDaq _serenityMiniDaq;  
+    Serenity10g _serenity10g;
+    Serenity10gx _serenity10gx;
   };
 
 }

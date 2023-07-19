@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
 
   SerenityMiniDaq smd;
   smd.makeTable();
+  smd.setDefaults();
   smd.print();
   //smd.reset();
   return 0;
