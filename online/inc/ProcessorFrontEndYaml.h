@@ -27,6 +27,7 @@ namespace Hgcal10gLinkReceiver {
       _fifoCounter=0;
       _sequenceCount=0;
       _cfgForRunStart=false;
+      daqBoard=3;
     }
 
     virtual ~ProcessorFrontEndYaml() {
@@ -79,8 +80,7 @@ namespace Hgcal10gLinkReceiver {
     }
 
     bool starting() {
-      unsigned daqBoard(18);
-      unsigned slink(9);
+      unsigned slink(1);
       unsigned lpgbtPair(3);
       
       RecordYaml *r;
@@ -258,6 +258,7 @@ namespace Hgcal10gLinkReceiver {
         
   protected:
     RelayWriterDataFifo *ptrFifoShm2;
+      unsigned daqBoard;
 
     bool _cfgForRunStart;
 

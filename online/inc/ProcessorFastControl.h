@@ -23,6 +23,7 @@
 #include "SerenityMiniDaq.h"
 #include "Serenity10g.h"
 #include "Serenity10gx.h"
+#include "SerenityTrgDaq.h"
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
@@ -49,6 +50,8 @@ namespace Hgcal10gLinkReceiver {
     
   public:
     ProcessorFastControl() {      
+      std::system("empbutler -c etc/connections.xml do x0 info");
+      daqBoard=3;
     }
 
     virtual ~ProcessorFastControl() {
@@ -59,8 +62,9 @@ namespace Hgcal10gLinkReceiver {
       _serenityLpgbt.makeTable();
       _serenityMiniDaq.makeTable();
       _serenity10g.makeTable();
-      _serenity10gx.makeTable();
-
+      //_serenity10gx.makeTable();
+      _serenityTrgDaq.makeTable();
+      
       ShmSingleton<RelayWriterDataFifo> shm2;
       ptrFifoShm2=shm2.setup(fifoKey);
       startFsm(rcKey);
@@ -76,16 +80,17 @@ namespace Hgcal10gLinkReceiver {
       _serenityMiniDaq.setDefaults();
       _serenityMiniDaq.print();
 
-      //_serenity10g.setDefaults();
-      //_serenity10g.print();
+      _serenity10g.setDefaults();
+      _serenity10g.print();
 
       //_serenity10gx.setDefaults();
       //_serenity10gx.print();
 
+      _serenityTrgDaq.setDefaults();
+      _serenityTrgDaq.print();
+
       ///////////////////////////////////////////////////////
       
-      unsigned daqBoard(18);
-
       RecordYaml *r;
       while((r=(RecordYaml*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(1000);
       r->setHeader(_cfgSeqCounter++);
@@ -108,6 +113,9 @@ namespace Hgcal10gLinkReceiver {
       ptrFifoShm2->writeIncrement();
 
       writeContinuing();
+
+      //_serenityTrgDaq.uhalWrite("trigger_ro.SLink.source_id"  ,0xce000000|daqBoard<<4|0,true);
+      _serenityEncoder.uhalWrite("DAQ_SLink_readout.source_id",0xce000000|daqBoard<<4|1,true);
 
       return true;
     }
@@ -155,8 +163,8 @@ namespace Hgcal10gLinkReceiver {
       //_serenityEncoder.uhalWrite("calpulse_ctrl.calpulse_int_del",8);
 
 
- 	if(_keyCfgA==127) {
-	  //_serenityMiniDaq.setNumberOfEconds(2);
+ 	if(_keyCfgA==127 || _keyCfgA==128) {
+	  _serenityMiniDaq.setNumberOfEconds(2);
 	}
       /*
 	RecordConfiguringA *r;
@@ -235,8 +243,6 @@ namespace Hgcal10gLinkReceiver {
 	//assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
 	*/
 
-      unsigned daqBoard(18);
-
       RecordYaml *ry;
       while((ry=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(1000);
       ry->setHeader(_cfgSeqCounter++);
@@ -252,10 +258,13 @@ namespace Hgcal10gLinkReceiver {
       _serenityEncoder.configuration(ne);
       total["FcEncoder"]=ne;
 
+      YAML::Node ntd;
+      _serenityTrgDaq.configuration(ntd);
+      total["TriggerDaq"]=ntd;
+      
       total["LpgbtPair"]["0"]["Id"]=0;
 
       YAML::Node nm;
-      //nm[0]="NULL";
       _serenityMiniDaq.configuration(nm);
       total["LpgbtPair"]["0"]["MiniDaq"]=nm;
 
@@ -330,8 +339,6 @@ namespace Hgcal10gLinkReceiver {
       /////////////////////////////////////////////////////
       
       // Status at run end
-      unsigned daqBoard(18);
-
       RecordYaml *r; 
       while((r=(RecordYaml*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(1000);
 	
@@ -405,8 +412,6 @@ namespace Hgcal10gLinkReceiver {
       }
       while((r=(RecordHalted*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(1000);
       r->setHeader(_cfgSeqCounter++);
-
-      unsigned daqBoard(18);
 
       // Replace with "constants" call to Serenity
       YAML::Node n;
@@ -656,6 +661,8 @@ namespace Hgcal10gLinkReceiver {
   protected:
     RelayWriterDataFifo *ptrFifoShm2;
 
+    unsigned daqBoard;
+
     uint32_t _cfgSeqCounter;
     uint32_t _evtSeqCounter;
     uint32_t _pauseCounter;
@@ -677,6 +684,7 @@ namespace Hgcal10gLinkReceiver {
     SerenityMiniDaq _serenityMiniDaq;  
     Serenity10g _serenity10g;
     Serenity10gx _serenity10gx;
+    SerenityTrgDaq _serenityTrgDaq;
   };
 
 }

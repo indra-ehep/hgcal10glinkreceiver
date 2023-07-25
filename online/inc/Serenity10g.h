@@ -60,8 +60,9 @@ namespace Hgcal10gLinkReceiver {
       uint32_t remote_ip0(0xC0A80302);
       uint32_t local_port0(0x04D2);
       uint32_t remote_port0(0x04D2);
-      uint32_t run_id0(0xFEC);
-      uint32_t aggregate_en0(0x1);
+      uint32_t run_id0(0xABD);
+      //uint32_t aggregate_en0(0x1);
+      uint32_t aggregate_en0(0x0); // No aggregation with ECON-T data (v2xx onwards)
       uint32_t aggregate_limit0(0xFF);
       //uint32_t watchdog_threshold0(0x60);
       uint32_t watchdog_threshold0(0xffffffff);
