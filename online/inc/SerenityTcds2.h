@@ -151,13 +151,13 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("ctrl_stat.ctrl1.en_nzs_reg",0);
       uhalWrite("ctrl_stat.ctrl1.en_nzs_rand",0);
       uhalWrite("ctrl_stat.ctrl1.en_nzs_physics",0);
-      uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xf000);
+      uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xffff-16); // 11 kHz?
 
       //uhalWrite("ctrl_stat.ctrl2.tts_tcds2",1);
       setThrottle(true);
       uhalWrite("ctrl_stat.ctrl2.tts_mask",0x7); // ?????????
       uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",0xff);
-      uhalWrite("ctrl_stat.ctrl2.l1a_regular_period",712); // 3565 = 5x23x31 = 5x713
+      uhalWrite("ctrl_stat.ctrl2.l1a_regular_period",713-1); // 3565 = 5x23x31 = 5x713
 
       uhalWrite("ctrl_stat.ctrl.seq_length",1);
       uhalWrite("seq_mem.pointer",0);

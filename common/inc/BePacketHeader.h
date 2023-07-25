@@ -1,6 +1,18 @@
 #ifndef Hgcal10gLinkReceiver_BePacketHeader_h
 #define Hgcal10gLinkReceiver_BePacketHeader_h
 
+/*
+  ECON-D status bits
+  0b000 = 0x00 = Normal packet
+  0b001 = 0x01 = Reserved
+  0b010 = 0x02 = Packet with payload CRC error (not implemented yet)
+  0b011 = 0x03 = Packet with EventID mismatch
+  0b100 = 0x04 = No ECON-D packet: The event builder state machine timed out
+  0b101 = 0x05 = No ECON-D packet: BCID and/or OrbitID mismatch
+  0b110 = 0x06 = No ECON-D packet: Main buffer overflow
+  0b111 = 0x07 = No ECON-D packet: Inactive/unconnected
+ */
+
 #include <iostream>
 #include <iomanip>
 #include <cstdint>
