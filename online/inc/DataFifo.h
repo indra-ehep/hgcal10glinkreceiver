@@ -27,7 +27,16 @@ public:
   }
 
   void flush() {
+    uint32_t wpOld(_writePtr);
     _readPtr=0xf0000000;
+    usleep(1000);
+    while(_writePtr>wpOld) {
+      print();
+      wpOld=_writePtr;
+      usleep(1000);
+    }
+    _writePtr=0xffffffff;
+    _readPtr=0xffffffff;
   }
 
   void initialize() {

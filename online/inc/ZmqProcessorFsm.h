@@ -77,6 +77,7 @@ bool ZmqProcessorFsm(uint32_t key, uint16_t port) {
 
     // Wait for the processor to respond
     //while(hsOld==prcfs->handshake()) usleep(1000);
+    psOld=(*pState);
     while(psOld==(*pState)) usleep(1000);
     psOld=(*pState);
 

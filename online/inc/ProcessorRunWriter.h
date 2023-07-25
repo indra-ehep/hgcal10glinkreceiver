@@ -34,15 +34,7 @@ namespace Hgcal10gLinkReceiver {
       ShmSingleton<RunWriterDataFifo> shmU;
       _ptrFifoShm=shmU.setup(fifoKey);
 
-      std::cout << "Coldstart flushing FIFO..." << std::endl;
-      _ptrFifoShm->print();
-      _ptrFifoShm->flush();
-      _ptrFifoShm->print();
-      usleep(2000000);
-      _ptrFifoShm->print();
       _ptrFifoShm->coldStart();
-      _ptrFifoShm->print();
-      std::cout << "Coldstart completed" << std::endl;
 
       startFsm(rcKey);
     }
@@ -53,10 +45,9 @@ namespace Hgcal10gLinkReceiver {
     
     bool initializing() {
 
-      std::cout << "Initializing flushing FIFO..." << std::endl;
-      _ptrFifoShm->flush();
-      usleep(100000);
-      _ptrFifoShm->print();
+      //std::cout << "Initializing flushing FIFO..." << std::endl;
+      //_ptrFifoShm->flush();
+      //_ptrFifoShm->print();
       
       _ptrFifoShm->initialize();
       _ptrFifoShm->print();
@@ -88,11 +79,13 @@ namespace Hgcal10gLinkReceiver {
 
     bool starting() {
       std::cout << "Starting flushing FIFO..." << std::endl;
-      while(!_ptrFifoShm->isEmpty()) {
-	std::cout << "Flushing FIFO..." << std::endl;
-	_ptrFifoShm->initialize();
-	_ptrFifoShm->print();
-      }
+      _ptrFifoShm->flush();
+      std::cout << "Flushing complete" << std::endl;
+      //while(!_ptrFifoShm->isEmpty()) {
+      //std::cout << "Flushing FIFO..." << std::endl;
+      //_ptrFifoShm->initialize();
+      //_ptrFifoShm->print();
+      //}
 
       _eventNumber=0;
 	

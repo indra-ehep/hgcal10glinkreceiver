@@ -62,7 +62,11 @@ namespace Hgcal10gLinkReceiver {
     }
     
     void print(std::ostream &o=std::cout, std::string s="") const {
-      o << s << "BePacketHeader::print()" << std::endl;
+      o << s << "BePacketHeader::print()  Data = 0x"
+        << std::hex << std::setfill('0')
+        << std::setw(16) << _data
+        << std::dec << std::setfill(' ')
+	<< std::endl;
       o << s << " Pattern = 0x"
         << std::hex << std::setfill('0')
         << std::setw(2) << unsigned(pattern())
