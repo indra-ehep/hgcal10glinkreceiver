@@ -12,6 +12,7 @@
 #include "SystemParameters.h"
 #include "FsmInterface.h"
 #include "ShmSingleton.h"
+#include "RecordYaml.h"
 
 using namespace Hgcal10gLinkReceiver;
 
@@ -72,6 +73,7 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
 
 
   Record *r((Record*)&(prcfs->getRecord()));
+  RecordYaml *ry((RecordYaml*)&(prcfs->getRecord()));
 
   FsmState::State *pState(prcfs->getProcessState());
   FsmState::State psOld(*pState);
@@ -183,7 +185,13 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
 	  
 	  // Set true transient in local shared memory
 	  r->setUtc(req.get_utc_or_counter());
-	  
+
+	  if(trans==FsmState::Configuring || trans==FsmState::Starting) {
+	    std::ostringstream sout;
+	    sout << req.get_config();
+	    ry->setString(sout.str());
+	  }
+
 	  prcfs->print();
 	  
 	  // Wait for the processor to respond
