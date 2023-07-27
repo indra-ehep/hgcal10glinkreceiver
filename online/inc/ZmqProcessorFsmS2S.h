@@ -72,8 +72,10 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
   //FsmInterface::Handshake hsNew(prcfs->handshake());
 
 
-  Record *r((Record*)&(prcfs->getRecord()));
-  RecordYaml *ry((RecordYaml*)&(prcfs->getRecord()));
+  //Record *r((Record*)&(prcfs->getRecord()));
+  //RecordYaml *ry((RecordYaml*)&(prcfs->getRecord()));
+  RecordYaml *r((RecordYaml*)&(prcfs->getRecord()));
+  RecordYaml *ry(r);
 
   FsmState::State *pState(prcfs->getProcessState());
   FsmState::State psOld(*pState);
@@ -183,21 +185,20 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
 	  std::cout  << std::endl << "************ PREPARED ******************" << std::endl << std::endl;
 	  prcfs->print();
 	  ry->print();
+
+	  if(trans==FsmState::Configuring || trans==FsmState::Starting) {
+	    std::ostringstream sout;
+	    sout << req.get_config();
+	    prcfs->print();
+	    ry->setString(sout.str());
+	    prcfs->print();
+	    ry->print();
+	  }
 	  
 	  // Set true transient in local shared memory
 	  r->setUtc(req.get_utc_or_counter());
 	  prcfs->print();
 	  ry->print();
-
-	  if(trans==FsmState::Configuring || trans==FsmState::Starting) {
-	    std::ostringstream sout;
-	    sout << req.get_config();
-	    ry->setString(sout.str());
-	  prcfs->print();
-	    ry->print();
-	  }
-
-	  prcfs->print();
 	  
 	  // Wait for the processor to respond
 	  while(psOld==(*pState)) usleep(1000);
