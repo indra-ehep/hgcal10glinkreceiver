@@ -186,12 +186,14 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
 	  
 	  // Set true transient in local shared memory
 	  r->setUtc(req.get_utc_or_counter());
+	  prcfs->print();
 	  ry->print();
 
 	  if(trans==FsmState::Configuring || trans==FsmState::Starting) {
 	    std::ostringstream sout;
 	    sout << req.get_config();
 	    ry->setString(sout.str());
+	  prcfs->print();
 	    ry->print();
 	  }
 

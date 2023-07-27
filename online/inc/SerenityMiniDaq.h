@@ -113,7 +113,7 @@ namespace Hgcal10gLinkReceiver {
     }  
 
     bool setDefaults() {
-      setNumberOfEconds(2);
+      setNumberOfEconds(1);
 
       uhalWrite("rstn",0);
 
