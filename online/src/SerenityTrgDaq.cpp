@@ -34,6 +34,7 @@ int main(int argc, char *argv[]) {
 
   SerenityTrgDaq smd;
   smd.makeTable();
+  smd.setDefaults();
   smd.uhalWrite("trigger_ro.SLink.source_id"  ,0xce000000|3<<4|0,true);
   if(!printEnable) smd.print();
 

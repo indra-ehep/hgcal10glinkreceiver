@@ -100,8 +100,8 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
       std::cout << "config = " << req.get_config() << std::endl;
 
       const YAML::Node &yNode(req.get_config());
-      std::string s(yNode.as<std::string>());
-      std::cout << "config string = " << s << std::endl;
+      //std::string s(yNode.as<std::string>());
+      //std::cout << "config string = " << s << std::endl;
 
       /*
       switch (yNode.Type()) {
@@ -182,14 +182,17 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
 	  
 	  std::cout  << std::endl << "************ PREPARED ******************" << std::endl << std::endl;
 	  prcfs->print();
+	  ry->print();
 	  
 	  // Set true transient in local shared memory
 	  r->setUtc(req.get_utc_or_counter());
+	  ry->print();
 
 	  if(trans==FsmState::Configuring || trans==FsmState::Starting) {
 	    std::ostringstream sout;
 	    sout << req.get_config();
 	    ry->setString(sout.str());
+	    ry->print();
 	  }
 
 	  prcfs->print();
