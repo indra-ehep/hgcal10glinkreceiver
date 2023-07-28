@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
 
 	// We have an event record
       nEvents++;
-      bool print(nEvents<=100);// || nEvents>2000);
+      bool print(nEvents<=4000);// || nEvents>2000);
       //anyError=false;
 
       // Check id is correct
