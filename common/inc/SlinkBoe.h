@@ -60,7 +60,7 @@ class SlinkBoe {
   }
 
   void setEventId(uint64_t e) {
-    assert(e<(1UL<<44));
+    assert(e<(uint64_t(1)<<44));
     _word[1]&=0xfffff00000000000;
     _word[1]|=e;
   }
