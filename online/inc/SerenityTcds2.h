@@ -121,17 +121,20 @@ namespace Hgcal10gLinkReceiver {
       m["ctrl_stat.stat0.tts_ext"   ]=uhalRead("ctrl_stat.stat0.tts_ext");
       m["ctrl_stat.stat0.tts_hgcroc"]=uhalRead("ctrl_stat.stat0.tts_hgcroc");
 
-      m["counters.l1a_physics" ]=uhalRead("counters.l1a_physics");
-      m["counters.l1a_random"  ]=uhalRead("counters.l1a_random");
-      m["counters.l1a_software"]=uhalRead("counters.l1a_software");
-      m["counters.l1a_regular" ]=uhalRead("counters.l1a_regular");
-      m["counters.l1a_subtype0"]=uhalRead("counters.l1a_subtype0");
-      m["counters.l1a_subtype1"]=uhalRead("counters.l1a_subtype1");
+      m["counters.l1a_physics"    ]=uhalRead("counters.l1a_physics");
+      m["counters.l1a_calibration"]=uhalRead("counters.l1a_calibration");
+      m["counters.l1a_random"     ]=uhalRead("counters.l1a_random");
+      m["counters.l1a_software"   ]=uhalRead("counters.l1a_software");
+      m["counters.l1a_regular"    ]=uhalRead("counters.l1a_regular");
+      m["counters.l1a_all"        ]=uhalRead("counters.l1a_all");
+      m["counters.l1a_subtype0"   ]=uhalRead("counters.l1a_subtype0");
+      m["counters.l1a_subtype1"   ]=uhalRead("counters.l1a_subtype1");
 
       m["counters.tts_all"   ]=uhalRead("counters.tts_all");
       m["counters.tts_soft"  ]=uhalRead("counters.tts_soft");
       m["counters.tts_hgcroc"]=uhalRead("counters.tts_hgcroc");
       m["counters.tts_ext"   ]=uhalRead("counters.tts_ext");
+      m["counters.tts_mdaq"  ]=uhalRead("counters.tts_mdaq");
     }
   
     bool setDefaults() {

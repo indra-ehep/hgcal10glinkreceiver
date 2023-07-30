@@ -47,6 +47,8 @@ namespace Hgcal10gLinkReceiver {
 	//uhalWrite("quad.channel.stat.lff_watchdog",0);
       }
 
+      usleep(10000);
+
       for(unsigned j(0);j<2;j++) {
 	uhalWrite("quad.channel_ctrl.select",j);
 	uhalWrite("quad.channel.ctrl.reg.rst",0);
