@@ -143,6 +143,16 @@ bool UdpDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
 		      << std::dec << std::setfill(' ')
 		      << std::endl;
 	  }
+
+	  // Special case of first packet in run; modify header
+	  if(ptrt[0]==0xaaaaaaaaaaaaaaaa) {
+	    rt->setState(FsmState::Running);
+	    rt->setSequenceCounter(0);
+	    rt->setPayloadLength((n-1)/8);
+	    rt->RecordHeader::print(std::cerr);
+
+	    goodPacket=true;
+	  }
 	  
 	} else {
 	  count[4]++;

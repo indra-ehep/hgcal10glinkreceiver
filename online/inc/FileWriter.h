@@ -19,8 +19,8 @@ namespace Hgcal10gLinkReceiver {
     //};
     
     FileWriter() : MaximumBytesPerFile(4000000000),
-		   MaximumEventsPerFile(1000000000),
-		   MaximumOrbitsPerFile(1000000000),
+		   MaximumEventsPerFile(1000000),
+		   MaximumOrbitsPerFile(2000000),
 		   _directory("dat/"), _protectFiles(false), _flushRecords(true), _rawCcode(false) {      
       _outputFilePtr=nullptr;
     }
@@ -46,7 +46,7 @@ namespace Hgcal10gLinkReceiver {
       _relay=s;
       _fileNumber=0;
 
-      _ecOld=0;
+      _ecOld=1;
       _ocOld=0;
       
       if(_relay) _fileName=FileReader::setRelayFileName(_runNumber);
@@ -104,8 +104,8 @@ namespace Hgcal10gLinkReceiver {
 	    ec=r->slinkBoe()->eventId();
 	    oc=r->slinkEoe()->orbitId();
 	    
-	    if((ec-_ecOld)>MaximumEventsPerFile ||
-	       (oc-_ocOld)>MaximumOrbitsPerFile) {
+	    if((ec-_ecOld)>=MaximumEventsPerFile ||
+	       (oc-_ocOld)>=MaximumOrbitsPerFile) {
 	      newFile=true;
 	      _ecOld=ec;
 	      _ocOld=oc;
