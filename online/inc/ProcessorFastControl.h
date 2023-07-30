@@ -114,7 +114,7 @@ namespace Hgcal10gLinkReceiver {
 
       writeContinuing();
 
-      //_serenityTrgDaq.uhalWrite("trigger_ro.SLink.source_id"  ,0xce000000|daqBoard<<4|0,true);
+      _serenityTrgDaq.uhalWrite("trigger_ro.SLink.source_id"  ,0xce000000|daqBoard<<4|0,true);
       _serenityEncoder.uhalWrite("DAQ_SLink_readout.source_id",0xce000000|daqBoard<<4|1,true);
 
       return true;
@@ -288,6 +288,10 @@ namespace Hgcal10gLinkReceiver {
 
       //_serenity10g.reset();
 
+      //_serenityEncoder.resetSlinkFifo();
+      _serenityEncoder.resetDaqReadout();
+      _serenityEncoder.resetTrgReadout();
+
       return true;
     }
 
@@ -353,6 +357,12 @@ namespace Hgcal10gLinkReceiver {
       YAML::Node ne;
       _serenityEncoder.status(ne);
       total["FcEncoder"]=ne;
+
+      total["LpgbtPair"]["0"]["Id"]=0;
+
+      YAML::Node nm;
+      _serenityMiniDaq.status(nm);
+      total["LpgbtPair"]["0"]["MiniDaq"]=nm;
 
       if(_printEnable) std::cout << "Yaml status" << std::endl << total << std::endl;
       

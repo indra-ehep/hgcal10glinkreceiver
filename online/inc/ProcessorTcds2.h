@@ -108,13 +108,18 @@ namespace Hgcal10gLinkReceiver {
       if((_keyCfgA>0 && _keyCfgA<=38) || _keyCfgA==123) {
 
 	// Do configuration; ones which could have been changed
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",30);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",59);
 	  
 	// Hardwire CalComing
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",2);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
-	_serenityTcds2.uhalWrite("seq_mem.data",(3500<<16)|0x0010);
-	_serenityTcds2.uhalWrite("seq_mem.data",(3510<<16)|0x0004);
+	//_serenityTcds2.uhalWrite("seq_mem.data",(3500<<16)|0x0010); // ECR
+	//_serenityTcds2.uhalWrite("seq_mem.data",(   1<<16)|0x0040);
+	//_serenityTcds2.uhalWrite("seq_mem.data",(   2<<16)|0x0040);
+	//_serenityTcds2.uhalWrite("seq_mem.data",(   3<<16)|0x0040);
+	//_serenityTcds2.uhalWrite("seq_mem.data",(   4<<16)|0x0040);
+	//_serenityTcds2.uhalWrite("seq_mem.data",(   5<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(3510<<16)|0x0004); // CalComing: L1A BC = this+delay+1
       }
 
       if(_keyCfgA==125) {
@@ -208,7 +213,7 @@ namespace Hgcal10gLinkReceiver {
       //_keyCfgB=r.processorKey(RunControlTcds2FsmShmKey);
 
       if(_keyCfgA==123) {
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",_configuringBCounter);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",_configuringBCounter);
       }
 	
       if(_keyCfgA==125) {
@@ -399,7 +404,7 @@ namespace Hgcal10gLinkReceiver {
       }
       ptrFifoShm2->writeIncrement();
     }
-    
+    /*    
     void keyConfiguration(uint32_t key) {
 
       switch(key) {
@@ -424,7 +429,8 @@ namespace Hgcal10gLinkReceiver {
 
       };
     }
-    
+    */
+
   protected:
     RelayWriterDataFifo *ptrFifoShm2;
 

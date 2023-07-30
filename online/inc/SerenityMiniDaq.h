@@ -53,6 +53,7 @@ namespace Hgcal10gLinkReceiver {
 
       m["ECOND_pkt_conf.Header"      ]=uhalRead("ECOND_pkt_conf.Header");
       m["ECOND_pkt_conf.Idle"        ]=uhalRead("ECOND_pkt_conf.Idle");
+      m["ECOND_pkt_conf.BX_mismatch_passthrough"]=uhalRead("ECOND_pkt_conf.BX_mismatch_passthrough");
 
       m["DAQ_FC_config.BC_rst_value"]=uhalRead("DAQ_FC_config.BC_rst_value");
       m["DAQ_FC_config.OC_rst_value"]=uhalRead("DAQ_FC_config.OC_rst_value");
@@ -113,7 +114,7 @@ namespace Hgcal10gLinkReceiver {
     }  
 
     bool setDefaults() {
-      setNumberOfEconds(1);
+      setNumberOfEconds(2);
 
       uhalWrite("rstn",0);
 
@@ -125,10 +126,31 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("DAQ_FC_config.BC_rst_value",4);
       uhalWrite("DAQ_FC_config.OC_rst_value",0);
 
+      uhalWrite("ECOND_pkt_conf.BX_mismatch_passthrough",0);
+
       uhalWrite("rstn",1);
 
       return true;
     }  
+
+    void status(YAML::Node &m) {
+      m=YAML::Node();
+
+      m["Capture_block_status"]=uhalRead("Capture_block_status");
+
+      m["hdr_crc_econd00"]=uhalRead("hdr_crc_econd00");
+      m["hdr_crc_econd01"]=uhalRead("hdr_crc_econd01");
+      m["hdr_crc_econd02"]=uhalRead("hdr_crc_econd02");
+      m["hdr_crc_econd03"]=uhalRead("hdr_crc_econd03");
+      m["hdr_crc_econd04"]=uhalRead("hdr_crc_econd04");
+      m["hdr_crc_econd05"]=uhalRead("hdr_crc_econd05");
+      m["hdr_crc_econd06"]=uhalRead("hdr_crc_econd06");
+      m["hdr_crc_econd07"]=uhalRead("hdr_crc_econd07");
+      m["hdr_crc_econd08"]=uhalRead("hdr_crc_econd08");
+      m["hdr_crc_econd09"]=uhalRead("hdr_crc_econd09");
+      m["hdr_crc_econd10"]=uhalRead("hdr_crc_econd10");
+      m["hdr_crc_econd11"]=uhalRead("hdr_crc_econd11");
+    }
 
     void reset() {
       uhalWrite("rstn",0);

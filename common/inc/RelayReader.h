@@ -41,11 +41,14 @@ namespace Hgcal10gLinkReceiver {
 	      _runReader[i].openRun(rs->utc(),i);
 
 	      if(_runReader[i].read(&rs2)) {
+		std::cout << "Read Starting from run file" << std::endl;
+		rs2.print();
 		//assert(rs2.runNumber() ==rs->runNumber());
 		//assert(rs2.maxEvents() ==rs->maxEvents());
 		//assert(rs2.maxSeconds()==rs->maxSeconds());
 		//assert(rs2.maxSpills() ==rs->maxSpills());
 	      } else {
+		std::cout << "Failed to read Starting from run file" << std::endl;
 		_runActive=false;
 	      }
 	    }

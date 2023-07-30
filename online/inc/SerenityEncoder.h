@@ -58,7 +58,7 @@ namespace Hgcal10gLinkReceiver {
       m["payload_ctrl_stat.ctrl0.fc_dec_prel1a_offset"]=uhalRead("payload_ctrl_stat.ctrl0.fc_dec_prel1a_offset",true);
       m["DAQ_SLink_readout.source_id"]=uhalRead("DAQ_SLink_readout.source_id",true);
     }
-
+    /*
     void configuration(std::unordered_map<std::string,uint32_t> &m) {
       m.clear();
       
@@ -73,7 +73,7 @@ namespace Hgcal10gLinkReceiver {
       m["ctrl_2"]=uhalRead("ctrl_2");
       m["ctrl_3"]=uhalRead("ctrl_3");
     }
-
+    */
     void status(YAML::Node &m) {
       m=YAML::Node();
       
@@ -82,11 +82,32 @@ namespace Hgcal10gLinkReceiver {
       m["orb_counter"  ]=uhalRead("orb_counter");
     }
 
-    void pulse(std::string &s) {
-      if(uhalRead(s)==1) uhalWrite(s,0);
-      uhalWrite(s,1);
-      uhalWrite(s,0);
+    void sendPulse(const std::string &s, bool inverted=false) {
+      if(!inverted) {
+	if(uhalRead(s)==1) uhalWrite(s,0);
+	uhalWrite(s,1);
+	uhalWrite(s,0);
+
+      } else {
+	if(uhalRead(s)==0) uhalWrite(s,1);
+	uhalWrite(s,0);
+	uhalWrite(s,1);
+      }
     }
+
+    void resetSlinkFifo() {
+      //sendPulse("ctrl_3.rst_slink_fifo",true);
+    }  
+
+    void resetDaqReadout() {
+      uhalWrite("reg_320.ctrl0.daq_readout_rst",1,true);
+      uhalWrite("reg_320.ctrl0.daq_readout_rst",0,true);
+    }  
+
+    void resetTrgReadout() {
+      uhalWrite("reg_320.ctrl0.trig_readout_rst",1,true);
+      uhalWrite("reg_320.ctrl0.trig_readout_rst",0,true);
+    }  
 
     bool setDefaults() {
 
@@ -101,6 +122,8 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("ctrl.prel1a_offset",3);
       uhalWrite("ctrl.user_prel1a_off_en",1);
       uhalWrite("ctrl.l1a_stretch",0);
+
+      uhalWrite("ctrl_3.rst_slink_fifo",1);
       
       uhalWrite("calpulse_ctrl.calpulse_int_del",8);
       uhalWrite("calpulse_ctrl.calpulse_ext_del",10);
@@ -109,6 +132,9 @@ namespace Hgcal10gLinkReceiver {
       // Cludge these in here for now; move them later
       uhalWrite("payload_ctrl_stat.ctrl0.fc_dec_force_lock",0,true);
       uhalWrite("payload_ctrl_stat.ctrl0.fc_dec_prel1a_offset",2,true);
+
+      uhalWrite("reg_320.ctrl0.daq_readout_rst",0,true);
+      uhalWrite("reg_320.ctrl0.trig_readout_rst",0,true);
 
       //uhalWrite("DAQ_SLink_readout.source_id",0xce000000|daqBoard<<4|1,true);
 

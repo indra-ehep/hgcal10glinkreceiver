@@ -37,12 +37,31 @@ int main(int argc, char *argv[]) {
   smd.makeTable();
 
   YAML::Node n;
-  while(false) {
+  while(true) {
     smd.status(n);
     std::cout << std::endl << n << std::endl;
+
+    uint64_t lff0(n["quad.channel.stat.lff_h_00"].as<uint64_t>()<<32|n["quad.channel.stat.lff_l_00"].as<uint64_t>());
+    uint64_t lff1(n["quad.channel.stat.lff_h_01"].as<uint64_t>()<<32|n["quad.channel.stat.lff_l_01"].as<uint64_t>());
+
+    /*
+      quad.channel.stat.lff_watchdog_00: 0
+      quad.channel.stat.pktcnt_h_01: 0
+      quad.channel.stat.lff_l_00: 117453139
+      quad.channel.stat.pktcnt_l_00: 214815
+      quad.channel.stat.lff_watchdog_01: 0
+      quad.channel.stat.pktcnt_l_01: 214815
+      quad.channel.stat.lff_l_01: 117180152
+      quad.channel.stat.pktcnt_h_00: 0
+      quad.channel.stat.lff_h_01: 0
+      quad.channel.stat.lff_h_00: 0
+    */
+
+    std::cout << "LFF 0, 1 = " << std::setw(20) << lff0 << ", " << std::setw(20) << lff1 << std::endl;
+
     usleep(1000000);
   }
-  //return 0;
+  return 0;
 
 
 
