@@ -37,12 +37,25 @@ int main(int argc, char *argv[]) {
   smd.makeTable();
 
   YAML::Node n;
-  while(true) {
+
+  smd.reset();
+
+  smd.uhalWrite("quad_ctrl.select",0x0);
+  smd.uhalWrite("quad.channel_ctrl.select",1);
+  std::cout << "Watchdog read: " << smd.uhalRead("quad.channel.stat.lff_watchdog") << std::endl;
+  smd.uhalWrite("quad.channel.ctrl.watchdog_threshold",0xffff0000);
+  std::cout << "Watchdog read: " << smd.uhalRead("quad.channel.stat.lff_watchdog") << std::endl;
+  smd.uhalWrite("quad.channel.ctrl.watchdog_threshold",0x60);
+
+
+  while(false) {
     smd.status(n);
     std::cout << std::endl << n << std::endl;
 
     uint64_t lff0(n["quad.channel.stat.lff_h_00"].as<uint64_t>()<<32|n["quad.channel.stat.lff_l_00"].as<uint64_t>());
     uint64_t lff1(n["quad.channel.stat.lff_h_01"].as<uint64_t>()<<32|n["quad.channel.stat.lff_l_01"].as<uint64_t>());
+    uint64_t pkt0(n["quad.channel.stat.pktcnt_h_00"].as<uint64_t>()<<32|n["quad.channel.stat.pktcnt_l_00"].as<uint64_t>());
+    uint64_t pkt1(n["quad.channel.stat.pktcnt_h_01"].as<uint64_t>()<<32|n["quad.channel.stat.pktcnt_l_01"].as<uint64_t>());
 
     /*
       quad.channel.stat.lff_watchdog_00: 0
@@ -57,10 +70,18 @@ int main(int argc, char *argv[]) {
       quad.channel.stat.lff_h_00: 0
     */
 
-    std::cout << "LFF 0, 1 = " << std::setw(20) << lff0 << ", " << std::setw(20) << lff1 << std::endl;
+    std::cout << "LFF    0, 1 = " << std::setw(20) << lff0 << ", " << std::setw(20) << lff1 << std::endl;
+    std::cout << "PKTCNT 0, 1 = " << std::setw(20) << pkt0 << ", " << std::setw(20) << pkt1 << std::endl;
 
-    usleep(1000000);
+    usleep(100000);
   }
+
+
+  for(unsigned i(0);i<100;i++) {
+    smd.reset();
+    usleep(1000);
+  }
+
   return 0;
 
 

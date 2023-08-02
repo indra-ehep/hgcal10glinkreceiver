@@ -138,11 +138,11 @@ int main(int argc, char *argv[]) {
       //while(nx==0 || nx>1000) {
       while(nx>38 && 
 	    nx!=123 && nx!=124 && nx!=125 && nx!=126 && nx!=127 && nx!=128 &&
-	    nx!=131 &&
-	    nx!=201 && nx!=202 && nx!=203 && nx!=204 && nx!=205 &&
+	    nx!=131 && nx!=132 && nx!=133 &&
+	    nx!=201 && nx!=202 && nx!=203 && nx!=204 && nx!=205 && nx!=209 &&
 	    nx!=999) {
 	//std::cout << "Relay number of runs"
-	std::cout << "Relay type (0-38,123,124,125,126,127,128,131,201,202,203,204,205,999)"
+	std::cout << "Relay type (0-38,123,124,125,126,127,128,131,201,202,203,204,205,209,999)"
 		<< std::endl;
 	std::cin >> nx;
       }
@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
       }
       if(nx==126) {
 	nRca["RunType"]="BxResetCheck";
-	maxNumberOfConfigurations=16;
+	maxNumberOfConfigurations=1;
       }
       if(nx==127) {
 	nRca["RunType"]="BeGenericTest";
@@ -204,6 +204,14 @@ int main(int argc, char *argv[]) {
       if(nx==131) {
 	nRca["RunType"]="HgcrocBufferTest";
 	maxNumberOfConfigurations=4;
+      }
+      if(nx==132) {
+	nRca["RunType"]="CalPulseIntTimeScan";
+	maxNumberOfConfigurations=70;
+      }
+      if(nx==133) {
+	nRca["RunType"]="BeamRam1TimeScan";
+	maxNumberOfConfigurations=80;
       }
 
       if(nx==201) {
@@ -224,6 +232,10 @@ int main(int argc, char *argv[]) {
       }
       if(nx==205) {
 	nRca["RunType"]="MixedTriggerTest";
+	maxNumberOfConfigurations=1;
+      }
+      if(nx==209) {
+	nRca["RunType"]="DisabledTriggerTest";
 	maxNumberOfConfigurations=1;
       }
 

@@ -39,17 +39,18 @@ namespace Hgcal10gLinkReceiver {
     }
   
     void reset() {
-      uhalWrite("quad_ctrl.select",0x0);
 
       for(unsigned j(0);j<2;j++) {
+	uhalWrite("quad_ctrl.select",0x0);
 	uhalWrite("quad.channel_ctrl.select",j);
 	uhalWrite("quad.channel.ctrl.reg.rst",1);
 	//uhalWrite("quad.channel.stat.lff_watchdog",0);
       }
 
-      usleep(10000);
+      usleep(1000);
 
-      for(unsigned j(0);j<2;j++) {
+      for(unsigned j(0);j<2;j++) {	
+	uhalWrite("quad_ctrl.select",0x0);
 	uhalWrite("quad.channel_ctrl.select",j);
 	uhalWrite("quad.channel.ctrl.reg.rst",0);
 	//uhalWrite("quad.channel.stat.lff_watchdog",0);
@@ -57,6 +58,9 @@ namespace Hgcal10gLinkReceiver {
     }
   
     bool setDefaults() {
+
+      if(true) {
+
       //channel 0
       uint32_t local_ip0(0xC0A80352);
       uint32_t remote_ip0(0xC0A80302);
@@ -66,8 +70,8 @@ namespace Hgcal10gLinkReceiver {
       //uint32_t aggregate_en0(0x1);
       uint32_t aggregate_en0(0x0); // No aggregation with ECON-T data (v2xx onwards)
       uint32_t aggregate_limit0(0xFF);
-      //uint32_t watchdog_threshold0(0x60);
-      uint32_t watchdog_threshold0(0xffffffff);
+      uint32_t watchdog_threshold0(0x60);
+      //uint32_t watchdog_threshold0(0xffffffff);
 
       //channel 1
       uint32_t local_ip1(0xC0A80452);
@@ -77,8 +81,8 @@ namespace Hgcal10gLinkReceiver {
       uint32_t run_id1(0xFEC);
       uint32_t aggregate_en1(0x0);
       uint32_t aggregate_limit1(0xFF);
-      //uint32_t watchdog_threshold1(0x60);
-      uint32_t watchdog_threshold1(0xffffffff);
+      uint32_t watchdog_threshold1(0x60);
+      //uint32_t watchdog_threshold1(0xffffffff);
 
 
       // disable the eth link
@@ -150,12 +154,45 @@ namespace Hgcal10gLinkReceiver {
 
       uhalWrite("quad.channel_ctrl.select",0x1);
       uhalWrite("quad.channel.ctrl.reg.rst",0);
+      }
+
+      // Cludge for now; move later
+      uhalWrite("reg_320.ctrl1.slink_daq_readout_bp_en",1,true);
+      uhalWrite("reg_320.ctrl1.slink_trig_readout_bp_en",1,true);
+
+      // SHOULD BE ONE!!!!
+      uhalWrite("reg_320.ctrl1.rate_throttle_daq_en",1,true);
+      uhalWrite("reg_320.ctrl1.rate_throttle_trig_en",1,true);
 
       return true;
     }  
 
     void configuration(YAML::Node &m) {
       m=YAML::Node();
+
+      for(unsigned j(0);j<2;j++) {
+	std::ostringstream sout;
+	sout << j;
+
+	uhalWrite("quad_ctrl.select",0x0);
+	uhalWrite("quad.channel_ctrl.select",j);
+
+	m[std::string("quad.channel.ctrl.reg.echo_"     )+sout.str()]=uhalRead("quad.channel.ctrl.reg.echo");
+
+	m[std::string("quad.channel.ctrl.local_ip_"    )+sout.str()]=uhalRead("quad.channel.ctrl.local_ip");
+	m[std::string("quad.channel.ctrl.remote_ip_"   )+sout.str()]=uhalRead("quad.channel.ctrl.remote_ip");
+	m[std::string("quad.channel.ctrl.ports.local_" )+sout.str()]=uhalRead("quad.channel.ctrl.ports.local");
+	m[std::string("quad.channel.ctrl.ports.remote_")+sout.str()]=uhalRead("quad.channel.ctrl.ports.remote");
+	m[std::string("quad.channel.ctrl.reg.run_"     )+sout.str()]=uhalRead("quad.channel.ctrl.reg.run");
+
+	m[std::string("quad.channel.ctrl.reg.aggregate_"      )+sout.str()]=uhalRead("quad.channel.ctrl.reg.aggregate");
+	m[std::string("quad.channel.ctrl.reg.aggregate_limit_")+sout.str()]=uhalRead("quad.channel.ctrl.reg.aggregate_limit");
+      }
+
+      m["reg_320.ctrl1.slink_daq_readout_bp_en"]=uhalRead("reg_320.ctrl1.slink_daq_readout_bp_en",true);
+      m["reg_320.ctrl1.slink_trig_readout_bp_en"]=uhalRead("reg_320.ctrl1.slink_trig_readout_bp_en",true);
+      m["reg_320.ctrl1.rate_throttle_daq_en"]=uhalRead("reg_320.ctrl1.rate_throttle_daq_en",true);
+      m["reg_320.ctrl1.rate_throttle_trig_en"]=uhalRead("reg_320.ctrl1.rate_throttle_trig_en",true);
     }
 
     void status(YAML::Node &m) {

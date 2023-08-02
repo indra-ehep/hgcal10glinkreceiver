@@ -32,6 +32,8 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool makeTable() {
+      //_uhalTopString="payload.miniDAQ";
+      //return true;
       return SerenityUhal::makeTable("payload.miniDAQ");
     }
 
@@ -90,10 +92,19 @@ namespace Hgcal10gLinkReceiver {
 	//   << std::setw(2) << i << ".";
 	sout << "Elink_mapping.Elink" << i << ".";
 
+	// THIS IS THE REAL ONE!
+	if(true) {
 	if(i<2*nEcond) {
 	  uhalWrite(sout.str()+"ID",i/2);
 	} else {
 	  uhalWrite(sout.str()+"ID",0xf);
+	}
+	} else {
+	if(i==2 || i==3) {
+	  uhalWrite(sout.str()+"ID",(i-2)/2);
+	} else {
+	  uhalWrite(sout.str()+"ID",0xf);
+	}	  
 	}
 
 	if(i<nEcond) {
@@ -126,7 +137,7 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("DAQ_FC_config.BC_rst_value",4);
       uhalWrite("DAQ_FC_config.OC_rst_value",0);
 
-      uhalWrite("ECOND_pkt_conf.BX_mismatch_passthrough",0);
+      uhalWrite("ECOND_pkt_conf.BX_mismatch_passthrough",1);
 
       uhalWrite("rstn",1);
 
@@ -135,6 +146,8 @@ namespace Hgcal10gLinkReceiver {
 
     void status(YAML::Node &m) {
       m=YAML::Node();
+
+      //m["UNCOMMENT_REAL_VALUES"]=0;
 
       m["Capture_block_status"]=uhalRead("Capture_block_status");
 
