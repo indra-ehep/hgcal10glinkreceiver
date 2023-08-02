@@ -77,18 +77,20 @@ namespace Hgcal10gLinkReceiver {
   //const uint32_t DataFifoDaqLink1FsmShmKey(0xced0da01);
   //const uint32_t DataFifoDaqLink2FsmShmKey(0xced0da02);
   
-  // Used by Serenity Processors
+  // Used by Serenity and Stage Processors
   const uint32_t ProcessorFastControlDl0FifoShmKey(0xced0da00);
   const uint32_t ProcessorFastControlDl1FifoShmKey(0xced0da01);
   const uint32_t ProcessorFastControlCl0FifoShmKey(0xced0cf00);
   const uint32_t ProcessorTcds2Cl1FifoShmKey(      0xced0cf01);
   const uint32_t ProcessorFrontEndCl2FifoShmKey(   0xced0cf02);
+  const uint32_t ProcessorStageCl3FifoShmKey(      0xced0cf03);
 
   const uint16_t ProcessorFastControlDl0FifoPort(0xced0);
   const uint16_t ProcessorFastControlDl1FifoPort(0xced1);
   const uint16_t ProcessorFastControlCl0FifoPort(0xced2);
   const uint16_t ProcessorTcds2Cl1FifoPort(      0xced3);
   const uint16_t ProcessorFrontEndCl2FifoPort(   0xced4);
+  const uint16_t ProcessorStageCl3FifoPort(      0xced5);
 
   // Used by PC Processors
   const uint32_t ProcessorDaqLink0FifoShmKey(ProcessorFastControlDl0FifoShmKey);
@@ -96,16 +98,14 @@ namespace Hgcal10gLinkReceiver {
   const uint32_t ProcessorRelayCl0FifoShmKey(ProcessorFastControlCl0FifoShmKey);
   const uint32_t ProcessorRelayCl1FifoShmKey(ProcessorTcds2Cl1FifoShmKey);
   const uint32_t ProcessorRelayCl2FifoShmKey(ProcessorFrontEndCl2FifoShmKey);
+  const uint32_t ProcessorRelayCl3FifoShmKey(ProcessorStageCl3FifoShmKey);
 
   const uint16_t ProcessorDaqLink0FifoPort(ProcessorFastControlDl0FifoPort);
   const uint16_t ProcessorDaqLink1FifoPort(ProcessorFastControlDl1FifoPort);
   const uint16_t ProcessorRelayCl0FifoPort(ProcessorFastControlCl0FifoPort);
   const uint16_t ProcessorRelayCl1FifoPort(ProcessorTcds2Cl1FifoPort);
   const uint16_t ProcessorRelayCl2FifoPort(ProcessorFrontEndCl2FifoPort);
-
-  // Junk
-  //const uint32_t ProcessorDaqLink2FifoShmKey(ProcessorFastControlDl2FifoShmKey);
-  //const uint32_t ProcessorDaqLink2FifoShmKey(ProcessorFastControlDl2FifoShmKey | 0x00010000); // Local testing
+  const uint16_t ProcessorRelayCl3FifoPort(ProcessorStageCl3FifoPort);
 }
 
 #endif

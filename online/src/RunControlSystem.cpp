@@ -133,12 +133,16 @@ int main(int argc, char *argv[]) {
       }
       
     } else {
-      unsigned nx(999);
+      unsigned nx(999999);
       unsigned numberOfSecs(1000000000);
       //while(nx==0 || nx>1000) {
-      while(nx>38 && nx!=123 && nx!=124 && nx!=125 && nx!=126) {
+      while(nx>38 && 
+	    nx!=123 && nx!=124 && nx!=125 && nx!=126 && nx!=127 && nx!=128 &&
+	    nx!=131 &&
+	    nx!=201 && nx!=202 && nx!=203 && nx!=204 && nx!=205 &&
+	    nx!=999) {
 	//std::cout << "Relay number of runs"
-	std::cout << "Relay type (0-38,123,124,125,126)"
+	std::cout << "Relay type (0-38,123,124,125,126,127,128,131,201,202,203,204,205,999)"
 		<< std::endl;
 	std::cin >> nx;
       }
@@ -178,7 +182,7 @@ int main(int argc, char *argv[]) {
       if(nx==  0) maxNumberOfConfigurations=1;
       if(nx>0 && nx<38) maxNumberOfConfigurations=8;
       if(nx== 38) maxNumberOfConfigurations=8*37;
-      if(nx==123) maxNumberOfConfigurations=80;
+      if(nx==123) maxNumberOfConfigurations=2;
       if(nx==124) maxNumberOfConfigurations=4;
       if(nx==125) {
 	nRca["RunType"]="L1aBxScan";
@@ -186,7 +190,46 @@ int main(int argc, char *argv[]) {
       }
       if(nx==126) {
 	nRca["RunType"]="BxResetCheck";
-	maxNumberOfConfigurations=8;
+	maxNumberOfConfigurations=16;
+      }
+      if(nx==127) {
+	nRca["RunType"]="BeGenericTest";
+	maxNumberOfConfigurations=1;
+      }
+      if(nx==128) {
+	nRca["RunType"]="Pedestal";
+	maxNumberOfConfigurations=1;
+      }
+
+      if(nx==131) {
+	nRca["RunType"]="HgcrocBufferTest";
+	maxNumberOfConfigurations=4;
+      }
+
+      if(nx==201) {
+	nRca["RunType"]="PhysicsTriggerTest";
+	maxNumberOfConfigurations=1;
+      }
+      if(nx==202) {
+	nRca["RunType"]="RandomTriggerTest";
+	maxNumberOfConfigurations=1;
+      }
+      if(nx==203) {
+	nRca["RunType"]="SoftwareTriggerTest";
+	maxNumberOfConfigurations=1;
+      }
+      if(nx==204) {
+	nRca["RunType"]="RegularTriggerTest";
+	maxNumberOfConfigurations=1;
+      }
+      if(nx==205) {
+	nRca["RunType"]="MixedTriggerTest";
+	maxNumberOfConfigurations=1;
+      }
+
+      if(nx==999) {
+	nRca["RunType"]="ElectronBeamRun";
+	maxNumberOfConfigurations=1;
       }
 
       //rca.setMaxNumberOfConfigurations(maxNumberOfConfigurations);

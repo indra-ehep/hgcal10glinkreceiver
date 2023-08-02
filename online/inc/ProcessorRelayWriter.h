@@ -40,7 +40,7 @@ namespace Hgcal10gLinkReceiver {
     virtual ~ProcessorRelayWriter() {
     }
   
-    void setUpAll(uint32_t rcKey, uint32_t fifoKey0, uint32_t fifoKey1, uint32_t fifoKey2) {
+    void setUpAll(uint32_t rcKey, uint32_t fifoKey0, uint32_t fifoKey1, uint32_t fifoKey2, uint32_t fifoKey3) {
       ShmSingleton<RelayWriterDataFifo> shm0;
       _ptrFifoShm.push_back(shm0.setup(fifoKey0));
 
@@ -49,6 +49,9 @@ namespace Hgcal10gLinkReceiver {
 
       ShmSingleton<RelayWriterDataFifo> shm2;
       _ptrFifoShm.push_back(shm2.setup(fifoKey2));
+
+      ShmSingleton<RelayWriterDataFifo> shm3;
+      _ptrFifoShm.push_back(shm3.setup(fifoKey3));
 
       _yamlCfg.resize(_ptrFifoShm.size());
 
@@ -60,7 +63,7 @@ namespace Hgcal10gLinkReceiver {
     }
   
     void setInputFifoEnables(unsigned b) {
-      for(unsigned i(0);i<3;i++) {
+      for(unsigned i(0);i<4;i++) {
 	_fifoShmAlive.push_back((b&(1<<i))!=0);
 	if(!_fifoShmAlive[i]) std::cout << "Input FIFO " << i << " disabled" << std::endl;
       }
@@ -197,9 +200,7 @@ namespace Hgcal10gLinkReceiver {
 		if(_printEnable) r->print();
 
 		YAML::Node n(YAML::Load(r->string()));
-		if(n["Configuration"].IsDefined()) {
-		  _yamlCfg[i].push_back(n);
-		}
+		_yamlCfg[i].push_back(n);
 
 	      } else if(r->state()==FsmState::Continuing) {
 		if(_printEnable) {

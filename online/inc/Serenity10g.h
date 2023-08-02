@@ -10,6 +10,8 @@
 #include <string>
 #include <cstring>
 
+#include <yaml-cpp/yaml.h>
+
 #include "SerenityUhal.h"
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
@@ -36,16 +38,36 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
   
+    void reset() {
+      uhalWrite("quad_ctrl.select",0x0);
+
+      for(unsigned j(0);j<2;j++) {
+	uhalWrite("quad.channel_ctrl.select",j);
+	uhalWrite("quad.channel.ctrl.reg.rst",1);
+	//uhalWrite("quad.channel.stat.lff_watchdog",0);
+      }
+
+      usleep(10000);
+
+      for(unsigned j(0);j<2;j++) {
+	uhalWrite("quad.channel_ctrl.select",j);
+	uhalWrite("quad.channel.ctrl.reg.rst",0);
+	//uhalWrite("quad.channel.stat.lff_watchdog",0);
+      }
+    }
+  
     bool setDefaults() {
       //channel 0
       uint32_t local_ip0(0xC0A80352);
       uint32_t remote_ip0(0xC0A80302);
       uint32_t local_port0(0x04D2);
       uint32_t remote_port0(0x04D2);
-      uint32_t run_id0(0xFEC);
-      uint32_t aggregate_en0(0x1);
+      uint32_t run_id0(0xABD);
+      //uint32_t aggregate_en0(0x1);
+      uint32_t aggregate_en0(0x0); // No aggregation with ECON-T data (v2xx onwards)
       uint32_t aggregate_limit0(0xFF);
-      uint32_t watchdog_threshold0(0x60);
+      //uint32_t watchdog_threshold0(0x60);
+      uint32_t watchdog_threshold0(0xffffffff);
 
       //channel 1
       uint32_t local_ip1(0xC0A80452);
@@ -55,7 +77,8 @@ namespace Hgcal10gLinkReceiver {
       uint32_t run_id1(0xFEC);
       uint32_t aggregate_en1(0x0);
       uint32_t aggregate_limit1(0xFF);
-      uint32_t watchdog_threshold1(0x60);
+      //uint32_t watchdog_threshold1(0x60);
+      uint32_t watchdog_threshold1(0xffffffff);
 
 
       // disable the eth link
@@ -130,6 +153,55 @@ namespace Hgcal10gLinkReceiver {
 
       return true;
     }  
+
+    void configuration(YAML::Node &m) {
+      m=YAML::Node();
+    }
+
+    void status(YAML::Node &m) {
+      m=YAML::Node();
+
+      uhalWrite("quad_ctrl.select",0x0);
+
+      for(unsigned j(0);j<2;j++) {
+	uhalWrite("quad.channel_ctrl.select",j);	
+	{
+	std::ostringstream sout;
+        sout << "quad.channel.stat.pktcnt_l_" << std::setfill('0') << std::setw(2) << j;
+	m[sout.str()]=uhalRead("quad.channel.stat.pktcnt_l");
+	}
+
+	{
+	std::ostringstream sout;
+        sout << "quad.channel.stat.pktcnt_h_" << std::setfill('0') << std::setw(2) << j;
+	m[sout.str()]=uhalRead("quad.channel.stat.pktcnt_h");
+	}
+
+	{
+	std::ostringstream sout;
+        sout << "quad.channel.stat.lff_l_" << std::setfill('0') << std::setw(2) << j;
+	m[sout.str()]=uhalRead("quad.channel.stat.lff_l");
+	}
+
+	{
+	std::ostringstream sout;
+        sout << "quad.channel.stat.lff_h_" << std::setfill('0') << std::setw(2) << j;
+	m[sout.str()]=uhalRead("quad.channel.stat.lff_h");
+	}
+
+	{
+	std::ostringstream sout;
+        sout << "quad.channel.stat.lff_watchdog_" << std::setfill('0') << std::setw(2) << j;
+	m[sout.str()]=uhalRead("quad.channel.stat.lff_watchdog");
+	}
+	/*
+	m["quad.channel.stat.pktcnt_h"    ][j]=uhalRead("quad.channel.stat.pktcnt_h");
+	m["quad.channel.stat.lff_l"       ][j]=uhalRead("quad.channel.stat.lff_l");
+	m["quad.channel.stat.lff_h"       ][j]=uhalRead("quad.channel.stat.lff_h");
+	m["quad.channel.stat.lff_watchdog"][j]=uhalRead("quad.channel.stat.lff_watchdog");
+	*/
+      }
+    }
 
     void configuration(std::vector<uint32_t> &v) {
       v.resize(0);

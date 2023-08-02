@@ -13,7 +13,8 @@ namespace Hgcal10gLinkReceiver {
       Shutdown,
       Initial,
       Halted,
-      ConfiguredA,
+      SpareStatic,
+      ConfiguredA=SpareStatic, // Backwards compatibility
       Configured,
       Running,
       Paused,
@@ -27,7 +28,8 @@ namespace Hgcal10gLinkReceiver {
       Pausing,
       Resuming,
       Stopping,
-      HaltingB,
+      SpareTransient,
+      HaltingB=SpareTransient, // Backwards compatibility
       Halting,
       Resetting,
       Ending,
@@ -160,36 +162,36 @@ namespace Hgcal10gLinkReceiver {
     static const std::string _stateName[EndOfStateEnum];
   };
  
-  const std::string FsmState::_unknown="Unknown      ";
+  const std::string FsmState::_unknown="Unknown       ";
     
   const std::string FsmState::_stateName[EndOfStateEnum]={
     // Statics
-    "Shutdown     ",
-    "Initial      ",
-    "Halted       ",
-    "ConfiguredA  ",
-    "Configured   ",
-    "Running      ",
-    "Paused       ",
+    "Shutdown      ",
+    "Initial       ",
+    "Halted        ",
+    "SpareStatic   ",
+    "Configured    ",
+    "Running       ",
+    "Paused        ",
       
     // Transients
-    "Initializing ",
-    "Configuring  ",
-    "Reconfiguring",
-    "Starting     ",
-    "Pausing      ",
-    "Resuming     ",
-    "Stopping     ",
-    "HaltingB     ",
-    "Halting      ",
-    "Resetting    ",
-    "Ending       ",
+    "Initializing  ",
+    "Configuring   ",
+    "Reconfiguring ",
+    "Starting      ",
+    "Pausing       ",
+    "Resuming      ",
+    "Stopping      ",
+    "SpareTransient",
+    "Halting       ",
+    "Resetting     ",
+    "Ending        ",
     
     // For file and buffer records only    
-    "Continuing   ",
-    "Constants    ",
-    "Configuration",
-    "Status       "
+    "Continuing    ",
+    "Constants     ",
+    "Configuration ",
+    "Status        "
   };
 
 }

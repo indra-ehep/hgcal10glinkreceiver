@@ -1,6 +1,12 @@
 #ifndef Hgcal10gLinkReceiver_ProcessorTcds2_h
 #define Hgcal10gLinkReceiver_ProcessorTcds2_h
 
+
+
+//#define REMOVE_FOR_TESTING
+
+
+
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -46,6 +52,7 @@ namespace Hgcal10gLinkReceiver {
   
     void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
       _serenityTcds2.makeTable();
+      _serenityTcds2.setThrottle(true);
 
       ShmSingleton<RelayWriterDataFifo> shm2;
       ptrFifoShm2=shm2.setup(fifoKey);
@@ -96,18 +103,23 @@ namespace Hgcal10gLinkReceiver {
       //_keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
       YAML::Node nRsa(YAML::Load(r.string()));
       _keyCfgA=nRsa["ProcessorKey"].as<uint32_t>();
+      _strCfgA=nRsa["RunType"].as<std::string>();
 	
       if((_keyCfgA>0 && _keyCfgA<=38) || _keyCfgA==123) {
 
 	// Do configuration; ones which could have been changed
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",30);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",59);
 	  
 	// Hardwire CalComing
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length",2);
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3500<<16)|0x0010);
-	//_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",1);
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.data",(3510<<16)|0x0004);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
+	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	//_serenityTcds2.uhalWrite("seq_mem.data",(3500<<16)|0x0010); // ECR
+	//_serenityTcds2.uhalWrite("seq_mem.data",(   1<<16)|0x0040);
+	//_serenityTcds2.uhalWrite("seq_mem.data",(   2<<16)|0x0040);
+	//_serenityTcds2.uhalWrite("seq_mem.data",(   3<<16)|0x0040);
+	//_serenityTcds2.uhalWrite("seq_mem.data",(   4<<16)|0x0040);
+	//_serenityTcds2.uhalWrite("seq_mem.data",(   5<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(3510<<16)|0x0004); // CalComing: L1A BC = this+delay+1
       }
 
       if(_keyCfgA==125) {
@@ -124,11 +136,68 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
 	_serenityTcds2.uhalWrite("seq_mem.data",(   1<<16)|0x0040);
-	//_serenityTcds2.uhalWrite("seq_mem.data",(1783<<16)|0x0040);
-	
-	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",0);
+	/*
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",5);
+	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	_serenityTcds2.uhalWrite("seq_mem.data",(   1<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(   6<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(  11<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(  16<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(  21<<16)|0x0040);
+	*/
       }
 
+      if(_keyCfgA==128) {
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",5);
+	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	_serenityTcds2.uhalWrite("seq_mem.data",(   1<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",( 701<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(1401<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(2101<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(2801<<16)|0x0040);
+      }
+
+      if(_strCfgA=="HgcrocBufferTest") {
+	unsigned nL1A(33);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",nL1A);
+	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	for(unsigned i(0);i<nL1A;i++) {
+	  _serenityTcds2.uhalWrite("seq_mem.data",((i+1)<<16)|0x0040);
+	}
+      }
+
+      // Set all these (except physics) for 5 L1As per orbit
+      if(_keyCfgA==201 || _keyCfgA==205) {
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
+      }
+
+      if(_keyCfgA==202 || _keyCfgA==205) {
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xffff-91);
+
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_random",1);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
+      }
+
+      if(_keyCfgA==204 || _keyCfgA==205) {
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_regular_period",713-1); // 3565 = 5x23x31 = 5x713
+
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_regular",1);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
+      }
+
+      if(_keyCfgA==203 || _keyCfgA==205) {
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",6);
+	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	_serenityTcds2.uhalWrite("seq_mem.data",(3562<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(3563<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(3564<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(   1<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(   2<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(   3<<16)|0x0040);
+
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",1);
+      }
 
       return true;
     }
@@ -144,7 +213,7 @@ namespace Hgcal10gLinkReceiver {
       //_keyCfgB=r.processorKey(RunControlTcds2FsmShmKey);
 
       if(_keyCfgA==123) {
-	_serenityTcds2.uhalWrite("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.calpulse_delay",_configuringBCounter);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",_configuringBCounter);
       }
 	
       if(_keyCfgA==125) {
@@ -161,7 +230,16 @@ namespace Hgcal10gLinkReceiver {
         _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1+_configuringBCounter);
         _serenityTcds2.uhalWrite("seq_mem.pointer",0);
 	for(unsigned i(0);i<1+_configuringBCounter;i++) {
-	  _serenityTcds2.uhalWrite("seq_mem.data",((1+i)<<16)|0x0040);
+	  _serenityTcds2.uhalWrite("seq_mem.data",((1+200*i)<<16)|0x0040);
+	}
+      }
+
+      if(_strCfgA=="HgcrocBufferTest") {
+	unsigned nL1A(33+_configuringBCounter);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",nL1A);
+	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	for(unsigned i(0);i<nL1A;i++) {
+	  _serenityTcds2.uhalWrite("seq_mem.data",((i+1)<<16)|0x0040);
 	}
       }
 
@@ -326,7 +404,7 @@ namespace Hgcal10gLinkReceiver {
       }
       ptrFifoShm2->writeIncrement();
     }
-    
+    /*    
     void keyConfiguration(uint32_t key) {
 
       switch(key) {
@@ -351,7 +429,8 @@ namespace Hgcal10gLinkReceiver {
 
       };
     }
-    
+    */
+
   protected:
     RelayWriterDataFifo *ptrFifoShm2;
 
@@ -361,6 +440,7 @@ namespace Hgcal10gLinkReceiver {
     bool _cfgForRunStart;
 
     uint32_t _keyCfgA;
+    std::string _strCfgA;
     //uint32_t _keyCfgB;
 
     uint32_t _configuringBCounter;

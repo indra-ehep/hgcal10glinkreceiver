@@ -12,6 +12,7 @@
 #include "SystemParameters.h"
 #include "FsmInterface.h"
 #include "ShmSingleton.h"
+#include "RecordYaml.h"
 
 using namespace Hgcal10gLinkReceiver;
 
@@ -71,7 +72,10 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
   //FsmInterface::Handshake hsNew(prcfs->handshake());
 
 
-  Record *r((Record*)&(prcfs->getRecord()));
+  //Record *r((Record*)&(prcfs->getRecord()));
+  //RecordYaml *ry((RecordYaml*)&(prcfs->getRecord()));
+  RecordYaml *r((RecordYaml*)&(prcfs->getRecord()));
+  RecordYaml *ry(r);
 
   FsmState::State *pState(prcfs->getProcessState());
   FsmState::State psOld(*pState);
@@ -91,6 +95,8 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
 
     auto req = server.getRequest();
 
+    std::cout  << std::endl << "************ GOT REQUEST ******************" << std::endl << std::endl;	  
+
     if( req.is_valid() ){
       std::cout << "got valid request" << std::endl;
       std::cout << "command = " << req.get_command() << std::endl;
@@ -98,8 +104,8 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
       std::cout << "config = " << req.get_config() << std::endl;
 
       const YAML::Node &yNode(req.get_config());
-      std::string s(yNode.as<std::string>());
-      std::cout << "config string = " << s << std::endl;
+      //std::string s(yNode.as<std::string>());
+      //std::cout << "config string = " << s << std::endl;
 
       /*
       switch (yNode.Type()) {
@@ -133,12 +139,14 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
 	
 	std::cout  << std::endl << "************ GOT COLDSTART ******************" << std::endl << std::endl;
 
+	psOld=*pState;
 	r->reset(FsmState::Initial);
 
 	  
 	  prcfs->print();
 	  
 	  // Wait for the processor to respond
+	  std::cout << "psOld = " << FsmState::stateName(psOld) << std::endl;
 	  while(psOld==(*pState)) usleep(1000);
 	  psOld=(*pState);
 	  
@@ -165,28 +173,40 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
 	auto it = replyMap.find( req.get_command() );
 	if( it!=replyMap.end() ) {
 	  
-	  std::cout  << std::endl << "************ GOT REQUEST ******************" << std::endl << std::endl;
+	  std::cout  << std::endl << "************ VALID REQUEST ******************" << std::endl << std::endl;
 	  
 	  // Put prepare transient in local shared memory
 	  auto it2 = stateMap.find(req.get_command());
 	  FsmState::State trans(it2->second);
 	  r->reset(trans);
-	  
+
 	  prcfs->print();
 	  
 	  // Wait for the processor to respond
+	  std::cout << "psOld = " << FsmState::stateName(psOld) << std::endl;
 	  while(psOld==(*pState)) usleep(1000);
 	  psOld=(*pState);
 	  
 	  std::cout  << std::endl << "************ PREPARED ******************" << std::endl << std::endl;
 	  prcfs->print();
+	  ry->print();
+
+	  if(trans==FsmState::Configuring || trans==FsmState::Starting) {
+	    std::ostringstream sout;
+	    sout << req.get_config();
+	    prcfs->print();
+	    ry->setString(sout.str());
+	    prcfs->print();
+	    ry->print();
+	  }
 	  
 	  // Set true transient in local shared memory
 	  r->setUtc(req.get_utc_or_counter());
-	  
 	  prcfs->print();
-	  
+	  ry->print();
+
 	  // Wait for the processor to respond
+	  std::cout << "psOld = " << FsmState::stateName(psOld) << std::endl;
 	  while(psOld==(*pState)) usleep(1000);
 	  psOld=(*pState);
 	  
@@ -194,7 +214,8 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
 	  prcfs->print();
 	  
 	  // Put static in local shared memory
-	  r->reset(FsmState::staticStateAfterTransient(trans));
+	  FsmState::State stat(FsmState::staticStateAfterTransient(trans));
+	  r->reset(stat);
 	  prcfs->print();
 	  
 	  // Wait for the processor to respond
@@ -215,8 +236,11 @@ bool ZmqProcessorFsmS2S(uint32_t key, uint16_t port) {
 	  
 	  // Send processor response back to Run Control
 	  //socket.send(zmq::buffer(pState,sizeof(FsmState::State)), zmq::send_flags::none);
-	  
+
 	  rep = reply( it->second, 0xC0FFE, "no comment" );
+
+	  // Check for end
+	  continueLoop=(it->second!="shutdown");
 	  
 	} else { // ! command is in map
 	  std::cout  << std::endl << "************ NOT COMMAND ******************" << std::endl << std::endl;

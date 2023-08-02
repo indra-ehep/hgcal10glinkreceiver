@@ -39,6 +39,7 @@ bool ZmqSerenityProcessorFifo(uint32_t key, uint16_t port) {
 
     std::cout << "Connecting to " << sout.str() << std::endl;
     socket.connect(sout.str());
+    std::cout << "Connected  to " << sout.str() << std::endl;
 
 
     ShmSingleton<RelayWriterDataFifo> shmU;
@@ -58,7 +59,7 @@ bool ZmqSerenityProcessorFifo(uint32_t key, uint16_t port) {
       // Wait for FIFO to have data to be read
       while(prcfs->readable()==0) {
 	if(prcfs->isEnded()) return true;
-	usleep(10);
+	usleep(1000);
       }
 
       std::cout  << std::endl << "************ DATA READY ******************" << std::endl << std::endl;

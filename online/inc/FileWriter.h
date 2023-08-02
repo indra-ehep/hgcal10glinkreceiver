@@ -18,7 +18,10 @@ namespace Hgcal10gLinkReceiver {
       ////MaximumBytesPerFile=2000
     //};
     
-    FileWriter() : MaximumBytesPerFile(4000000000), _directory("dat/"), _protectFiles(false), _flushRecords(true), _rawCcode(false) {      
+    FileWriter() : MaximumBytesPerFile(4000000000),
+		   MaximumEventsPerFile(1000000),
+		   MaximumOrbitsPerFile(2000000),
+		   _directory("dat/"), _protectFiles(false), _flushRecords(true), _rawCcode(false) {      
       _outputFilePtr=nullptr;
     }
 
@@ -42,6 +45,9 @@ namespace Hgcal10gLinkReceiver {
       _linkNumber=l;
       _relay=s;
       _fileNumber=0;
+
+      _ecOld=1;
+      _ocOld=0;
       
       if(_relay) _fileName=FileReader::setRelayFileName(_runNumber);
       else       _fileName=FileReader::setRunFileName(_runNumber,_linkNumber,_fileNumber);
@@ -84,19 +90,40 @@ namespace Hgcal10gLinkReceiver {
     //bool write(uint64_t *d, unsigned n) {
     bool write(const Record* h) {
       std::cout << "FileWriter HERE4!" << std::endl;
-      //if(_writeEnable) {
-      if(_rawCcode) {
-	if(_outputFilePtr!=nullptr) 
-	  fwrite((char*)h,1,8*h->totalLength(),_outputFilePtr);
-      } else {
-	_outputFile.write((char*)h,8*h->totalLength());
-	if(_flushRecords) _outputFile.flush();
+
+      bool newFile(false);
+
+      if(h->state()==FsmState::Running) {
+	const RecordRunning *r((const RecordRunning*)h);
+
+	uint64_t ec(0);
+	uint32_t oc(0);
+
+	if(r->slinkBoe()!=nullptr && r->slinkEoe()!=nullptr) {
+	  if(r->slinkBoe()->validPattern() && r->slinkEoe()->validPattern()) {
+	    ec=r->slinkBoe()->eventId();
+	    oc=r->slinkEoe()->orbitId();
+	    
+	    if((ec-_ecOld)>=MaximumEventsPerFile ||
+	       (oc-_ocOld)>=MaximumOrbitsPerFile) {
+	      newFile=true;
+	      _ecOld=ec;
+	      _ocOld=oc;
+	    }
+	  }
+	}
+	
+	std::cout << "ec, ecOld, oc, ocOld, newFile = "
+		  << ec << "," << _ecOld  << "," 
+		  << oc << "," << _ocOld  << "," 
+		  << (newFile?"true":"false") << std::endl;
       }
-      //}
 
-      _numberOfBytesInFile+=8*h->totalLength();
+      // Obsolete; does not work with two files for DPG
+      //if(_numberOfBytesInFile>MaximumBytesPerFile) {
 
-      if(_numberOfBytesInFile>MaximumBytesPerFile) {
+      if(newFile) {
+
 	RecordContinuing rc;
 	rc.setHeader();
 	rc.setRunNumber(_runNumber);
@@ -159,6 +186,18 @@ namespace Hgcal10gLinkReceiver {
 	}
       }
       
+      //if(_writeEnable) {
+      if(_rawCcode) {
+	if(_outputFilePtr!=nullptr) 
+	  fwrite((char*)h,1,8*h->totalLength(),_outputFilePtr);
+      } else {
+	_outputFile.write((char*)h,8*h->totalLength());
+	if(_flushRecords) _outputFile.flush();
+      }
+      
+      _numberOfBytesInFile+=8*h->totalLength();
+      //}
+
       return true;
     }
     
@@ -187,6 +226,10 @@ namespace Hgcal10gLinkReceiver {
     
   private:
     const uint32_t MaximumBytesPerFile;
+    const uint64_t MaximumEventsPerFile;
+    const uint32_t MaximumOrbitsPerFile;
+    uint64_t _ecOld;
+    uint32_t _ocOld;
     
     std::string _directory;
     std::string _fileName;

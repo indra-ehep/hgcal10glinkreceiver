@@ -2,6 +2,9 @@
 #include <iomanip>
 #include <cassert>
 
+#include "TH1D.h"
+#include "TH2D.h"
+
 #include "TFileHandler.h"
 
 #include "FileReader.h"
@@ -27,7 +30,27 @@ int main(int argc, char** argv) {
     return 2;
   }
 
-  TFileHandler tfh("Hacked");
+  TFileHandler tfh("SingleL1aRunCheck");
+
+  TH1D *hPayloadLength,*hSequence,*hSubpackets,*hSubpacketCount;
+  TH2D *hPayloadLengthVsSeq,*hSubpacketCountVsPl;
+
+  hSequence=new TH1D("Sequence",";Relative sequence number;Number of events",
+		     4000,0,400000);
+
+  hPayloadLength=new TH1D("PayloadLength",";Payload length (8-byte words);Number of events",
+			  150,0,300);  
+  hPayloadLengthVsSeq=new TH2D("PayloadLengthVsSeq",";Relative sequence number;Payload length (8-byte words);Number of events",
+			  400000,0,400000,150,0,300);
+
+  hSubpacketCount=new TH1D("SubpacketCount",";Number of half-HGCROC subpackets;Number of events",
+		       20,0,20);
+  hSubpacketCountVsPl=new TH2D("SubpacketCountVsPl",";Payload length (8-byte words);Number of half-HGCROC subpackets;Number of events",
+			       150,0,300,20,0,20);
+  
+  hSubpackets=new TH1D("Subpackets",";Half-HGCROC empty subpacket;Number of events",
+		       20,0,20);  
+
   
   // Create the file reader
   Hgcal10gLinkReceiver::FileReader _fileReader;
@@ -50,6 +73,9 @@ int main(int argc, char** argv) {
   unsigned nEvents(0),nErrors[10]={0,0,0,0,0,0,0,0,0,0};
   unsigned bc(0),oc(0),ec(0),seq(0);
   unsigned ocOffset(0);
+
+  bool noCheck(false);
+  uint32_t initialSeq;
   
   bool doubleEvents(false);
   unsigned nEventsPerOrbit(1);
@@ -75,9 +101,16 @@ int main(int argc, char** argv) {
 	std::cout << std::endl;
       }
       */
-
-      if(nEvents==1) seq=rEvent->sequenceCounter();
-
+ if(!noCheck) {
+      if(nEvents==1) {
+	seq=rEvent->sequenceCounter();
+	initialSeq=seq;
+      }
+      
+      hSequence->Fill(seq-initialSeq);
+      hPayloadLength->Fill(rEvent->payloadLength());      
+      hPayloadLengthVsSeq->Fill(seq-initialSeq,rEvent->payloadLength());
+      
       if(seq!=rEvent->sequenceCounter()) {
 	std::cout << "Event " << nEvents << " Sequence error; seen = " << rEvent->sequenceCounter()
 		  << ", expected = " << seq << ", difference = "
@@ -87,6 +120,7 @@ int main(int argc, char** argv) {
 	  anyError=true;
 	  nErrors[8]++;
       }
+
       seq++;
 
       // Check id is correct
@@ -115,8 +149,11 @@ int main(int argc, char** argv) {
       if(pEcond!=nullptr) {
 
 	const uint64_t *p64(((const uint64_t*)rEvent)+1);
-	bph=(const Hgcal10gLinkReceiver::BePacketHeader*)p64;
+	bph=(const Hgcal10gLinkReceiver::BePacketHeader*)(p64+2);
 
+	const uint32_t *p32(rEvent->daqPayload());
+
+	
 	if(nEvents==1) {
 	  bc=bph->bunchCounter();
 	  oc=bph->orbitCounter();
@@ -149,11 +186,14 @@ int main(int argc, char** argv) {
 	    anyError=true;
 	    nErrors[2]++;
 	  }
-	  
+
 	if(rEvent->payloadLength()>2) {
-	  unsigned bcEcond((p64[doubleEvents?3:2]>>20)&0xfff);
-	  unsigned ecEcond((p64[doubleEvents?3:2]>>14)&0x3f);
-	  unsigned ocEcond(((p64[doubleEvents?3:2]>>11)+ocOffset)&0x7);
+	  //unsigned bcEcond((p64[doubleEvents?3:2]>>20)&0xfff);
+	  //unsigned ecEcond((p64[doubleEvents?3:2]>>14)&0x3f);
+	  //unsigned ocEcond(((p64[doubleEvents?3:2]>>11)+ocOffset)&0x7);
+	  unsigned bcEcond((p64[4]>>20)&0xfff);
+	  unsigned ecEcond((p64[4]>>14)&0x3f);
+	  unsigned ocEcond(((p64[4]>>11)+ocOffset)&0x7);
 	  
 	  if(bcEcond!=bc) {
 	    std::cout << "Event " << nEvents << " ECOND BC error; seen = " << bcEcond
@@ -187,8 +227,49 @@ int main(int argc, char** argv) {
 	
 	if(print) bph->print();
 
+	unsigned nSubPackets(0);
+	for(unsigned i(0);i<2*rEvent->payloadLength()-4U;i++) {
+	  if(p32[i]==0xe000001f) nSubPackets++;
+	}
+	hSubpacketCount->Fill(nSubPackets);
+	hSubpacketCountVsPl->Fill(rEvent->payloadLength(),nSubPackets);
 	
+	if(p32[7]!=0xe000001f) {
+	  hSubpackets->Fill(0);
+	  nErrors[7]++;
+	  print=true;
+	  anyError=true;
+	  
+	} else if(p32[44]!=0xe000001f) {
+	  hSubpackets->Fill(1);
+	  nErrors[7]++;
+	  print=true;
+	  anyError=true;
 
+	} else if(p32[85]!=0xe000001f) {
+	  hSubpackets->Fill(2);
+	  nErrors[7]++;
+	  print=true;
+	  anyError=true;
+
+	} else if(p32[122]!=0xe000001f) {
+	  hSubpackets->Fill(3);
+	  nErrors[7]++;
+	  print=true;
+	  anyError=true;
+
+	} else if(p32[163]!=0xe000001f) {
+	  hSubpackets->Fill(4);
+	  nErrors[7]++;
+	  print=true;
+	  anyError=true;
+
+	} else if(p32[200]!=0xe000001f) {
+	  hSubpackets->Fill(5);
+	  nErrors[7]++;
+	  print=true;
+	  anyError=true;
+	}
 
 	if((nEvents%nEventsPerOrbit)==0) oc++;
 	ec++;
@@ -236,7 +317,10 @@ int main(int argc, char** argv) {
 	if(anyError) nErrors[9]++;
 
 	
-	if(print && nEvents<100) {
+	if(print && nEvents<10000) {
+	  b->print();
+	  e->print();
+	  
 	  std::cout << "Header and words of ECON-D packet " << nEvents << std::endl;
 	  rEvent->RecordHeader::print();
 
@@ -247,12 +331,20 @@ int main(int argc, char** argv) {
 	    std::cout << std::dec << std::setfill(' ');
 	  }
 	  std::cout << std::endl;
+
+	  for(unsigned i(0);i<2*rEvent->payloadLength()-4U;i++) {
+	    std::cout << "Word " << std::setw(3) << i << " ";
+	    std::cout << std::hex << std::setfill('0');
+	    std::cout << "0x" << std::setw(8) << p32[i] << std::endl;
+	    std::cout << std::dec << std::setfill(' ');
+	  }
+	  std::cout << std::endl;
 	}
 
 	// Do other stuff here
 
       }
-
+ }
       
     }
   }

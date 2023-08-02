@@ -26,6 +26,7 @@ int main() {
   ptrC[2]=shmC[2].setup(ProcessorFrontEndCl2FifoShmKey);
 
   while(true) {
+    system("clear");
     for(unsigned i(0);i<2;i++) {
       ptrD[i]->print();
     }

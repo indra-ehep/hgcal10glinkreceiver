@@ -55,10 +55,10 @@ namespace Hgcal10gLinkReceiver {
 
       m["ctrl_stat.ctrl2.tts_mask"]=uhalRead("ctrl_stat.ctrl2.tts_mask");
       m["ctrl_stat.ctrl2.l1a_physics_mask"]=uhalRead("ctrl_stat.ctrl2.l1a_physics_mask");
+      m["ctrl_stat.ctrl2.l1a_regular_period"]=uhalRead("ctrl_stat.ctrl2.l1a_regular_period");
 
       uint32_t length(uhalRead("ctrl_stat.ctrl.seq_length"));
       m["ctrl_stat.ctrl.seq_length"]=length;
-      //m["seq_mem.pointer"]=uhalRead("seq_mem.pointer");
 
       uhalWrite("seq_mem.pointer",0);
       for(unsigned i(0);i<length && i<1024;i++) {
@@ -100,12 +100,13 @@ namespace Hgcal10gLinkReceiver {
     void status(std::unordered_map<std::string,uint32_t> &m) {
       m.clear();
 
-      m["counters.l1a_physics"]=uhalRead("counters.l1a_physics");
-      m["counters.l1a_random"]=uhalRead("counters.l1a_random");
-      m["counters.l1a_software"]=uhalRead("counters.l1a_software");
-      m["counters.l1a_regular"]=uhalRead("counters.l1a_regular");
-      m["counters.l1a_subtype0"]=uhalRead("counters.l1a_subtype0");
-      m["counters.l1a_subtype1"]=uhalRead("counters.l1a_subtype1");
+      m["counters.l1a_physics"    ]=uhalRead("counters.l1a_physics");
+      m["counters.l1a_calibration"]=uhalRead("counters.l1a_calibration");
+      m["counters.l1a_random"     ]=uhalRead("counters.l1a_random");
+      m["counters.l1a_software"   ]=uhalRead("counters.l1a_software");
+      m["counters.l1a_regular"    ]=uhalRead("counters.l1a_regular");
+      m["counters.l1a_subtype0"   ]=uhalRead("counters.l1a_subtype0");
+      m["counters.l1a_subtype1"   ]=uhalRead("counters.l1a_subtype1");
 
       m["ctrl_stat.stat0.tts_all"]=uhalRead("ctrl_stat.stat0.tts_all");
       m["ctrl_stat.stat0.tts_soft"]=uhalRead("ctrl_stat.stat0.tts_soft");
@@ -120,17 +121,20 @@ namespace Hgcal10gLinkReceiver {
       m["ctrl_stat.stat0.tts_ext"   ]=uhalRead("ctrl_stat.stat0.tts_ext");
       m["ctrl_stat.stat0.tts_hgcroc"]=uhalRead("ctrl_stat.stat0.tts_hgcroc");
 
-      m["counters.l1a_physics" ]=uhalRead("counters.l1a_physics");
-      m["counters.l1a_random"  ]=uhalRead("counters.l1a_random");
-      m["counters.l1a_software"]=uhalRead("counters.l1a_software");
-      m["counters.l1a_regular" ]=uhalRead("counters.l1a_regular");
-      m["counters.l1a_subtype0"]=uhalRead("counters.l1a_subtype0");
-      m["counters.l1a_subtype1"]=uhalRead("counters.l1a_subtype1");
+      m["counters.l1a_physics"    ]=uhalRead("counters.l1a_physics");
+      m["counters.l1a_calibration"]=uhalRead("counters.l1a_calibration");
+      m["counters.l1a_random"     ]=uhalRead("counters.l1a_random");
+      m["counters.l1a_software"   ]=uhalRead("counters.l1a_software");
+      m["counters.l1a_regular"    ]=uhalRead("counters.l1a_regular");
+      m["counters.l1a_all"        ]=uhalRead("counters.l1a_all");
+      m["counters.l1a_subtype0"   ]=uhalRead("counters.l1a_subtype0");
+      m["counters.l1a_subtype1"   ]=uhalRead("counters.l1a_subtype1");
 
       m["counters.tts_all"   ]=uhalRead("counters.tts_all");
       m["counters.tts_soft"  ]=uhalRead("counters.tts_soft");
       m["counters.tts_hgcroc"]=uhalRead("counters.tts_hgcroc");
       m["counters.tts_ext"   ]=uhalRead("counters.tts_ext");
+      m["counters.tts_mdaq"  ]=uhalRead("counters.tts_mdaq");
     }
   
     bool setDefaults() {
@@ -150,12 +154,13 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("ctrl_stat.ctrl1.en_nzs_reg",0);
       uhalWrite("ctrl_stat.ctrl1.en_nzs_rand",0);
       uhalWrite("ctrl_stat.ctrl1.en_nzs_physics",0);
-      uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xf000);
+      uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xffff-16); // ~11 kHz
 
       //uhalWrite("ctrl_stat.ctrl2.tts_tcds2",1);
       setThrottle(true);
-      uhalWrite("ctrl_stat.ctrl2.tts_mask",0x7); // ?????????
-      uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",0xff);
+      uhalWrite("ctrl_stat.ctrl2.tts_mask",0x7); // b0=encoder, b1=DAQ, b2=HGCROC
+      uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",0xff); // b0=ECON-T, b1=Scint
+      uhalWrite("ctrl_stat.ctrl2.l1a_regular_period",713-1); // 3565 = 5x23x31 = 5x713
 
       uhalWrite("ctrl_stat.ctrl.seq_length",1);
       uhalWrite("seq_mem.pointer",0);
@@ -165,8 +170,10 @@ namespace Hgcal10gLinkReceiver {
     }  
 
     void setThrottle(bool b) {
-      // Up to Version 0x116
-      uhalWrite("ctrl_stat.ctrl2.tts_tcds2",b?1:0);
+      // Up to Version 0x117
+      //uhalWrite("ctrl_stat.ctrl2.tts_tcds2",b?1:0);
+      // From Version 0x118
+      uhalWrite("ctrl_stat.ctrl2.tts_tcds2",b?0:1);
     }
 
     void sendPulse(const std::string &s) {

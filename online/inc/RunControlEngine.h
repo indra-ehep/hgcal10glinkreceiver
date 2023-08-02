@@ -36,6 +36,7 @@ namespace Hgcal10gLinkReceiver {
     }
 
     bool coldStart() {
+      unsigned ntimeout;
       unsigned n(0);
       for(unsigned i(0);i<_goodFsmInterface.size();i++) {
 	if(_printLevel>0) std::cout << "Coldstarting " << i << std::endl;
@@ -53,9 +54,13 @@ namespace Hgcal10gLinkReceiver {
 
 	if(_printLevel>0) _goodFsmInterface[i]->print();
 
-	usleep(1000000);
+	ntimeout=0;
+	while(_goodFsmInterface[i]->processState()!=FsmState::Initial && ntimeout<(i==7?60:3)) {
+	  usleep(1000000);
+	  ntimeout++;
 	//sleep(2);
-
+	}
+	std::cout << i << " Timeout = " << ntimeout << std::endl;
 	if(_printLevel>0) _goodFsmInterface[i]->print();
 
 	//usleep(1000);

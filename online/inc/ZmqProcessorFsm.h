@@ -19,6 +19,9 @@ bool ZmqProcessorFsm(uint32_t key, uint16_t port) {
   //std::chrono::seconds asec(1);
   // initialize the zmq context with a single IO thread
   zmq::context_t context{1};
+  std::cout << "Initial ZMQ_IPV6 = " << context.get(zmq::ctxopt::ipv6) << std::endl;
+  //context.set(zmq::ctxopt::ipv6, 1);
+  std::cout << "Final   ZMQ_IPV6 = " << context.get(zmq::ctxopt::ipv6) << std::endl;
   
   // construct a REP (reply) socket and bind to interface
   std::ostringstream sout;
@@ -74,6 +77,7 @@ bool ZmqProcessorFsm(uint32_t key, uint16_t port) {
 
     // Wait for the processor to respond
     //while(hsOld==prcfs->handshake()) usleep(1000);
+    psOld=(*pState);
     while(psOld==(*pState)) usleep(1000);
     psOld=(*pState);
 

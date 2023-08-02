@@ -49,9 +49,11 @@ namespace Hgcal10gLinkReceiver {
 	  << std::dec << std::setfill(' ') << std::endl;
       }
       */
-      std::string st(string());
-      o << s << " String contents" << std::endl;
-      o << st << std::endl;
+      if(payloadLength()>0) {
+	std::string st(string());
+	o << s << " String contents" << std::endl;
+	o << st << std::endl;
+      }
     }
 
   private:
