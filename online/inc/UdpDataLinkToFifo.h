@@ -145,13 +145,22 @@ bool UdpDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
 	  }
 
 	  // Special case of first packet in run; modify header
-	  if(ptrt[0]==0xaaaaaaaaaaaaaaaa) {
-	    rt->setState(FsmState::Running);
-	    rt->setSequenceCounter(0);
-	    rt->setPayloadLength((n-1)/8);
-	    rt->RecordHeader::print(std::cerr);
+	  if(ptrt[0]==0xaaaaaaaaaaaaaaaa && n>=48) { // Cut out heartbeats
+	    ptrt[0]=0xaa00000000000000;
+	    uint8_t *p8((uint8_t*)ptrt);
+	    p8[6]=(n-1)/8;
+	    //rt->setState(FsmState::Running);
+	    //    rt->setSequenceCounter(0);
+	    //    rt->setPayloadLength((n-1)/8);
+	    //    rt->RecordHeader::print(std::cerr);
+	    
+	    std::cerr << "LinkHeader corrected to "
+		      << std::hex << std::setfill('0')
+                      << std::setw(16) << ptrt[0]
+                      << std::dec << std::setfill(' ')
+                      << std::endl;
 
-	    goodPacket=true;
+	      goodPacket=true;
 	  }
 	  
 	} else {

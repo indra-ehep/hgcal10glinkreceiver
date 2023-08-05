@@ -142,6 +142,10 @@ public:
   void setBackPressure(bool b) {
     _backPressure=b;
   }
+
+  uint32_t writePtr() const {
+    return _writePtr;
+  }
   
   void print(std::ostream &o=std::cout) {
     o << "DataFifoT<" << PowerOfTwo << "," << Width << ">::print()" << std::endl;

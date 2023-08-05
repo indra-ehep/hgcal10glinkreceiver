@@ -37,6 +37,7 @@ namespace Hgcal10gLinkReceiver {
 	  RecordStarting rs2;
 	  for(unsigned i(0);i<_enableLink.size();i++) {
 	    if(_enableLink[i]) {
+	      _runReader[i].setDirectory(_directory);
 	      //_runReader[i].openRun(rs->runNumber(),i);
 	      _runReader[i].openRun(rs->utc(),i);
 
@@ -58,7 +59,9 @@ namespace Hgcal10gLinkReceiver {
 	}
 
       } else {
-	if(_runReader[(_runRecord++)%2].read(r)) {
+	unsigned l(_enableLink[0]?0:1);
+	//if(_runReader[(_runRecord++)%2].read(r)) {
+	if(_runReader[l].read(r)) {
 	  
 	  if(r->state()==FsmState::Stopping) {
 	    _runActive=false;

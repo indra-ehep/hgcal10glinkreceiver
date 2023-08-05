@@ -22,7 +22,14 @@ namespace Hgcal10gLinkReceiver {
       _directory=s+"/";
     }
 
+    void setRelayDirectory(uint32_t r) {
+      std::ostringstream sout;
+      sout << "dat/Relay" << r << "/";
+      _directory=sout.str();
+    }
+
     bool openRelay(uint32_t r) {
+      setRelayDirectory(r);
       return open(r,2,true);
     }
 

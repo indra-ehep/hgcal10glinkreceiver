@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
       }
       if(nx==126) {
 	nRca["RunType"]="BxResetCheck";
-	maxNumberOfConfigurations=16;
+	maxNumberOfConfigurations=1;
       }
       if(nx==127) {
 	nRca["RunType"]="BeGenericTest";

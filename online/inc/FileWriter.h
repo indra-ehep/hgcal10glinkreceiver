@@ -103,20 +103,23 @@ namespace Hgcal10gLinkReceiver {
 	  if(r->slinkBoe()->validPattern() && r->slinkEoe()->validPattern()) {
 	    ec=r->slinkBoe()->eventId();
 	    oc=r->slinkEoe()->orbitId();
-	    
-	    if((ec-_ecOld)>=MaximumEventsPerFile ||
-	       (oc-_ocOld)>=MaximumOrbitsPerFile) {
-	      newFile=true;
-	      _ecOld=ec;
-	      _ocOld=oc;
+
+	    if(ec>_ecOld && oc>_ocOld) {
+	      if((ec-_ecOld)>=MaximumEventsPerFile ||
+		 (oc-_ocOld)>=MaximumOrbitsPerFile) {
+		newFile=true;
+		_ecOld=ec;
+		_ocOld=oc;
+	      }
 	    }
 	  }
 	}
-	
+	if(newFile) {
 	std::cout << "ec, ecOld, oc, ocOld, newFile = "
 		  << ec << "," << _ecOld  << "," 
 		  << oc << "," << _ocOld  << "," 
 		  << (newFile?"true":"false") << std::endl;
+	}
       }
 
       // Obsolete; does not work with two files for DPG
