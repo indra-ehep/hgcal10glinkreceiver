@@ -90,12 +90,13 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("daq_ro.DAQro0.ext_ro",4);
 
       // Unpacker outputs
-      uhalWrite("daq_ro.DAQro1.latency",4);
+      uhalWrite("daq_ro.DAQro1.latency",6);
       uhalWrite("daq_ro.DAQro1.event_size",6);
       uhalWrite("daq_ro.DAQro1.ext_ro",4);
 
       // Scintillators
-      uhalWrite("daq_ro.DAQro2.latency",5);
+      unsigned latSci(27);
+      uhalWrite("daq_ro.DAQro2.latency",3+5*latSci);
       uhalWrite("daq_ro.DAQro2.event_size",5);
       uhalWrite("daq_ro.DAQro2.ext_ro",4);
 

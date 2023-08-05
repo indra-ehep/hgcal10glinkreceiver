@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
       //while(nx==0 || nx>1000) {
       while(nx>38 && 
 	    nx!=123 && nx!=124 && nx!=125 && nx!=126 && nx!=127 && nx!=128 &&
-	    nx!=131 && nx!=132 && nx!=133 &&
+	    nx!=131 && nx!=132 && nx!=133 && nx!=134 && nx!=135 &&
 	    nx!=201 && nx!=202 && nx!=203 && nx!=204 && nx!=205 && nx!=209 &&
 	    nx!=999) {
 	//std::cout << "Relay number of runs"
@@ -213,6 +213,14 @@ int main(int argc, char *argv[]) {
 	nRca["RunType"]="BeamRam1TimeScan";
 	maxNumberOfConfigurations=80;
       }
+      if(nx==134) {
+	nRca["RunType"]="BeamRam1TimeScan2";
+	maxNumberOfConfigurations=1000;
+      }
+      if(nx==135) {
+	nRca["RunType"]="BeamScintTimeScan";
+	maxNumberOfConfigurations=50;
+      }
 
       if(nx==201) {
 	nRca["RunType"]="PhysicsTriggerTest";
@@ -241,7 +249,7 @@ int main(int argc, char *argv[]) {
 
       if(nx==999) {
 	nRca["RunType"]="ElectronBeamRun";
-	maxNumberOfConfigurations=1;
+	maxNumberOfConfigurations=1000000;
       }
 
       //rca.setMaxNumberOfConfigurations(maxNumberOfConfigurations);

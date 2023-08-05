@@ -32,9 +32,9 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool makeTable() {
-      //_uhalTopString="payload.miniDAQ";
-      //return true;
-      return SerenityUhal::makeTable("payload.miniDAQ");
+      _uhalTopString="payload.miniDAQ";
+      return true;
+      //return SerenityUhal::makeTable("payload.miniDAQ");
     }
 
     void configuration(YAML::Node &m) {
@@ -93,18 +93,20 @@ namespace Hgcal10gLinkReceiver {
 	sout << "Elink_mapping.Elink" << i << ".";
 
 	// THIS IS THE REAL ONE!
-	if(true) {
-	if(i<2*nEcond) {
-	  uhalWrite(sout.str()+"ID",i/2);
+	if(false) {
+	  if(i<2*nEcond) {
+	    uhalWrite(sout.str()+"ID",i/2);
+	  } else {
+	    uhalWrite(sout.str()+"ID",0xf);
+	  }
+
+	  // THIS IS A HACK!!!!
 	} else {
-	  uhalWrite(sout.str()+"ID",0xf);
-	}
-	} else {
-	if(i==2 || i==3) {
-	  uhalWrite(sout.str()+"ID",(i-2)/2);
-	} else {
-	  uhalWrite(sout.str()+"ID",0xf);
-	}	  
+	  if(i==2 || i==3) {
+	    uhalWrite(sout.str()+"ID",(i-2)/2);
+	  } else {
+	    uhalWrite(sout.str()+"ID",0xf);
+	  }	  
 	}
 
 	if(i<nEcond) {
@@ -125,7 +127,8 @@ namespace Hgcal10gLinkReceiver {
     }  
 
     bool setDefaults() {
-      setNumberOfEconds(2);
+      setNumberOfEconds(1);
+      //setNumberOfEconds(2); // SHOULD BE THIS!!!
 
       uhalWrite("rstn",0);
 
@@ -147,22 +150,25 @@ namespace Hgcal10gLinkReceiver {
     void status(YAML::Node &m) {
       m=YAML::Node();
 
-      //m["UNCOMMENT_REAL_VALUES"]=0;
+      if(true) {
+	m["UNCOMMENT_REAL_VALUES"]=0;
 
-      m["Capture_block_status"]=uhalRead("Capture_block_status");
-
-      m["hdr_crc_econd00"]=uhalRead("hdr_crc_econd00");
-      m["hdr_crc_econd01"]=uhalRead("hdr_crc_econd01");
-      m["hdr_crc_econd02"]=uhalRead("hdr_crc_econd02");
-      m["hdr_crc_econd03"]=uhalRead("hdr_crc_econd03");
-      m["hdr_crc_econd04"]=uhalRead("hdr_crc_econd04");
-      m["hdr_crc_econd05"]=uhalRead("hdr_crc_econd05");
-      m["hdr_crc_econd06"]=uhalRead("hdr_crc_econd06");
-      m["hdr_crc_econd07"]=uhalRead("hdr_crc_econd07");
-      m["hdr_crc_econd08"]=uhalRead("hdr_crc_econd08");
-      m["hdr_crc_econd09"]=uhalRead("hdr_crc_econd09");
-      m["hdr_crc_econd10"]=uhalRead("hdr_crc_econd10");
-      m["hdr_crc_econd11"]=uhalRead("hdr_crc_econd11");
+      } else {
+	m["Capture_block_status"]=uhalRead("Capture_block_status");
+	
+	m["hdr_crc_econd00"]=uhalRead("hdr_crc_econd00");
+	m["hdr_crc_econd01"]=uhalRead("hdr_crc_econd01");
+	m["hdr_crc_econd02"]=uhalRead("hdr_crc_econd02");
+	m["hdr_crc_econd03"]=uhalRead("hdr_crc_econd03");
+	m["hdr_crc_econd04"]=uhalRead("hdr_crc_econd04");
+	m["hdr_crc_econd05"]=uhalRead("hdr_crc_econd05");
+	m["hdr_crc_econd06"]=uhalRead("hdr_crc_econd06");
+	m["hdr_crc_econd07"]=uhalRead("hdr_crc_econd07");
+	m["hdr_crc_econd08"]=uhalRead("hdr_crc_econd08");
+	m["hdr_crc_econd09"]=uhalRead("hdr_crc_econd09");
+	m["hdr_crc_econd10"]=uhalRead("hdr_crc_econd10");
+	m["hdr_crc_econd11"]=uhalRead("hdr_crc_econd11");
+      }
     }
 
     void reset() {

@@ -157,12 +157,14 @@ namespace Hgcal10gLinkReceiver {
       }
 
       // Cludge for now; move later
-      uhalWrite("reg_320.ctrl1.slink_daq_readout_bp_en",1,true);
-      uhalWrite("reg_320.ctrl1.slink_trig_readout_bp_en",1,true);
+      uhalWrite("reg_320.ctrl1.slink_daq_readout_bp_en",0,true);
+      uhalWrite("reg_320.ctrl1.slink_trig_readout_bp_en",0,true);
 
-      // SHOULD BE ONE!!!!
+      // SHOULD BE ONE FOR NOW!!!!
       uhalWrite("reg_320.ctrl1.rate_throttle_daq_en",1,true);
       uhalWrite("reg_320.ctrl1.rate_throttle_trig_en",1,true);
+      //uhalWrite("reg_320.ctrl1.rate_throttle_daq_en",0,true);
+      //uhalWrite("reg_320.ctrl1.rate_throttle_trig_en",0,true);
 
       return true;
     }  

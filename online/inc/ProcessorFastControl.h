@@ -166,41 +166,15 @@ namespace Hgcal10gLinkReceiver {
  	if(_keyCfgA==127 || _keyCfgA==128) {
 	  _serenityMiniDaq.setNumberOfEconds(2);
 	}
-      /*
-	RecordConfiguringA *r;
-	while((r=(RecordConfiguringA*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(10);
 
-	if(_printEnable) {
-	std::cout << "Got buffer Record pointer" << std::endl;
-	std::cout << std::endl;
+ 	if(_keyCfgA==133 || _keyCfgA==135) {
+	  //_saveData=_serenityTrgDaq.uhalRead("daq_ro.DAQro2.latency");
+	  _saveData=3;
 	}
 
-	r->deepCopy(_ptrFsmInterface->commandPacket().record());
-	_superRunNumber=r->superRunNumber();
-
-	_runNumberInSuperRun=0;
-	_eventNumberInSuperRun=0;
-
-	
-	if(_checkEnable) {
-	if(!r->valid()) {
-	std::cerr << "Record is not valid" << std::endl;
-	std::cout << "Record is not valid" << std::endl;
-	r->print();
-	if(_assertEnable) assert(false);
-	}
-	}
-	
-	if(_printEnable) {
-	std::cout << "Releasing Record in buffer" << std::endl;
-	r->print();
-	std::cout << std::endl;
+ 	if(_keyCfgA==999) {
 	}
 
-	ptrFifoShm2->writeIncrement();
-	//rca.print();
-	//assert(ptrFifoShm2->write(rca.totalLength(),(uint64_t*)(&rca)));
-	*/
       return true;
     }
     
@@ -211,17 +185,9 @@ namespace Hgcal10gLinkReceiver {
 	_serenityEncoder.uhalWrite("ctrl.l1a_stretch",_configuringBCounter/32);
       }
 
-      /*
-	RecordConfiguringB rcb;
-	rcb.deepCopy(_ptrFsmInterface->commandPacket().record());
-
-	_eventNumberInConfiguration=0;
-
-
-	rcb.print();
-	ptrFifoShm2->print();
-	assert(ptrFifoShm2->write(rcb.totalLength(),(uint64_t*)(&rcb)));
-      */
+      if(_keyCfgA==133 || _keyCfgA==135) {
+	_serenityTrgDaq.uhalWrite("daq_ro.DAQro2.latency",_saveData+_serenityTrgDaq.uhalRead("daq_ro.DAQro2.event_size")*(_configuringBCounter%50));
+      }
 
       return true;
     }
@@ -678,6 +644,7 @@ namespace Hgcal10gLinkReceiver {
     RelayWriterDataFifo *ptrFifoShm2;
 
     unsigned daqBoard;
+    uint32_t _saveData;
 
     uint32_t _cfgSeqCounter;
     uint32_t _evtSeqCounter;

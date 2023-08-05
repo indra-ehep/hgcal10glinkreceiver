@@ -66,6 +66,9 @@ namespace Hgcal10gLinkReceiver {
         sout << "seq_mem.data_" << std::setfill('0') << std::setw(4) << i;
         m[sout.str()]=uhalRead("seq_mem.data");
       }
+
+      // Cludge for now
+      m["reg_320.ctrl1.ext_trigger_delay"]=uhalRead("reg_320.ctrl1.ext_trigger_delay",true);
     }
 
     void configuration(std::unordered_map<std::string,uint32_t> &m) {
@@ -165,6 +168,10 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("ctrl_stat.ctrl.seq_length",1);
       uhalWrite("seq_mem.pointer",0);
       uhalWrite("seq_mem.data",(1<<16)|0x0040);
+
+      // Cludge here for now
+      //uhalWrite("reg_320.ctrl1.ext_trigger_delay",17,true);
+      uhalWrite("reg_320.ctrl1.ext_trigger_delay",20,true); // Runs 1691157443 and 1691159729
 
       return true;
     }  

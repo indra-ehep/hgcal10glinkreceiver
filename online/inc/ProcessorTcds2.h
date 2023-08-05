@@ -108,10 +108,10 @@ namespace Hgcal10gLinkReceiver {
       if((_keyCfgA>0 && _keyCfgA<=38) || _keyCfgA==123) {
 
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",95);
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
-	  
-	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold",126,true);
-	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",126,true);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",0);
+
+	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold",127,true);
+	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
 
 	// Hardwire CalComing
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
@@ -174,21 +174,44 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",30+_configuringBCounter);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
-	_serenityTcds2.uhalWrite("seq_mem.data",(3510<<16)|0x0004); // CalComing: L1A BC = this+delay+1
+	_serenityTcds2.uhalWrite("seq_mem.data",(3469<<16)|0x0004); // CalComing: L1A BC = this+delay+1
       }
 
-      if(_strCfgA=="BeamRam1TimeScan") {
+      if(_strCfgA=="BeamRam1TimeScan") { // 133
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",2);
 
-	// HACK!!!
-	unsigned tRam1(20+_configuringBCounter);
-	std::ofstream fout("BeamRam1TimeScan.yaml");
-	fout << "DigitalHalf:" << std::endl
-	     << "  all:" << std::endl
-	     << "    L1Offset: " << tRam1 << std::endl;
-	fout.close();
+	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold",127,true);
+	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
+
+	_serenityTcds2.uhalWrite("reg_320.ctrl1.ext_trigger_delay",10+(_configuringBCounter%20),true);
       }
+
+      if(_strCfgA=="BeamRam1TimeScan2") { // 134
+	_serenityTcds2.uhalWrite("reg_320.ctrl1.ext_trigger_delay",1+(_configuringBCounter%100),true);
+
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_random",0);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
+
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xffff-1);
+
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",2);
+
+	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold",127,true);
+	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
+      }
+
+      if(_strCfgA=="BeamScintTimeScan") {  // 135
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",2);
+
+	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold",127,true);
+	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
+      }
+
 
       // Set all these (except physics) for 5 L1As per orbit
       if(_keyCfgA==201 || _keyCfgA==205) {
@@ -234,6 +257,15 @@ namespace Hgcal10gLinkReceiver {
 	}
 
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",1);
+      }
+
+      if(_strCfgA=="ElectronBeamRun") {  // 999
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",2);
+
+	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold",127,true);
+	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
       }
 
       return true;
@@ -285,18 +317,16 @@ namespace Hgcal10gLinkReceiver {
 	/*
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
-	_serenityTcds2.uhalWrite("seq_mem.data",(3510<<16)|0x0004); // CalComing: L1A BC = this+delay+1
+	_serenityTcds2.uhalWrite("seq_mem.data",(3469<<16)|0x0004); // CalComing: L1A BC = this+delay+1
 	*/
       }
 
       if(_strCfgA=="BeamRam1TimeScan") {
-	// HACK!!!
-	unsigned tRam1(20+_configuringBCounter);
-	std::ofstream fout("BeamRam1TimeScan.yaml");
-	fout << "DigitalHalf:" << std::endl
-	     << "  all:" << std::endl
-	     << "    L1Offset: " << tRam1 << std::endl;
-	fout.close();
+	_serenityTcds2.uhalWrite("reg_320.ctrl1.ext_trigger_delay",10+(_configuringBCounter%20),true);
+      }
+
+      if(_strCfgA=="BeamRam1TimeScan2") {
+	_serenityTcds2.uhalWrite("reg_320.ctrl1.ext_trigger_delay",1+(_configuringBCounter%100),true);
       }
 
       return true;
