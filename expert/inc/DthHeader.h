@@ -23,7 +23,15 @@ class DthHeader {
   }
   
   uint16_t  bxNumber() const {
-    return (_word[0]>>32)&0xffff;
+    return (_word[0]>>32)&0x3fff;
+  }
+    
+  bool blockStart() const {
+    return (_word[0]&0x0000800000000000)!=0;
+  }
+    
+  bool blockStop() const {
+    return (_word[0]&0x0000400000000000)!=0;
   }
     
   uint16_t  blockNumber() const{
@@ -41,7 +49,7 @@ class DthHeader {
   uint32_t sourceId() const{
     return _word[1]>>32;
   }
-
+  /*
   void setEventId(uint64_t e) {
     assert(e<(1UL<<44));
     _word[1]&=0xfffff00000000000;
@@ -66,7 +74,7 @@ class DthHeader {
   bool valid() const {
     return boeHeader()==BoePattern && version()==0x03;
   }
-
+  */
   void print(std::ostream &o=std::cout, const std::string &s="") const {
     o << s << "DthHeader::print()  words = 0x"
       << std::hex << std::setfill('0')
@@ -77,6 +85,10 @@ class DthHeader {
     o << s << " ID = " << std::setw(5) << id()
       << std::endl;
     o << s << " Block number = " << std::setw(5) << blockNumber()
+      << std::endl;
+    o << s << " Block start = " << (blockStart()?"True":"False")
+      << std::endl;
+    o << s << " Block stop = " << (blockStop()?"True":"False")
       << std::endl;
     o << s << " BX number = " << std::setw(5) << bxNumber()
       << std::endl;

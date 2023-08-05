@@ -96,7 +96,9 @@ namespace Hgcal10gLinkReceiver {
     }
 
     void resetSlinkFifo() {
-      //sendPulse("ctrl_3.rst_slink_fifo",true);
+      sendPulse("ctrl_3.rst_slink_fifo",true);
+      //uhalWrite("ctrl_3.rst_slink_fifo",1);
+      //uhalWrite("ctrl_3.rst_slink_fifo",0);
     }  
 
     void resetDaqReadout() {
@@ -115,7 +117,7 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("ctrl",0);
       uhalWrite("calpulse_ctrl",0);
       uhalWrite("ctrl_2",0);
-      uhalWrite("ctrl_3",0);
+      //uhalWrite("ctrl_3",0);
 
       // Set specific values
       uhalWrite("ctrl.tts",0);

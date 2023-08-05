@@ -262,6 +262,10 @@ namespace Hgcal10gLinkReceiver {
       _serenityTrgDaq.configuration(ntd);
       total["TriggerDaq"]=ntd;
       
+      YAML::Node n10g;
+      _serenity10g.configuration(n10g);
+      total["Eth10G"]=n10g;
+      
       total["LpgbtPair"]["0"]["Id"]=0;
 
       YAML::Node nm;
@@ -283,15 +287,17 @@ namespace Hgcal10gLinkReceiver {
 
       ///////////////////////////////////////////////////
       
-      //_serenityMiniDaq.reset();
       //_serenity10gx.uhalWrite("ctrl.reg.en",1);
 
-      //_serenity10g.reset();
+      _serenityMiniDaq.reset();
+      _serenityEncoder.resetSlinkFifo();
 
-      //_serenityEncoder.resetSlinkFifo();
       _serenityEncoder.resetDaqReadout();
       _serenityEncoder.resetTrgReadout();
 
+      _serenity10g.reset();
+
+      usleep(2*1000000);
       return true;
     }
 

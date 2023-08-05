@@ -58,29 +58,53 @@ namespace Hgcal10gLinkReceiver {
       //unsigned slink(0)
       //uhalWrite("SLink.source_id",0xce000000|daqBoard<<4|slink);
 
-      unsigned bxLatency(5);
+      if(false) {
+      unsigned bxLatency(0);
 
       // ECON-T output
-      uhalWrite("daq_ro.DAQro0.latency",3+4*bxLatency);
+      uhalWrite("daq_ro.DAQro0.latency",5+4*bxLatency);
       uhalWrite("daq_ro.DAQro0.event_size",4);
       uhalWrite("daq_ro.DAQro0.ext_ro",2);
 
       // Unpacker outputs
-      uhalWrite("daq_ro.DAQro1.latency",0+6*bxLatency);
+      uhalWrite("daq_ro.DAQro1.latency",4+6*bxLatency);
       uhalWrite("daq_ro.DAQro1.event_size",6);
       uhalWrite("daq_ro.DAQro1.ext_ro",2);
 
       // Scintillators
-      uhalWrite("daq_ro.DAQro2.latency",0+5*bxLatency);
+      uhalWrite("daq_ro.DAQro2.latency",5+5*bxLatency);
       uhalWrite("daq_ro.DAQro2.event_size",5);
       uhalWrite("daq_ro.DAQro2.ext_ro",2);
 
       // Output of Stage 1 block
+      uhalWrite("daq_ro.DAQro3.latency",20);
+      uhalWrite("daq_ro.DAQro3.event_size",8);
+      uhalWrite("daq_ro.DAQro3.ext_ro",2);
 
+      } else {
+	// Large packet
+
+      // ECON-T output
+      uhalWrite("daq_ro.DAQro0.latency",5);
+      uhalWrite("daq_ro.DAQro0.event_size",4);
+      uhalWrite("daq_ro.DAQro0.ext_ro",4);
+
+      // Unpacker outputs
+      uhalWrite("daq_ro.DAQro1.latency",4);
+      uhalWrite("daq_ro.DAQro1.event_size",6);
+      uhalWrite("daq_ro.DAQro1.ext_ro",4);
+
+      // Scintillators
+      uhalWrite("daq_ro.DAQro2.latency",5);
+      uhalWrite("daq_ro.DAQro2.event_size",5);
+      uhalWrite("daq_ro.DAQro2.ext_ro",4);
+
+      // Output of Stage 1 block
+      uhalWrite("daq_ro.DAQro3.latency",20);
+      uhalWrite("daq_ro.DAQro3.event_size",8);
+      uhalWrite("daq_ro.DAQro3.ext_ro",4);
+      }
       // Unused
-      uhalWrite("daq_ro.DAQro3.latency",0);
-      uhalWrite("daq_ro.DAQro3.event_size",0);
-      uhalWrite("daq_ro.DAQro3.ext_ro",0);
 
       uhalWrite("daq_ro.DAQro4.latency",0);
       uhalWrite("daq_ro.DAQro4.event_size",0);
