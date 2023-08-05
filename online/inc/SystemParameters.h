@@ -87,11 +87,11 @@ namespace Hgcal10gLinkReceiver {
 
   const uint16_t ProcessorFastControlDl0FifoPort(0xced0);
   const uint16_t ProcessorFastControlDl1FifoPort(0xced1);
-  const uint16_t ProcessorFastControlDl2FifoPort(0xced6);
-  const uint16_t ProcessorFastControlCl0FifoPort(0xced2);
-  const uint16_t ProcessorTcds2Cl1FifoPort(      0xced3);
-  const uint16_t ProcessorFrontEndCl2FifoPort(   0xced4);
-  const uint16_t ProcessorStageCl3FifoPort(      0xced5);
+  const uint16_t ProcessorFastControlDl2FifoPort(0xced2);
+  const uint16_t ProcessorFastControlCl0FifoPort(0xced3);
+  const uint16_t ProcessorTcds2Cl1FifoPort(      0xced4);
+  const uint16_t ProcessorFrontEndCl2FifoPort(   0xced5);
+  const uint16_t ProcessorStageCl3FifoPort(      0xced6);
 
   // Used by PC Processors
   const uint32_t ProcessorDaqLink0FifoShmKey(ProcessorFastControlDl0FifoShmKey);
