@@ -32,6 +32,7 @@ bool ZmqProcessorFsm(uint32_t key, uint16_t port) {
 
   std::cout << "Binding with " << sout.str() << std::endl;
   socket.bind(sout.str());
+  std::cout << "Bound   with " << sout.str() << std::endl;
   
   FsmInterface local;
     
@@ -62,6 +63,7 @@ bool ZmqProcessorFsm(uint32_t key, uint16_t port) {
     
     std::cout  << std::endl << "************ GOT REQUEST ******************" << std::endl << std::endl;
 
+    psOld=(*pState);
     std::memcpy(r,request.data(),request.size());
     //local.print();
     /*
@@ -77,7 +79,7 @@ bool ZmqProcessorFsm(uint32_t key, uint16_t port) {
 
     // Wait for the processor to respond
     //while(hsOld==prcfs->handshake()) usleep(1000);
-    psOld=(*pState);
+
     while(psOld==(*pState)) usleep(1000);
     psOld=(*pState);
 
