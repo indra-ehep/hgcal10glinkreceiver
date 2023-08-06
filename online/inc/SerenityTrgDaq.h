@@ -85,17 +85,17 @@ namespace Hgcal10gLinkReceiver {
 	// Large packet
 
       // ECON-T output
-      uhalWrite("daq_ro.DAQro0.latency",5);
+      uhalWrite("daq_ro.DAQro0.latency",1+4*3);
       uhalWrite("daq_ro.DAQro0.event_size",4);
       uhalWrite("daq_ro.DAQro0.ext_ro",4);
 
       // Unpacker outputs
-      uhalWrite("daq_ro.DAQro1.latency",6);
+      uhalWrite("daq_ro.DAQro1.latency",0+6*3);
       uhalWrite("daq_ro.DAQro1.event_size",6);
       uhalWrite("daq_ro.DAQro1.ext_ro",4);
 
       // Scintillators
-      unsigned latSci(27);
+      unsigned latSci(28);
       uhalWrite("daq_ro.DAQro2.latency",3+5*latSci);
       uhalWrite("daq_ro.DAQro2.event_size",5);
       uhalWrite("daq_ro.DAQro2.ext_ro",4);

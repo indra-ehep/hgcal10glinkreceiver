@@ -93,7 +93,7 @@ namespace Hgcal10gLinkReceiver {
 	sout << "Elink_mapping.Elink" << i << ".";
 
 	// THIS IS THE REAL ONE!
-	if(false) {
+	if(true) {
 	  if(i<2*nEcond) {
 	    uhalWrite(sout.str()+"ID",i/2);
 	  } else {

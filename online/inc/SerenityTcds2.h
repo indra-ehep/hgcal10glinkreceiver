@@ -171,7 +171,7 @@ namespace Hgcal10gLinkReceiver {
 
       // Cludge here for now
       //uhalWrite("reg_320.ctrl1.ext_trigger_delay",17,true);
-      uhalWrite("reg_320.ctrl1.ext_trigger_delay",20,true); // Runs 1691157443 and 1691159729
+      uhalWrite("reg_320.ctrl1.ext_trigger_delay",21,true); // Runs 1691157443 and 1691159729
 
       return true;
     }  
