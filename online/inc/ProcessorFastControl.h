@@ -60,7 +60,8 @@ namespace Hgcal10gLinkReceiver {
     void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
       _serenityEncoder.makeTable();
       _serenityLpgbt.makeTable();
-      _serenityMiniDaq.makeTable();
+      _serenityMiniDaq[0].makeTable();
+      _serenityMiniDaq[1].makeTable("1");
       _serenity10g.makeTable();
       //_serenity10gx.makeTable();
       _serenityTrgDaq.makeTable();
@@ -77,8 +78,10 @@ namespace Hgcal10gLinkReceiver {
       _serenityLpgbt.setDefaults();
       _serenityLpgbt.print();
       
-      _serenityMiniDaq.setDefaults();
-      _serenityMiniDaq.print();
+      _serenityMiniDaq[0].setDefaults();
+      _serenityMiniDaq[0].print();
+      _serenityMiniDaq[1].setDefaults();
+      _serenityMiniDaq[1].print();
 
       _serenity10g.setDefaults();
       _serenity10g.print();
@@ -116,6 +119,7 @@ namespace Hgcal10gLinkReceiver {
 
       _serenityTrgDaq.uhalWrite("trigger_ro.SLink.source_id"  ,0xce000000|daqBoard<<4|0,true);
       _serenityEncoder.uhalWrite("DAQ_SLink_readout.source_id",0xce000000|daqBoard<<4|1,true);
+      _serenityEncoder.uhalWrite("DAQ_SLink_readout1.source_id",0xce000000|daqBoard<<4|2,true);
 
       return true;
     }
@@ -164,7 +168,7 @@ namespace Hgcal10gLinkReceiver {
 
 
  	if(_keyCfgA==127 || _keyCfgA==128) {
-	  _serenityMiniDaq.setNumberOfEconds(2);
+	  _serenityMiniDaq[0].setNumberOfEconds(2);
 	}
 
  	if(_keyCfgA==133 || _keyCfgA==135) {
@@ -231,16 +235,30 @@ namespace Hgcal10gLinkReceiver {
       YAML::Node n10g;
       _serenity10g.configuration(n10g);
       total["Eth10G"]=n10g;
+
+      /////////////////////////
       
       total["LpgbtPair"]["0"]["Id"]=0;
 
-      YAML::Node nm;
-      _serenityMiniDaq.configuration(nm);
-      total["LpgbtPair"]["0"]["MiniDaq"]=nm;
+      YAML::Node nm00;
+      _serenityMiniDaq[0].configuration(nm00);
+      total["LpgbtPair"]["0"]["MiniDaq"]=nm00;
 
-      YAML::Node nl;
-      _serenityLpgbt.configuration(nl);
-      total["LpgbtPair"]["0"]["FcStream"]=nl;
+      YAML::Node nl00;
+      _serenityLpgbt.configuration(nl00);
+      total["LpgbtPair"]["0"]["FcStream"]=nl00;
+      
+      /////////////////////////
+
+      total["LpgbtPair"]["1"]["Id"]=1;
+
+      YAML::Node nm01;
+      _serenityMiniDaq[1].configuration(nm01);
+      total["LpgbtPair"]["1"]["MiniDaq"]=nm01;
+
+      YAML::Node nl01;
+      _serenityLpgbt.configuration(nl01);
+      total["LpgbtPair"]["1"]["FcStream"]=nl01;
       
       std::ostringstream sout;
       sout << total;
@@ -255,7 +273,8 @@ namespace Hgcal10gLinkReceiver {
       
       //_serenity10gx.uhalWrite("ctrl.reg.en",1);
 
-      _serenityMiniDaq.reset();
+      _serenityMiniDaq[0].reset();
+      _serenityMiniDaq[1].reset();
       _serenityEncoder.resetSlinkFifo();
 
       _serenityEncoder.resetDaqReadout();
@@ -330,11 +349,21 @@ namespace Hgcal10gLinkReceiver {
       _serenityEncoder.status(ne);
       total["FcEncoder"]=ne;
 
+      ////////////////////
+
       total["LpgbtPair"]["0"]["Id"]=0;
 
-      YAML::Node nm;
-      _serenityMiniDaq.status(nm);
-      total["LpgbtPair"]["0"]["MiniDaq"]=nm;
+      YAML::Node nm00;
+      _serenityMiniDaq[0].status(nm00);
+      total["LpgbtPair"]["0"]["MiniDaq"]=nm00;
+
+      ////////////////////
+
+      total["LpgbtPair"]["1"]["Id"]=1;
+
+      YAML::Node nm01;
+      _serenityMiniDaq[1].status(nm01);
+      total["LpgbtPair"]["1"]["MiniDaq"]=nm01;
 
       if(_printEnable) std::cout << "Yaml status" << std::endl << total << std::endl;
       
@@ -358,8 +387,10 @@ namespace Hgcal10gLinkReceiver {
       _serenityLpgbt.setDefaults();
       _serenityLpgbt.print();
       
-      _serenityMiniDaq.setDefaults();
-      _serenityMiniDaq.print();
+      _serenityMiniDaq[0].setDefaults();
+      _serenityMiniDaq[0].print();
+      _serenityMiniDaq[1].setDefaults();
+      _serenityMiniDaq[1].print();
 
       //_serenity10g.setDefaults();
       //_serenity10g.print();
@@ -505,7 +536,7 @@ namespace Hgcal10gLinkReceiver {
 
       YAML::Node nm;
       //nm[0]="NULL";
-      _serenityMiniDaq.configuration(nm);
+      _serenityMiniDaq[0].configuration(nm);
       total["LpgbtPair"]["0"]["MiniDaq"]=nm;
 
       YAML::Node nl;
@@ -664,7 +695,7 @@ namespace Hgcal10gLinkReceiver {
 
     SerenityEncoder _serenityEncoder;
     SerenityLpgbt _serenityLpgbt;
-    SerenityMiniDaq _serenityMiniDaq;  
+    SerenityMiniDaq _serenityMiniDaq[2];  
     Serenity10g _serenity10g;
     Serenity10gx _serenity10gx;
     SerenityTrgDaq _serenityTrgDaq;
