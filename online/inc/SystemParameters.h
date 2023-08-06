@@ -18,7 +18,7 @@ namespace Hgcal10gLinkReceiver {
   const uint32_t RunControlFrontEndFsmShmKey(   0xcec0befe);
   const uint32_t RunControlFastControlFsmShmKey(0xcec0befc);
   const uint32_t RunControlTcds2FsmShmKey(      0xcec01cd5);
-  const uint32_t RunControlRelayFsmShmKey(      0xcec0da02);
+  const uint32_t RunControlRelayFsmShmKey(      0xcec0cf00);
   const uint32_t RunControlStageFsmShmKey(      0xcec051ae);
   const uint32_t RunControlDaqLink0FsmShmKey(   0xcec0da00);
   const uint32_t RunControlDaqLink1FsmShmKey(   0xcec0da01);
