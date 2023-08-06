@@ -55,7 +55,7 @@ namespace Hgcal10gLinkReceiver {
 	if(_printLevel>0) _goodFsmInterface[i]->print();
 
 	ntimeout=0;
-	while(_goodFsmInterface[i]->processState()!=FsmState::Initial && ntimeout<(i==7?60:3)) {
+	while(_goodFsmInterface[i]->processState()!=FsmState::Initial && ntimeout<3) {
 	  usleep(1000000);
 	  ntimeout++;
 	//sleep(2);
