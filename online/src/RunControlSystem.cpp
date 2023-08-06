@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
     }
   }
   
-  std::vector< ShmSingleton<FsmInterface> > vShmSingleton(8);
+  std::vector< ShmSingleton<FsmInterface> > vShmSingleton(9);
   std::vector<FsmInterface*> vPtr;
   
   vShmSingleton[0].setup(RunControlDummyFsmShmKey);
@@ -67,6 +67,7 @@ int main(int argc, char *argv[]) {
   vShmSingleton[5].setup(RunControlStageFsmShmKey);
   vShmSingleton[6].setup(RunControlDaqLink0FsmShmKey);
   vShmSingleton[7].setup(RunControlDaqLink1FsmShmKey);
+  vShmSingleton[8].setup(RunControlDaqLink2FsmShmKey);
 
   RunControlEngine engine;
   engine.setPrintEnable(  printEnable);
