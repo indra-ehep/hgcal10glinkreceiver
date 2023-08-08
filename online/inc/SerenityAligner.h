@@ -10,6 +10,8 @@
 #include <string>
 #include <cstring>
 
+#include <yaml-cpp/yaml.h>
+
 #include "SerenityUhal.h"
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
@@ -32,37 +34,47 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool makeTable() {
-      SerenityUhal::makeTable("payload.eth");
+      _uhalTopString="payload";
+      //SerenityUhal::makeTable("payload");
       return true;
     }
   
     bool setDefaults() {
+      // DONE ELSEWHERE!
+
+      /*
       uhalWrite("ctrl.reg.en",0);
       uhalWrite("ctrl.reg.duty_cycle",3);
       uhalWrite("ctrl.pkt_len",0x20);
       uhalWrite("ctrl.reg.decrement_len",0);
       uhalWrite("ctrl.pause_interval",0);
-
+      */
       return true;
     }  
 
-    void configuration(std::vector<uint32_t> &v) {
-      v.resize(0);
-      /*
-      // Control words
-      v.push_back(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl"));
-      v.push_back(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl1"));
-      v.push_back(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl2"));
-      v.push_back(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl3"));
+    void configuration(YAML::Node &m) {
+      m=YAML::Node();
 
-      // Sequencer 
-      uint32_t length(uhalRead("payload.fc_ctrl.tcds2_emu.ctrl_stat.ctrl.seq_length"));
-      uhalWrite("payload.fc_ctrl.tcds2_emu.seq_mem.pointer",0);
-      for(unsigned i(0);i<length;i++) {
-        v.push_back(uhalRead("payload.fc_ctrl.tcds2_emu.seq_mem.data"));
+      for(unsigned i(0);i<4;i++) {
+	YAML::Node ml;
+	
+	std::ostringstream sout;
+	sout << "lpgbt" << i;
+	std::string base(sout.str());
+	sout << ".lpgbt_frame.";
+
+	ml["lpgbt_frame.ctrl"]=uhalRead(sout.str()+"ctrl");
+	ml["lpgbt_frame.shift_elink0"]=uhalRead(sout.str()+"shift_elink0");
+	ml["lpgbt_frame.shift_elink1"]=uhalRead(sout.str()+"shift_elink1");
+	ml["lpgbt_frame.shift_elink2"]=uhalRead(sout.str()+"shift_elink2");
+	ml["lpgbt_frame.shift_elink3"]=uhalRead(sout.str()+"shift_elink3");
+	ml["lpgbt_frame.shift_elink4"]=uhalRead(sout.str()+"shift_elink4");
+	ml["lpgbt_frame.shift_elink5"]=uhalRead(sout.str()+"shift_elink5");
+	ml["lpgbt_frame.shift_elink6"]=uhalRead(sout.str()+"shift_elink6");
+
+	m[base]=ml;
       }
-      */
-    }  
+    }
 
     void print(std::ostream &o=std::cout) {
       o << "SerenityAligner::print()" << std::endl;

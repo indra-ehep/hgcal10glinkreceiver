@@ -51,7 +51,8 @@ namespace Hgcal10gLinkReceiver {
       m["ctrl_stat.ctrl1.en_nzs_reg"]=uhalRead("ctrl_stat.ctrl1.en_nzs_reg");
       m["ctrl_stat.ctrl1.en_nzs_rand"]=uhalRead("ctrl_stat.ctrl1.en_nzs_rand");
       m["ctrl_stat.ctrl1.en_nzs_physics"]=uhalRead("ctrl_stat.ctrl1.en_nzs_physics");
-      m["ctrl_stat.ctrl1.l1a_prbs_threshold"]=uhalRead("ctrl_stat.ctrl1.l1a_prbs_threshold");
+      m["ctrl_stat.ctrl3.l1a_prbs_threshold"]=uhalRead("ctrl_stat.ctrl3.l1a_prbs_threshold");
+      //m["ctrl_stat.ctrl1.l1a_prbs_threshold"]=uhalRead("ctrl_stat.ctrl1.l1a_prbs_threshold"); // REMOVE
 
       m["ctrl_stat.ctrl2.tts_mask"]=uhalRead("ctrl_stat.ctrl2.tts_mask");
       m["ctrl_stat.ctrl2.l1a_physics_mask"]=uhalRead("ctrl_stat.ctrl2.l1a_physics_mask");
@@ -84,7 +85,8 @@ namespace Hgcal10gLinkReceiver {
       m["ctrl_stat.ctrl1.en_nzs_reg"]=uhalRead("ctrl_stat.ctrl1.en_nzs_reg");
       m["ctrl_stat.ctrl1.en_nzs_rand"]=uhalRead("ctrl_stat.ctrl1.en_nzs_rand");
       m["ctrl_stat.ctrl1.en_nzs_physics"]=uhalRead("ctrl_stat.ctrl1.en_nzs_physics");
-      m["ctrl_stat.ctrl1.l1a_prbs_threshold"]=uhalRead("ctrl_stat.ctrl1.l1a_prbs_threshold");
+      m["ctrl_stat.ctrl3.l1a_prbs_threshold"]=uhalRead("ctrl_stat.ctrl3.l1a_prbs_threshold");
+      //m["ctrl_stat.ctrl1.l1a_prbs_threshold"]=uhalRead("ctrl_stat.ctrl1.l1a_prbs_threshold"); // REMOVE
 
       m["ctrl_stat.ctrl2.tts_mask"]=uhalRead("ctrl_stat.ctrl2.tts_mask");
       m["ctrl_stat.ctrl2.l1a_physics_mask"]=uhalRead("ctrl_stat.ctrl2.l1a_physics_mask");
@@ -157,7 +159,8 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("ctrl_stat.ctrl1.en_nzs_reg",0);
       uhalWrite("ctrl_stat.ctrl1.en_nzs_rand",0);
       uhalWrite("ctrl_stat.ctrl1.en_nzs_physics",0);
-      uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xffff-16); // ~11 kHz
+      uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-20); // ~50 Hz
+      //uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xffff-1); // REMOVE
 
       //uhalWrite("ctrl_stat.ctrl2.tts_tcds2",1);
       setThrottle(true);

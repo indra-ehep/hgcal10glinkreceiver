@@ -30,8 +30,11 @@ bool ZmqRunControlFsm(uint32_t key, uint16_t port) {
     //socket.connect("tcp://cebrown-desktop:5555");
 
     std::ostringstream sout;
-    //sout << "tcp://cebrown-desktop:" << port;
-    sout << "tcp://hgcbeamtestpc:" << port;
+    if(key==ProcessorStageFsmShmKey) {
+      sout << "tcp://rasppitifr:" << port;
+    } else {
+      sout << "tcp://hgcbeamtestpc:" << port;
+    }
 
     std::cout << "Connecting to " << sout.str() << std::endl;
     socket.connect(sout.str());

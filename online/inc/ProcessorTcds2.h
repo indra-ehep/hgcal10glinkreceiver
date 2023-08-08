@@ -195,7 +195,7 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_random",0);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
 
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xffff-1);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-0x100);
 
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",2);
 
@@ -220,7 +220,7 @@ namespace Hgcal10gLinkReceiver {
       }
 
       if(_keyCfgA==202 || _keyCfgA==205) {
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xffff-91);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-91*256);
 
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_random",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
@@ -247,7 +247,7 @@ namespace Hgcal10gLinkReceiver {
       }
 
       if(_keyCfgA==209) {
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xffff-511);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-511*256);
 
 	unsigned nL1A(27);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",nL1A);
@@ -265,7 +265,7 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",2);
 
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_random",1);
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xffff-1);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-20);
 
 	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold",127,true);
 	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);

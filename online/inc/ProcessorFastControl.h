@@ -24,6 +24,7 @@
 #include "Serenity10g.h"
 #include "Serenity10gx.h"
 #include "SerenityTrgDaq.h"
+#include "SerenityAligner.h"
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
@@ -65,7 +66,8 @@ namespace Hgcal10gLinkReceiver {
       _serenity10g.makeTable();
       //_serenity10gx.makeTable();
       _serenityTrgDaq.makeTable();
-      
+      _serenityAligner.makeTable();
+
       ShmSingleton<RelayWriterDataFifo> shm2;
       ptrFifoShm2=shm2.setup(fifoKey);
       startFsm(rcKey);
@@ -91,6 +93,9 @@ namespace Hgcal10gLinkReceiver {
 
       _serenityTrgDaq.setDefaults();
       _serenityTrgDaq.print();
+
+      //_serenityAligner.print(); // Does all payload
+
 
       ///////////////////////////////////////////////////////
       
@@ -236,6 +241,10 @@ namespace Hgcal10gLinkReceiver {
       _serenity10g.configuration(n10g);
       total["Eth10G"]=n10g;
 
+      YAML::Node na;
+      _serenityAligner.configuration(na);
+      total["Aligner"]=na;
+
       /////////////////////////
       
       total["LpgbtPair"]["0"]["Id"]=0;
@@ -348,7 +357,7 @@ namespace Hgcal10gLinkReceiver {
       YAML::Node ne;
       _serenityEncoder.status(ne);
       total["FcEncoder"]=ne;
-
+      
       ////////////////////
 
       total["LpgbtPair"]["0"]["Id"]=0;
@@ -699,6 +708,7 @@ namespace Hgcal10gLinkReceiver {
     Serenity10g _serenity10g;
     Serenity10gx _serenity10gx;
     SerenityTrgDaq _serenityTrgDaq;
+    SerenityAligner _serenityAligner;
   };
 
 }
