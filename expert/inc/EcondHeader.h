@@ -13,8 +13,8 @@ namespace Hgcal10gLinkReceiver {
   class EcondHeader {
   public:
     enum {
-      HeaderPattern=0x1e6
-      //HeaderPattern=0x154
+      //HeaderPattern=0x1e6
+      HeaderPattern=0x154
     };
 
     enum DataType {
