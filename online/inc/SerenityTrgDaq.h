@@ -96,9 +96,11 @@ namespace Hgcal10gLinkReceiver {
 
       // Scintillators
       unsigned latSci(28);
+      //unsigned latSci(24); // Aidan test
       uhalWrite("daq_ro.DAQro2.latency",3+5*latSci);
       uhalWrite("daq_ro.DAQro2.event_size",5);
       uhalWrite("daq_ro.DAQro2.ext_ro",4);
+      //uhalWrite("daq_ro.DAQro2.ext_ro",7); // Aidan test
 
       // Output of Stage 1 block 0
       uhalWrite("daq_ro.DAQro3.latency",3);
