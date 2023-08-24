@@ -135,6 +135,8 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
   printEnable=true;
   
 
+  std::ofstream fout;
+  fout.open("temp.bin",std::ios::binary);
 
 
 
@@ -158,6 +160,11 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
     
     //uint64_t *ptr(ptrRunFileShm->_buffer[ptrRunFileShm->_writePtr%RunFileShm::BufferDepth]);
     n = recv(connected, buffer, BUFFER_SIZE_MAX, 0);
+
+    unsigned n64(n+7/8);
+    if((n%8)!=0) std::cerr << "WARNING: number of bytes read = " << n << " gives n%8 = " << (n%8)
+			   << " != 0" << std::endl;
+
     //n = recvfrom(sockfd, (char *)rt, MAXLINE,
     //	   MSG_WAITALL, ( struct sockaddr *) &cliaddr,
     //	   &len);
@@ -165,40 +172,37 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
     if(printEnable) std::cout  << std::endl << "************ GOT DATA ******************" << std::endl << std::endl;
 
     if(printEnable) {
-      std::cout << "Size = " << n << " ?= " << rt->totalLengthInBytes() << std::endl;
+      std::cout << "Size = " << n << " bytes = " << n64 << " uint64_t words" << std::endl;
       std::cout << "First word        = " << std::hex << std::setw(16) << buffer[0] << std::dec << std::endl;
       std::cout << "Second word       = " << std::hex << std::setw(16) << buffer[1] << std::dec << std::endl;
       std::cout << "Last-but-one word = " << std::hex << std::setw(16) << buffer[(n-9)/8] << std::dec << std::endl;
       std::cout << "Last word         = " << std::hex << std::setw(16) << buffer[(n-1)/8] << std::dec << std::endl;
     }
-      dthh=(Hgcal10gLinkReceiver::DthHeader*)buffer;
 
-      if(printEnable) {
-	dthh->print();
-      }
+    dthh=(Hgcal10gLinkReceiver::DthHeader*)buffer;
+    if(printEnable) {
+      dthh->print();
+    }
 
-    if(newEvent) {
+    //if(newEvent) {
 
-      if(dthh->blockStart()) {
-	nWords=(n-9)/8;
-
+    if(dthh->blockStart()) {
 	rt->reset(FsmState::Running);
 	rt->setSequenceCounter(seqc++);
-	rt->setPayloadLength(nWords);
-	std::memcpy(ptrt+1,buffer+2,n-16);
-
 	rt->RecordHeader::print();
-      }
+	//rt->setPayloadLength(nWords);
+	nWords=0;
+    }
 
-      newEvent=dthh->blockStop();
+    std::memcpy(ptrt+1+nWords,buffer+2,n64-2);
+    nWords+=n64-2;
 
-    } else {
-      std::memcpy(ptrt+1+nWords,buffer+2,n-16);
-      nWords+=(n-9)/8;
+    if(dthh->blockStop()) {
       rt->setPayloadLength(nWords);
+      rt->print();
 
-      newEvent=dthh->blockStop();
-      if(newEvent) rt->print();
+      fout.write((char*)(rt),rt->totalLengthInBytes());
+      fout.flush();
     }
       
     if(printEnable) ptrRunFileShm->print();
