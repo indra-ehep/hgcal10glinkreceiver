@@ -18,6 +18,7 @@ namespace Hgcal10gLinkReceiver {
       _runActive=false;
       _enableLink.push_back(true);
       _enableLink.push_back(true);
+      _enableLink.push_back(false);
     }
     
     void enableLink(unsigned l, bool b=true) {
@@ -42,8 +43,9 @@ namespace Hgcal10gLinkReceiver {
 	      _runReader[i].openRun(rs->utc(),i);
 
 	      if(_runReader[i].read(&rs2)) {
-		std::cout << "Read Starting from run file" << std::endl;
-		rs2.print();
+		//std::cout << "Read Starting from run file" << std::endl;
+		//rs2.print();
+		
 		//assert(rs2.runNumber() ==rs->runNumber());
 		//assert(rs2.maxEvents() ==rs->maxEvents());
 		//assert(rs2.maxSeconds()==rs->maxSeconds());
@@ -59,20 +61,20 @@ namespace Hgcal10gLinkReceiver {
 	}
 
       } else {
-	unsigned l(_enableLink[0]?0:1);
-	//if(_runReader[(_runRecord++)%2].read(r)) {
-	if(_runReader[l].read(r)) {
+	for(unsigned i(0);i<_enableLink.size();i++) {
+	  if(_enableLink[i]) {
+	    if(_runReader[i].read(r)) {
 	  
-	  if(r->state()==FsmState::Stopping) {
-	    _runActive=false;
-	    _runReader[0].close();
-	    _runReader[1].close();
+	      if(r->state()==FsmState::Stopping) {
+		_runActive=false;
+		_runReader[0].close();
+		_runReader[1].close();
+		_runReader[2].close();
 	    
-	    return FileReader::read(r);
+		return FileReader::read(r);
+	      }
+	    }
 	  }
-
-	} else {
-	  return false;
 	}
       }
       return true;
@@ -83,7 +85,7 @@ namespace Hgcal10gLinkReceiver {
     
     bool _runActive;
     unsigned _runRecord;
-    FileReader _runReader[2];
+    FileReader _runReader[3];
   };
 }
 

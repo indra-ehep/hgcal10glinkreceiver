@@ -99,10 +99,15 @@ int main(int argc, char** argv) {
 
   bool noCheck(false);
   uint32_t initialSeq;
+
   
   bool doubleEvents(false);
   unsigned nEventsPerOrbit(1);
   */
+
+  std::ofstream fout("Aidan.csv");
+  
+  
   while(_fileReader.read(r)) {
     if(       r->state()==Hgcal10gLinkReceiver::FsmState::Starting) {
       rStart->print();
@@ -121,6 +126,23 @@ int main(int argc, char** argv) {
 
       const uint64_t *p64(((const uint64_t*)rEvent)+1);
 
+      // Run 1691537835 only
+      uint64_t RaghuWord(p64[ 96]);
+      uint64_t AidanWord(p64[145]);
+
+      const Hgcal10gLinkReceiver::SlinkBoe *b(rEvent->slinkBoe());
+      assert(b!=nullptr);
+      const Hgcal10gLinkReceiver::SlinkEoe *e(rEvent->slinkEoe());
+      assert(e!=nullptr);
+
+      fout << std::setw(4) << e->bxId() << "," << std::setw(10) << e->orbitId()
+		<< "," << std::setw(10) << b->eventId() << ",0x"
+		<< std::hex << std::setfill('0')
+		<< std::setw(8) << (AidanWord>>32) << ",0x"
+		<< std::setw(8) << (RaghuWord&0xffffffff)
+	   << std::dec << std::setfill(' ') << std::endl;
+
+      
       // Scintillator
       unsigned nWord(0),nFirstWord(0),nLastWord(0);
       for(unsigned i(0);i<rEvent->payloadLength();i++) {
@@ -144,7 +166,7 @@ int main(int argc, char** argv) {
       unsigned nCentre(nFirstWord-2+nWord/2);
 
       std::cout << "nCentre = " << nCentre << std::endl;
-      
+      if(nCentre<300) {
       bool inTrain(false);
         unsigned first,last;
         unsigned nTrains(0);
@@ -190,7 +212,7 @@ int main(int argc, char** argv) {
         if(inTrain) hScintLengthE->Fill(last-first+1);
         //if(nTrains>0) std::cout << "Number of trains = " << nTrains << std::endl;
         hNtrains->Fill(nTrains);
-
+      }
 
 	
       
@@ -248,6 +270,7 @@ int main(int argc, char** argv) {
   std::cout << "Final OC offset = " << ocOffset << std::endl;
   */
 
+  fout.close();
   delete r;
 
   return 0;
