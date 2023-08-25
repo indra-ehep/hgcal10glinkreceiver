@@ -24,7 +24,7 @@ using namespace Hgcal10gLinkReceiver;
 
 #define MAXLINE 4096
 
-#define PORT 10000
+//#define PORT 10000
 
 
 
@@ -73,8 +73,7 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
     perror("socket");
     exit(1);
   }
-
-        
+							
   /* set SO_REUSEADDR on a socket to bypass TIME_WAIT state */
 
   if(false) {
@@ -95,7 +94,7 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
   */    
         
   server_addr.sin_family = AF_INET;         
-  server_addr.sin_port = htons(PORT);     
+  server_addr.sin_port = htons(port);     
   server_addr.sin_addr.s_addr = INADDR_ANY; 
   bzero(&(server_addr.sin_zero), 8); 
 
@@ -109,7 +108,7 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
     exit(1);
   }
                         
-  printf("\nListening on port %u\n", PORT);
+  printf("\nListening on port %u\n", port);
   /*
   memset(&clients, 0, sizeof(clients));
   if (options.cpu != -1) {
@@ -136,15 +135,16 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
   
 
   std::ofstream fout;
-  fout.open("temp.bin",std::ios::binary);
+  if(port==10000) fout.open("temp0.bin",std::ios::binary);
+  if(port==10010) fout.open("temp1.bin",std::ios::binary);
+
+
+  unsigned n64Tcp,i64Tcp,n64Packet(0),i64Packet(0);
 
 
 
 
-
-
-
-  Hgcal10gLinkReceiver::DthHeader *dthh(0);
+  Hgcal10gLinkReceiver::DthHeader dthh;
 
 
   bool newEvent(true);
@@ -161,7 +161,9 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
     //uint64_t *ptr(ptrRunFileShm->_buffer[ptrRunFileShm->_writePtr%RunFileShm::BufferDepth]);
     n = recv(connected, buffer, BUFFER_SIZE_MAX, 0);
 
-    unsigned n64(n+7/8);
+    n64Tcp=(n+7)/8;
+    i64Tcp=0;
+
     if((n%8)!=0) std::cerr << "WARNING: number of bytes read = " << n << " gives n%8 = " << (n%8)
 			   << " != 0" << std::endl;
 
@@ -172,48 +174,81 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
     if(printEnable) std::cout  << std::endl << "************ GOT DATA ******************" << std::endl << std::endl;
 
     if(printEnable) {
-      std::cout << "Size = " << n << " bytes = " << n64 << " uint64_t words" << std::endl;
+      std::cout << "TCP size = " << n << " bytes = " << n64Tcp << " uint64_t words" << std::endl;
       std::cout << "First word        = " << std::hex << std::setw(16) << buffer[0] << std::dec << std::endl;
       std::cout << "Second word       = " << std::hex << std::setw(16) << buffer[1] << std::dec << std::endl;
-      std::cout << "Last-but-one word = " << std::hex << std::setw(16) << buffer[(n-9)/8] << std::dec << std::endl;
-      std::cout << "Last word         = " << std::hex << std::setw(16) << buffer[(n-1)/8] << std::dec << std::endl;
+      std::cout << "Last-but-one word = " << std::hex << std::setw(16) << buffer[n64Tcp-2] << std::dec << std::endl;
+      std::cout << "Last word         = " << std::hex << std::setw(16) << buffer[n64Tcp-1] << std::dec << std::endl;
+      //std::cout << "Last-but-one word = " << std::hex << std::setw(16) << buffer[(n-9)/8] << std::dec << std::endl;
+      //std::cout << "Last word         = " << std::hex << std::setw(16) << buffer[(n-1)/8] << std::dec << std::endl;
     }
 
-    dthh=(Hgcal10gLinkReceiver::DthHeader*)buffer;
+    while(i64Tcp<n64Tcp) {
+
+    if(n64Packet==0) {
+      dthh=*((Hgcal10gLinkReceiver::DthHeader*)(buffer+i64Tcp));
+      i64Tcp+=2;
+
+    if(dthh.blockStart()) {
+      rt->reset(FsmState::Running);
+      rt->setSequenceCounter(seqc++);
+      rt->RecordHeader::print();
+      //rt->setPayloadLength(nWords);
+      nWords=0;
+    }
+
+      n64Packet=2*dthh.length();
+      i64Packet=0;
+	
+      if(printEnable) {
+	dthh.print();
+      }
+    }
+        
+    unsigned words64=std::min(n64Packet-i64Packet,n64Tcp-i64Tcp); 
+    //unsigned words64=n64Packet;
     if(printEnable) {
-      dthh->print();
+      std::cout << "Packet words = min(" << n64Packet-i64Packet << ", " << n64Tcp-i64Tcp
+		<< ") = " << words64 << " uint64_t words" << std::endl;
+    } 
+  
+    std::memcpy(ptrt+1+nWords,buffer+i64Tcp,8*words64);
+    nWords+=words64;
+    i64Tcp+=words64;
+    i64Packet+=words64;
+
+    bool cludgeStop(false);
+    /*
+    if((buffer[n64Tcp-1]>>56)==0xaa && !dthh.blockStop()) {
+      std::cerr << "WARNING: No BlockStop but last word = " << std::hex << std::setw(16) << buffer[n64-1]
+		<< std::dec << " and length = " << nWords << std::endl;
+      ((const Hgcal10gLinkReceiver::SlinkEoe*)(buffer+n64-2))->print(std::cerr);
+      cludgeStop=true;
     }
-
-    //if(newEvent) {
-
-    if(dthh->blockStart()) {
-	rt->reset(FsmState::Running);
-	rt->setSequenceCounter(seqc++);
-	rt->RecordHeader::print();
-	//rt->setPayloadLength(nWords);
-	nWords=0;
-    }
-
-    std::memcpy(ptrt+1+nWords,buffer+2,n64-2);
-    nWords+=n64-2;
-
-    if(dthh->blockStop()) {
+    */
+    if(i64Packet>=n64Packet && (dthh.blockStop() || cludgeStop)) {
       rt->setPayloadLength(nWords);
       rt->print();
 
       fout.write((char*)(rt),rt->totalLengthInBytes());
       fout.flush();
-    }
+
+      n64Packet=0;
       
-    if(printEnable) ptrRunFileShm->print();
-
-#ifdef JUNK
-    while((r=(Record*)(ptrRunFileShm->getWriteRecord()))==nullptr) usleep(10);
-
-    if(printEnable) std::cout  << std::endl << "************ GOT MEMORY ******************" << std::endl << std::endl;
-
-    memcpy(r,rt,n);
+      //if(printEnable) ptrRunFileShm->print();
+      
+      while((r=(Record*)(ptrRunFileShm->getWriteRecord()))==nullptr) usleep(10);
+      
+      if(printEnable) std::cout  << std::endl << "************ GOT MEMORY ******************" << std::endl << std::endl;
+      
+      std::memcpy(r,rt,rt->totalLengthInBytes());
 	   
+      ptrRunFileShm->writeIncrement();
+      if(dummyWriter) ptrRunFileShm->readIncrement();
+      if(printEnable) ptrRunFileShm->print();
+    }
+    }
+#ifdef JUNK
     //printEnable=(len<=16 || n<=16);
 
     if(printEnable) ptrRunFileShm->print();

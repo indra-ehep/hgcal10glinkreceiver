@@ -145,6 +145,8 @@ int main(int argc, char** argv) {
       
     } else {
       nEvents++;
+
+      bool printIt(false);
       
       // Access the Slink header ("begin-of-event")
       // This should always be present; check pattern is correct
@@ -197,18 +199,47 @@ int main(int argc, char** argv) {
 
       oldBx=tBx;
       oldStatusBe=statusBe;
+
+      // Set pointer to the beginning of the packet
+      const uint64_t *p64(((const uint64_t*)rEvent)+1);
+
+      // Check for odd missing packet padding
+      if(rEvent->payloadLength()==6) {
+	if(p64[3]!=0) {
+	  std::cout << "Event " << nEvents << " has non-zero padding" << std::endl;
+	  printIt=true;
+	}
+      }
+
+      // Check for idles and/or repetition
+      unsigned nRep(0);
+
+      for(unsigned i(0);i<rEvent->payloadLength();i++) {
+	if(i>0) {
+	  if(p64[i]==p64[i-1]) nRep++;
+	}
+
+	if((p64[i]>>40)==0xaaaaff || ((p64[i]>>8)&0xffffff)==0xaaaaff) {
+	  std::cout << "Event " << nEvents << " has idle for word " << i << std::endl;
+	  printIt=true;
+	}
+      }
+      
+      if(nRep>1) {
+	std::cout << "Event " << nEvents << " has " << nRep << " repetitions" << std::endl;
+	printIt=true;
+      }
       
       //if(nEvents>30000000) {
       //std::cout << "Total BX = " << tBx << ", time = " << tBx*25.0e-9 << std::endl;
       //}
 	    
-      // Set pointer to the beginning of the packet
-      const uint64_t *p64(((const uint64_t*)rEvent)+1);
-      
       //if(nEvents<=10 || rEvent->payloadLength()==10) {
       if(printRelay1691487718(nEvents,statusBe,rEvent) ||
 	 (statusBe==4 && nEvS4<10) ||
-	 (statusBe==5 && nEvS5<10)) {
+	 (statusBe==5 && nEvS5<10) ||
+	 printIt) {
+	
 	std::cout << "Event " << nEvents << std::endl;
 	b->print();
 	if(relayNumber==1691487718 && nEvents==20998026) e=(const Hgcal10gLinkReceiver::SlinkEoe*)(p64+4); // Repair!
