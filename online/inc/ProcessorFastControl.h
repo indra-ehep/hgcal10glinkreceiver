@@ -6,6 +6,7 @@
 
 //#define REMOVE_FOR_TESTING
 
+#define DthHardware
 
 
 
@@ -61,9 +62,13 @@ namespace Hgcal10gLinkReceiver {
       _serenityEncoder.makeTable();
       _serenityLpgbt.makeTable();
       _serenityMiniDaq.makeTable();
+      _serenityTrgDaq.makeTable();
+
+#ifdef DthHardware
+#else
       _serenity10g.makeTable();
       //_serenity10gx.makeTable();
-      _serenityTrgDaq.makeTable();
+#endif
       
       ShmSingleton<RelayWriterDataFifo> shm2;
       ptrFifoShm2=shm2.setup(fifoKey);
@@ -80,8 +85,11 @@ namespace Hgcal10gLinkReceiver {
       _serenityMiniDaq.setDefaults();
       _serenityMiniDaq.print();
 
+#ifdef DthHardware
+#else
       _serenity10g.setDefaults();
       _serenity10g.print();
+#endif
 
       //_serenity10gx.setDefaults();
       //_serenity10gx.print();
@@ -228,9 +236,12 @@ namespace Hgcal10gLinkReceiver {
       _serenityTrgDaq.configuration(ntd);
       total["TriggerDaq"]=ntd;
       
+#ifdef DthHardware
+#else
       YAML::Node n10g;
       _serenity10g.configuration(n10g);
       total["Eth10G"]=n10g;
+#endif
       
       total["LpgbtPair"]["0"]["Id"]=0;
 
@@ -253,15 +264,16 @@ namespace Hgcal10gLinkReceiver {
 
       ///////////////////////////////////////////////////
       
-      //_serenity10gx.uhalWrite("ctrl.reg.en",1);
-
       _serenityMiniDaq.reset();
       _serenityEncoder.resetSlinkFifo();
 
       _serenityEncoder.resetDaqReadout();
       _serenityEncoder.resetTrgReadout();
 
+#ifdef DthHardware
+#else
       _serenity10g.reset();
+#endif
 
       usleep(2*1000000);
       return true;

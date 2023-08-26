@@ -27,10 +27,10 @@
 #include "emp/BoardData.hpp"
 
 #include "emp/logger/logger.hpp"
-#include "/home/cmx/rshukla/emp-toolbox/core/include/emp/Controller.hpp"
+//#include "/home/cmx/rshukla/emp-toolbox/core/include/emp/Controller.hpp"
 #include "emp/DatapathNode.hpp"
 #include "emp/GbtMGTRegionNode.hpp"
-#include "/home/cmx/rshukla/emp-toolbox/core/include/emp/LpGbtMGTRegionNode.hpp"
+//#include "/home/cmx/rshukla/emp-toolbox/core/include/emp/LpGbtMGTRegionNode.hpp"
 #include "emp/SCCNode.hpp"
 #include "emp/SCCICNode.hpp"
 #include "emp/utilities/misc.hpp"
