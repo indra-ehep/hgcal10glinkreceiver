@@ -62,12 +62,12 @@ namespace Hgcal10gLinkReceiver {
 
 
   // Junk
-  
+  /*
   const uint32_t RunControlCfgLink0FsmShmKey(   0xcec0cf00);
   const uint32_t RunControlCfgLink1FsmShmKey(   0xcec0cf01);
   const uint32_t RunControlCfgLink2FsmShmKey(   0xcec0cf02);
   const uint32_t RunControlCfgLink3FsmShmKey(   0xcec0cf03);
-
+  */
 
 
   // DATA TRANSFER

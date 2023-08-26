@@ -57,6 +57,10 @@ class SlinkEoe {
     return _word[0]>>32;
   }
 
+  uint64_t totalBx() const {
+    return uint64_t(3564)*orbitId()+bxId();
+  }
+
   uint16_t crc() const {
     return (_word[0]>>16)&0xffff;
   }

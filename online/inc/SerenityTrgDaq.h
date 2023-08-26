@@ -96,24 +96,28 @@ namespace Hgcal10gLinkReceiver {
 
       // Scintillators
       unsigned latSci(28);
+      //unsigned latSci(24); // Aidan test
       uhalWrite("daq_ro.DAQro2.latency",3+5*latSci);
       uhalWrite("daq_ro.DAQro2.event_size",5);
       uhalWrite("daq_ro.DAQro2.ext_ro",4);
+      //uhalWrite("daq_ro.DAQro2.ext_ro",7); // Aidan test
 
-      // Output of Stage 1 block
-      uhalWrite("daq_ro.DAQro3.latency",20);
+      // Output of Stage 1 block 0
+      uhalWrite("daq_ro.DAQro3.latency",3);
       uhalWrite("daq_ro.DAQro3.event_size",8);
-      uhalWrite("daq_ro.DAQro3.ext_ro",4);
+      uhalWrite("daq_ro.DAQro3.ext_ro",1);
+
+      // Output of Stage 1 block 1
+      uhalWrite("daq_ro.DAQro4.latency",3);
+      uhalWrite("daq_ro.DAQro4.event_size",8);
+      uhalWrite("daq_ro.DAQro4.ext_ro",1);
       }
+
       // Unused
 
-      uhalWrite("daq_ro.DAQro4.latency",0);
-      uhalWrite("daq_ro.DAQro4.event_size",0);
-      uhalWrite("daq_ro.DAQro4.ext_ro",0);
-
-      uhalWrite("daq_ro.DAQro5.latency",0);
-      uhalWrite("daq_ro.DAQro5.event_size",0);
-      uhalWrite("daq_ro.DAQro5.ext_ro",0);
+      uhalWrite("daq_ro.DAQro5.latency",3);
+      uhalWrite("daq_ro.DAQro5.event_size",8);
+      uhalWrite("daq_ro.DAQro5.ext_ro",1);
 
       uhalWrite("daq_ro.DAQro6.latency",0);
       uhalWrite("daq_ro.DAQro6.event_size",0);

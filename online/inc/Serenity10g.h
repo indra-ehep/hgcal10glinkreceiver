@@ -28,6 +28,7 @@ namespace Hgcal10gLinkReceiver {
   public:
   
     Serenity10g() {
+      nLinks=3;
     }
     
     virtual ~Serenity10g() {
@@ -40,20 +41,18 @@ namespace Hgcal10gLinkReceiver {
   
     void reset() {
 
-      for(unsigned j(0);j<2;j++) {
+      for(unsigned j(0);j<nLinks;j++) {
 	uhalWrite("quad_ctrl.select",0x0);
 	uhalWrite("quad.channel_ctrl.select",j);
 	uhalWrite("quad.channel.ctrl.reg.rst",1);
-	//uhalWrite("quad.channel.stat.lff_watchdog",0);
       }
 
       usleep(1000);
 
-      for(unsigned j(0);j<2;j++) {	
+      for(unsigned j(0);j<nLinks;j++) {
 	uhalWrite("quad_ctrl.select",0x0);
 	uhalWrite("quad.channel_ctrl.select",j);
 	uhalWrite("quad.channel.ctrl.reg.rst",0);
-	//uhalWrite("quad.channel.stat.lff_watchdog",0);
       }
     }
   
@@ -61,99 +60,136 @@ namespace Hgcal10gLinkReceiver {
 
       if(true) {
 
-      //channel 0
-      uint32_t local_ip0(0xC0A80352);
-      uint32_t remote_ip0(0xC0A80302);
-      uint32_t local_port0(0x04D2);
-      uint32_t remote_port0(0x04D2);
-      uint32_t run_id0(0xABD);
-      //uint32_t aggregate_en0(0x1);
-      uint32_t aggregate_en0(0x0); // No aggregation with ECON-T data (v2xx onwards)
-      uint32_t aggregate_limit0(0xFF);
-      uint32_t watchdog_threshold0(0x60);
-      //uint32_t watchdog_threshold0(0xffffffff);
+	uint32_t local_ip[3] ={0xC0A80352,0xC0A80452,0xC0A80552};
+	uint32_t remote_ip[3]={0xC0A80302,0xC0A80402,0xC0A80502};
+	uint32_t local_port[3] ={0x04D2,0x04D3,0x04D4};
+	uint32_t remote_port[3]={0x04D2,0x04D3,0x04D4};
 
-      //channel 1
-      uint32_t local_ip1(0xC0A80452);
-      uint32_t remote_ip1(0xC0A80402);
-      uint32_t local_port1(0x04D3);
-      uint32_t remote_port1(0x04D3);
-      uint32_t run_id1(0xFEC);
-      uint32_t aggregate_en1(0x0);
-      uint32_t aggregate_limit1(0xFF);
-      uint32_t watchdog_threshold1(0x60);
-      //uint32_t watchdog_threshold1(0xffffffff);
+	uint32_t run_id[3]={0xABD,0xFEC,0x333};
+	uint32_t aggregate_en[3]={0,0,0};
+	uint32_t aggregate_limit[3]={0xFF,0xFF,0xFF};
+	uint32_t watchdog_threshold[3]={0x60,0x60,0x60};
 
+	/*
+	//channel 0
+	uint32_t local_ip0(0xC0A80352);
+	uint32_t remote_ip0(0xC0A80302);
+	uint32_t local_port0(0x04D2);
+	uint32_t remote_port0(0x04D2);
+	uint32_t run_id0(0xABD);
+	//uint32_t aggregate_en0(0x1);
+	uint32_t aggregate_en0(0x0); // No aggregation with ECON-T data (v2xx onwards)
+	uint32_t aggregate_limit0(0xFF);
+	uint32_t watchdog_threshold0(0x60);
+	//uint32_t watchdog_threshold0(0xffffffff);
+	
+	//channel 1
+	uint32_t local_ip1(0xC0A80452);
+	uint32_t remote_ip1(0xC0A80402);
+	uint32_t local_port1(0x04D3);
+	uint32_t remote_port1(0x04D3);
+	uint32_t run_id1(0xFEC);
+	uint32_t aggregate_en1(0x0);
+	uint32_t aggregate_limit1(0xFF);
+	uint32_t watchdog_threshold1(0x60);
+	//uint32_t watchdog_threshold1(0xffffffff);
+	*/
 
-      // disable the eth link
-      uhalWrite("quad_ctrl.select",0x0);
+	// disable the eth link
+	for(unsigned j(0);j<nLinks;j++) {
+	  uhalWrite("quad_ctrl.select",0x0);
+	  uhalWrite("quad.channel_ctrl.select",j);
+	  
+	  uhalWrite("quad.channel.ctrl.reg.rst",1);
+	}
+	
+	// disable the echo server
+	for(unsigned j(0);j<nLinks;j++) {
+	  uhalWrite("quad_ctrl.select",0x0);
+	  uhalWrite("quad.channel_ctrl.select",j);
+	  
+	  uhalWrite("quad.channel.ctrl.reg.echo",0);
+	}
+	
+	// configure the eth interface
+	for(unsigned j(0);j<nLinks;j++) {
+	  uhalWrite("quad_ctrl.select",0x0);
+	  uhalWrite("quad.channel_ctrl.select",j);
+	  
+	  uhalWrite("quad.channel.ctrl.local_ip",local_ip[j]);
+	  uhalWrite("quad.channel.ctrl.remote_ip",remote_ip[j]);
+	  uhalWrite("quad.channel.ctrl.ports.local",local_port[j]);
+	  uhalWrite("quad.channel.ctrl.ports.remote",remote_port[j]);
+	  uhalWrite("quad.channel.ctrl.reg.run",run_id[j]);
+	}
+	
+	/*
+	  uhalWrite("quad.channel.ctrl.local_ip",local_ip0);
+	  uhalWrite("quad.channel.ctrl.remote_ip",remote_ip0);
+	  uhalWrite("quad.channel.ctrl.ports.local",local_port0);
+	  uhalWrite("quad.channel.ctrl.ports.remote",remote_port0);
+	  uhalWrite("quad.channel.ctrl.reg.run",run_id0);
+	  
+	  //uhalWrite("quad_ctrl.select",0x0);
+	  
+	  uhalWrite("quad.channel_ctrl.select",0x1);
+	  uhalWrite("quad.channel.ctrl.local_ip",local_ip1);
+	  uhalWrite("quad.channel.ctrl.remote_ip",remote_ip1);
+	  uhalWrite("quad.channel.ctrl.ports.local",local_port1);
+	  uhalWrite("quad.channel.ctrl.ports.remote",remote_port1);
+	  uhalWrite("quad.channel.ctrl.reg.run",run_id1);
+	*/
+	
+	// small pkt aggregation
+	for(unsigned j(0);j<nLinks;j++) {
+	  uhalWrite("quad_ctrl.select",0x0);
+	  uhalWrite("quad.channel_ctrl.select",j);
+	  
+	  uhalWrite("quad.channel.ctrl.reg.aggregate",aggregate_en[j]);
+	  uhalWrite("quad.channel.ctrl.reg.aggregate_limit",aggregate_limit[j]);
+	}
+	/*
+	  uhalWrite("quad_ctrl.select",0x0);
+	  
+	  uhalWrite("quad.channel_ctrl.select",0x0);
+	  uhalWrite("quad.channel.ctrl.reg.aggregate",aggregate_en0);
+	  uhalWrite("quad.channel.ctrl.reg.aggregate_limit",aggregate_limit0);
+	  
+	  uhalWrite("quad.channel_ctrl.select",0x1);
+	  uhalWrite("quad.channel.ctrl.reg.aggregate",aggregate_en1);
+	  uhalWrite("quad.channel.ctrl.reg.aggregate_limit",aggregate_limit1);
+	*/
+	
+	// set the lff WD threshold
+	for(unsigned j(0);j<nLinks;j++) {
+	  uhalWrite("quad_ctrl.select",0x0);
+	  uhalWrite("quad.channel_ctrl.select",j);
 
-      uhalWrite("quad.channel_ctrl.select",0x0);
-      uhalWrite("quad.channel.ctrl.reg.rst",1);
+	  uhalWrite("quad.channel.ctrl.watchdog_threshold",watchdog_threshold[j]);
+	  uhalWrite("quad.channel.ctrl.reg.heartbeat",1);
+	  uhalWrite("quad.channel.ctrl.heartbeat_threshold",0x13000000);
+	}
+	/*
+	  uhalWrite("quad_ctrl.select",0x0);
+	  
+	  uhalWrite("quad.channel_ctrl.select",0x0);
+	  uhalWrite("quad.channel.ctrl.watchdog_threshold",watchdog_threshold0);
+	  uhalWrite("quad.channel.ctrl.reg.heartbeat",1);
+	  uhalWrite("quad.channel.ctrl.heartbeat_threshold",0x13000000);
+	  
+	  uhalWrite("quad.channel_ctrl.select",0x1);
+	  uhalWrite("quad.channel.ctrl.watchdog_threshold",watchdog_threshold1);
+	  uhalWrite("quad.channel.ctrl.reg.heartbeat",1);
+	  uhalWrite("quad.channel.ctrl.heartbeat_threshold",0x13000000);
+	*/
 
-      uhalWrite("quad.channel_ctrl.select",0x1);
-      uhalWrite("quad.channel.ctrl.reg.rst",1);
-      
-      // disable the echo server
-      uhalWrite("quad_ctrl.select",0x0);
+	// enable the eth link
+	for(unsigned j(0);j<nLinks;j++) {
+	  uhalWrite("quad_ctrl.select",0x0);
+	  uhalWrite("quad.channel_ctrl.select",j);
 
-      uhalWrite("quad.channel_ctrl.select",0x0);
-      uhalWrite("quad.channel.ctrl.reg.echo",0);
-
-      uhalWrite("quad.channel_ctrl.select",0x1);
-      uhalWrite("quad.channel.ctrl.reg.echo",0);
-
-      // configure the eth interface
-      uhalWrite("quad_ctrl.select",0x0);
-
-      uhalWrite("quad.channel_ctrl.select",0x0);
-      uhalWrite("quad.channel.ctrl.local_ip",local_ip0);
-      uhalWrite("quad.channel.ctrl.remote_ip",remote_ip0);
-      uhalWrite("quad.channel.ctrl.ports.local",local_port0);
-      uhalWrite("quad.channel.ctrl.ports.remote",remote_port0);
-      uhalWrite("quad.channel.ctrl.reg.run",run_id0);
-
-      //uhalWrite("quad_ctrl.select",0x0);
-
-      uhalWrite("quad.channel_ctrl.select",0x1);
-      uhalWrite("quad.channel.ctrl.local_ip",local_ip1);
-      uhalWrite("quad.channel.ctrl.remote_ip",remote_ip1);
-      uhalWrite("quad.channel.ctrl.ports.local",local_port1);
-      uhalWrite("quad.channel.ctrl.ports.remote",remote_port1);
-      uhalWrite("quad.channel.ctrl.reg.run",run_id1);
-      
-      // small pkt aggregation
-      uhalWrite("quad_ctrl.select",0x0);
-
-      uhalWrite("quad.channel_ctrl.select",0x0);
-      uhalWrite("quad.channel.ctrl.reg.aggregate",aggregate_en0);
-      uhalWrite("quad.channel.ctrl.reg.aggregate_limit",aggregate_limit0);
-
-      uhalWrite("quad.channel_ctrl.select",0x1);
-      uhalWrite("quad.channel.ctrl.reg.aggregate",aggregate_en1);
-      uhalWrite("quad.channel.ctrl.reg.aggregate_limit",aggregate_limit1);
-      
-      // set the lff WD threshold
-      uhalWrite("quad_ctrl.select",0x0);
-
-      uhalWrite("quad.channel_ctrl.select",0x0);
-      uhalWrite("quad.channel.ctrl.watchdog_threshold",watchdog_threshold0);
-      uhalWrite("quad.channel.ctrl.reg.heartbeat",1);
-      uhalWrite("quad.channel.ctrl.heartbeat_threshold",0x13000000);
-
-      uhalWrite("quad.channel_ctrl.select",0x1);
-      uhalWrite("quad.channel.ctrl.watchdog_threshold",watchdog_threshold1);
-      uhalWrite("quad.channel.ctrl.reg.heartbeat",1);
-      uhalWrite("quad.channel.ctrl.heartbeat_threshold",0x13000000);
-      
-      // enable the eth link
-      uhalWrite("quad_ctrl.select",0x0);
-
-      uhalWrite("quad.channel_ctrl.select",0x0);
-      uhalWrite("quad.channel.ctrl.reg.rst",0);
-
-      uhalWrite("quad.channel_ctrl.select",0x1);
-      uhalWrite("quad.channel.ctrl.reg.rst",0);
+	  uhalWrite("quad.channel.ctrl.reg.rst",0);
+	}
       }
 
       // Cludge for now; move later
@@ -172,7 +208,7 @@ namespace Hgcal10gLinkReceiver {
     void configuration(YAML::Node &m) {
       m=YAML::Node();
 
-      for(unsigned j(0);j<2;j++) {
+      for(unsigned j(0);j<nLinks;j++) {
 	std::ostringstream sout;
 	sout << j;
 
@@ -202,7 +238,7 @@ namespace Hgcal10gLinkReceiver {
 
       uhalWrite("quad_ctrl.select",0x0);
 
-      for(unsigned j(0);j<2;j++) {
+      for(unsigned j(0);j<nLinks;j++) {
 	uhalWrite("quad.channel_ctrl.select",j);	
 	{
 	std::ostringstream sout;
@@ -268,7 +304,7 @@ namespace Hgcal10gLinkReceiver {
       o << std::hex << std::setfill('0');
 
       uhalWrite("quad_ctrl.select",0x0);
-      for(unsigned j(0);j<2;j++) {
+      for(unsigned j(0);j<nLinks;j++) {
 	uhalWrite("quad.channel_ctrl.select",j);
 	std::cout << " Quad channel " << j << std::endl;
 
@@ -287,7 +323,7 @@ namespace Hgcal10gLinkReceiver {
 
   
   protected:
-
+    unsigned nLinks;
   };
 
 }

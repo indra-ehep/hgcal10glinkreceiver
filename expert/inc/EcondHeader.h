@@ -13,8 +13,8 @@ namespace Hgcal10gLinkReceiver {
   class EcondHeader {
   public:
     enum {
-      HeaderPattern=0x1e6
-      //HeaderPattern=0x154
+      //HeaderPattern=0x1e6
+      HeaderPattern=0x154
     };
 
     enum DataType {
@@ -278,8 +278,8 @@ namespace Hgcal10gLinkReceiver {
 
   protected:
     //uint32_t _word[2];
-    uint32_t _wordA;
     uint32_t _wordB;
+    uint32_t _wordA;
     
   };
 

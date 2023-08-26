@@ -31,10 +31,11 @@ namespace Hgcal10gLinkReceiver {
     virtual ~SerenityMiniDaq() {
     }
     
-    bool makeTable() {
-      _uhalTopString="payload.miniDAQ";
+    bool makeTable(const std::string &s="") {
+      _miniDaqId=s;
+      _uhalTopString="payload.miniDAQ"+_miniDaqId;
       return true;
-      //return SerenityUhal::makeTable("payload.miniDAQ");
+      //return SerenityUhal::makeTable("payload.miniDAQ"+_miniDaqId);
     }
 
     void configuration(YAML::Node &m) {
@@ -92,15 +93,16 @@ namespace Hgcal10gLinkReceiver {
 	//   << std::setw(2) << i << ".";
 	sout << "Elink_mapping.Elink" << i << ".";
 
-	// THIS IS THE REAL ONE!
-	if(true) {
+	// THIS IS THE REAL ONE! EAST IF ONE MODULE
+	if(_miniDaqId=="") {
+	//if(true) {  // WILL PUT ECON-D0 INTO BOTH MINIDAQS
 	  if(i<2*nEcond) {
 	    uhalWrite(sout.str()+"ID",i/2);
 	  } else {
 	    uhalWrite(sout.str()+"ID",0xf);
 	  }
 
-	  // THIS IS A HACK!!!!
+	  // THIS IS A HACK!!!! WEST IF ONE MODULE
 	} else {
 	  if(i==2 || i==3) {
 	    uhalWrite(sout.str()+"ID",(i-2)/2);
@@ -177,7 +179,7 @@ namespace Hgcal10gLinkReceiver {
     }
 
     void print(std::ostream &o=std::cout) {
-      o << "SerenityMiniDaq::print()" << std::endl;
+      o << "SerenityMiniDaq::print()" << "  ID = " << _miniDaqId << std::endl;
       o << " Current settings for " << _uhalString.size()
 	<< " values:" << std::endl;
 
@@ -197,7 +199,7 @@ namespace Hgcal10gLinkReceiver {
 
   
   protected:
-
+    std::string _miniDaqId;
   };
 
 }

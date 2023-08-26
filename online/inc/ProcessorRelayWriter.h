@@ -35,6 +35,7 @@ namespace Hgcal10gLinkReceiver {
 
     ProcessorRelayWriter() {
       _cfgWriteYaml=false;
+      _stageSeqCounter=0;
     }
 
     virtual ~ProcessorRelayWriter() {
@@ -223,6 +224,27 @@ namespace Hgcal10gLinkReceiver {
 	}
       }
 
+      RecordYaml rStage;
+      rStage.reset(FsmState::Configuration);
+      rStage.setSequenceCounter(_stageSeqCounter++);
+
+      YAML::Node nTotal;
+      nTotal["Source"]="Stage";
+      nTotal["ElectronicsId"]=0xffffffff;
+      
+      YAML::Node nStage(YAML::LoadFile("cfg/coordinates.yaml"));
+      nTotal["Configuration"]=nStage;
+
+      std::ostringstream sout;
+      sout << nTotal << std::endl;
+      rStage.setString(sout.str());
+      
+      if(_printEnable) {
+	rStage.print();
+      }
+
+      _fileWriter.write(&rStage);
+
       
       if(_relayNumber<0xffffffff) {
 
@@ -263,7 +285,12 @@ namespace Hgcal10gLinkReceiver {
 	    fout.close();
 	  }
 	}
+
+	std::ofstream fout((sout.str()+"Stageffffffff.yaml").c_str());
+	fout << rStage.string() << std::endl;
+	fout.close();
       }
+
       
       // Write Starting record last
       _fileWriter.write(&(_ptrFsmInterface->record()));
@@ -664,6 +691,7 @@ namespace Hgcal10gLinkReceiver {
     uint32_t _cfgSeqCounter;
     uint32_t _evtSeqCounter;
     uint32_t _pauseCounter;
+    uint32_t _stageSeqCounter;
 
     uint32_t _haltedUtc;
     
