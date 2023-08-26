@@ -49,6 +49,5 @@ int main(int argc, char *argv[]) {
      }     
    }
    
-   //return (DthDataLinkToFifo(ProcessorDaqLink1FifoShmKey,UdpProcessorDaqLink1FifoPort,dummyWriter)?0:1);
-   return (DthDataLinkToFifo(ProcessorDaqLink1FifoShmKey,10010,dummyWriter)?0:1);
+   return (DthDataLinkToFifo(ProcessorDaqLink1FifoShmKey,DthProcessorDaqLink1FifoPort,dummyWriter)?0:1);
 }

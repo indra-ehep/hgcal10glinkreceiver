@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
 
 	// We have an event record
       nEvents++;
-      bool print(nEvents<=10000);// || nEvents>2000);
+      bool print(nEvents<=100000);// || nEvents>2000);
       //anyError=false;
 
       // Check id is correct
@@ -88,8 +88,8 @@ int main(int argc, char** argv) {
       if(print) {
 	std::cout << std::endl;
 	rEvent->print();
-
 	const uint64_t *p64(((const uint64_t*)rEvent)+1);
+	/*
 	b->print();
 	e->print();
       
@@ -97,6 +97,10 @@ int main(int argc, char** argv) {
 	const Hgcal10gLinkReceiver::BePacketHeader *bph(rEvent->bePacketHeader());
 	//if(bph!=nullptr && print)
 	bph->print();
+	*/
+
+
+
 	/*      
       // Access ECON-D packet as an array of 32-bit words
       const uint32_t *pEcond(rEvent->econdPayload());

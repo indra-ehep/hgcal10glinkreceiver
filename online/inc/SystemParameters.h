@@ -60,6 +60,9 @@ namespace Hgcal10gLinkReceiver {
   const uint16_t UdpProcessorDaqLink1FifoPort(1235);
   const uint16_t UdpProcessorDaqLink2FifoPort(1236);
 
+  const uint16_t DthProcessorDaqLink0FifoPort(10000);
+  const uint16_t DthProcessorDaqLink1FifoPort(10010);
+
 
   // Junk
   /*

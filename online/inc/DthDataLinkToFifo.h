@@ -134,9 +134,9 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
   printEnable=true;
   
 
-  std::ofstream fout;
-  if(port==10000) fout.open("temp0.bin",std::ios::binary);
-  if(port==10010) fout.open("temp1.bin",std::ios::binary);
+  //std::ofstream fout;
+  //if(port==10000) fout.open("temp0.bin",std::ios::binary);
+  //if(port==10010) fout.open("temp1.bin",std::ios::binary);
 
 
   unsigned n64Tcp,i64Tcp,n64Packet(0),i64Packet(0);
@@ -230,8 +230,8 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
       rt->setPayloadLength(nWords);
       rt->print();
 
-      fout.write((char*)(rt),rt->totalLengthInBytes());
-      fout.flush();
+      //fout.write((char*)(rt),rt->totalLengthInBytes());
+      //fout.flush();
 
       n64Packet=0;
       

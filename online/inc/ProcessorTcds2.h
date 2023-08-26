@@ -212,6 +212,10 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
       }
 
+      // Allows playing with triggers by hand
+      if(_keyCfgA==200 || _strCfgA=="NoTriggerTest") {
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
+      }
 
       // Set all these (except physics) for 5 L1As per orbit
       if(_keyCfgA==201 || _keyCfgA==205) {
@@ -223,6 +227,9 @@ namespace Hgcal10gLinkReceiver {
 	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-91*256);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-50);
 	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-1); // ~2 Hz
+
+	double rateKhz(nRsa["RandomRateKhz"].as<double>());
+	if(rateKhz>0.0 && rateKhz<1000.0) _serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-uint32_t(419.43*rateKhz+0.5));
 
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_random",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
@@ -261,7 +268,7 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",1);
       }
 
-      if(_strCfgA=="EcontTriggerBeamRun") {  // 997
+      if(_keyCfgA==997 || _strCfgA=="EcontTriggerBeamRun") {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",1);
@@ -270,7 +277,7 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",50,true);
       }
 
-      if(_strCfgA=="BeamAndRandomRun") {  // 998
+      if(_keyCfgA==998 || _strCfgA=="BeamAndRandomRun") {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",2);
@@ -282,7 +289,7 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
       }
 
-      if(_strCfgA=="ElectronBeamRun") {  // 999
+      if(_keyCfgA==999 || _strCfgA=="ElectronBeamRun") {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",2);
