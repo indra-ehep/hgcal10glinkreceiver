@@ -140,10 +140,10 @@ int main(int argc, char *argv[]) {
       while(nx>38 && 
 	    nx!=123 && nx!=124 && nx!=125 && nx!=126 && nx!=127 && nx!=128 &&
 	    nx!=131 && nx!=132 && nx!=133 && nx!=134 && nx!=135 &&
-	    nx!=201 && nx!=202 && nx!=203 && nx!=204 && nx!=205 && nx!=209 &&
+	    nx!=200 && nx!=201 && nx!=202 && nx!=203 && nx!=204 && nx!=205 && nx!=209 &&
 	    nx!=997 && nx!=998 && nx!=999) {
 	//std::cout << "Relay number of runs"
-	std::cout << "Relay type (0-38,123,124,125,126,127,128,131,201,202,203,204,205,209,999)"
+	std::cout << "Relay type (0-38,123,124,125,126,127,128,131,132,133,134,135,200,201,202,203,204,205,209,997,998,999)"
 		<< std::endl;
 	std::cin >> nx;
       }
@@ -223,12 +223,17 @@ int main(int argc, char *argv[]) {
 	maxNumberOfConfigurations=50;
       }
 
+      if(nx==200) {
+	nRca["RunType"]="NoTriggerTest";
+	maxNumberOfConfigurations=1;
+      }
       if(nx==201) {
 	nRca["RunType"]="PhysicsTriggerTest";
 	maxNumberOfConfigurations=1;
       }
       if(nx==202) {
 	nRca["RunType"]="RandomTriggerTest";
+	nRca["RandomRateKhz"]=100.0;
 	maxNumberOfConfigurations=1;
       }
       if(nx==203) {
