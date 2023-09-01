@@ -17,7 +17,7 @@ g++ -Wall -I. -Icommon/inc -Iexpert/inc src/RelayErrors.cpp -lyaml-cpp -o bin/Re
 
 bool printRelay1691487718(unsigned nEvents, unsigned statusBe, const Hgcal10gLinkReceiver::RecordRunning *rEvent) {
   return rEvent->payloadLength()==10 ||
-    (rEvent->payloadLength()<123 && statusBe==0) ||
+    (rEvent->payloadLength()>6 && rEvent->payloadLength()<123 && statusBe==0) ||
     (rEvent->payloadLength()>6 && statusBe==4) ||
     nEvents==     152 ||
     nEvents==     154 ||
@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
       //}
 	    
       //if(nEvents<=10 || rEvent->payloadLength()==10) {
-      if(printRelay1691487718(nEvents,statusBe,rEvent) ||
+      if((relayNumber==1691487718 && printRelay1691487718(nEvents,statusBe,rEvent)) ||
 	 (statusBe==4 && nEvS4<10) ||
 	 (statusBe==5 && nEvS5<10) ||
 	 printIt) {

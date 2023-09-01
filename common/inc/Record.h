@@ -68,7 +68,7 @@ namespace Hgcal10gLinkReceiver {
       RecordHeader::print(o," ");
       
       for(unsigned i(0);i<payloadLength();i++) {
-	o << "   Payload word " << std::setw(5) << " = 0x"
+	o << "   Payload word " << std::setw(5) << i << " = 0x"
 	  << std::hex << std::setfill('0')
 	  << std::setw(16) << _payload[i]
 	  << std::dec << std::setfill(' ') << std::endl;
