@@ -31,7 +31,7 @@ using namespace Hgcal10gLinkReceiver;
 #define BUFFER_SIZE             (1024*1024)             /* 1 MB */
 int BUFFER_SIZE_MAX=BUFFER_SIZE;                                    /* What buffer size to use? Up to 1MB */
 
-bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
+bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false, bool p=false) {
   std::cout << "DthDataLinkToFifo called with key = 0x"
             << std::hex << std::setfill('0')
             << std::setw(8) << key << ", port = 0x"
@@ -45,13 +45,11 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
   // Define control flags
   bool dummyWriter(w);
 
-  bool printEnable(false);
+  bool printEnable(p);
   bool checkEnable(false);
   bool assertEnable(false);
    
   //setMemoryBuffer(ptrRunFileShm);
-
-  bool doPrint(false);
 
   int sock, connected, n;
     int istrue = 1;          
@@ -131,9 +129,6 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
 
   bool continueLoop(true);
 
-  printEnable=true;
-  
-
   //std::ofstream fout;
   //if(port==10000) fout.open("temp0.bin",std::ios::binary);
   //if(port==10010) fout.open("temp1.bin",std::ios::binary);
@@ -157,14 +152,15 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
     // Receive data from Serenity
     //socket.recv(request, zmq::recv_flags::none);
 
-    
+    n=0;
+    while(n<8) { // Catch no packet
     //uint64_t *ptr(ptrRunFileShm->_buffer[ptrRunFileShm->_writePtr%RunFileShm::BufferDepth]);
     n = recv(connected, buffer, BUFFER_SIZE_MAX, 0);
 
     n64Tcp=(n+7)/8;
     i64Tcp=0;
 
-    if((n%8)!=0) std::cerr << "WARNING: number of bytes read = " << n << " gives n%8 = " << (n%8)
+    if(n<8 || (n%8)!=0) std::cerr << "WARNING: number of bytes read = " << n << " gives n%8 = " << (n%8)
 			   << " != 0" << std::endl;
 
     //n = recvfrom(sockfd, (char *)rt, MAXLINE,
@@ -175,14 +171,16 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
 
     if(printEnable) {
       std::cout << "TCP size = " << n << " bytes = " << n64Tcp << " uint64_t words" << std::endl;
-      std::cout << "First word        = " << std::hex << std::setw(16) << buffer[0] << std::dec << std::endl;
-      std::cout << "Second word       = " << std::hex << std::setw(16) << buffer[1] << std::dec << std::endl;
-      std::cout << "Last-but-one word = " << std::hex << std::setw(16) << buffer[n64Tcp-2] << std::dec << std::endl;
-      std::cout << "Last word         = " << std::hex << std::setw(16) << buffer[n64Tcp-1] << std::dec << std::endl;
+      if(n>= 8) std::cout << "First word        = " << std::hex << std::setw(16) << buffer[0] << std::dec << std::endl;
+      if(n>=16) std::cout << "Second word       = " << std::hex << std::setw(16) << buffer[1] << std::dec << std::endl;
+      if(n>=24) std::cout << "Last-but-one word = " << std::hex << std::setw(16) << buffer[n64Tcp-2] << std::dec << std::endl;
+      if(n>=32) std::cout << "Last word         = " << std::hex << std::setw(16) << buffer[n64Tcp-1] << std::dec << std::endl;
+      
       //std::cout << "Last-but-one word = " << std::hex << std::setw(16) << buffer[(n-9)/8] << std::dec << std::endl;
       //std::cout << "Last word         = " << std::hex << std::setw(16) << buffer[(n-1)/8] << std::dec << std::endl;
     }
-
+    }
+    
     while(i64Tcp<n64Tcp) {
 
     if(n64Packet==0) {
@@ -192,7 +190,7 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
     if(dthh.blockStart()) {
       rt->reset(FsmState::Running);
       rt->setSequenceCounter(seqc++);
-      rt->RecordHeader::print();
+      if(printEnable) rt->RecordHeader::print();
       //rt->setPayloadLength(nWords);
       nWords=0;
     }
@@ -228,7 +226,7 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false) {
     */
     if(i64Packet>=n64Packet && (dthh.blockStop() || cludgeStop)) {
       rt->setPayloadLength(nWords);
-      rt->print();
+      if(printEnable) rt->print();
 
       //fout.write((char*)(rt),rt->totalLengthInBytes());
       //fout.flush();
