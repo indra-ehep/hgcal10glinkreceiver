@@ -243,6 +243,7 @@ namespace Hgcal10gLinkReceiver {
       }
 
       if(_keyCfgA==203 || _keyCfgA==205) {
+	/*
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",6);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
 	_serenityTcds2.uhalWrite("seq_mem.data",(3562<<16)|0x0040);
@@ -251,6 +252,11 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("seq_mem.data",(   1<<16)|0x0040);
 	_serenityTcds2.uhalWrite("seq_mem.data",(   2<<16)|0x0040);
 	_serenityTcds2.uhalWrite("seq_mem.data",(   3<<16)|0x0040);
+	*/
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",2);
+	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	_serenityTcds2.uhalWrite("seq_mem.data",( 10<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(110<<16)|0x0040);
 
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",1);
       }
