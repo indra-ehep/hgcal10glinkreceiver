@@ -145,6 +145,20 @@ namespace Hgcal10gLinkReceiver {
     }
   
 #ifdef ProcessorHardware
+  uint32_t uhalDirectRead(const std::string &s) {
+    const uhal::Node& lNode = lHW.getNode(s);
+    uhal::ValWord<uint32_t> lReg = lNode.read();
+    lHW.dispatch();
+
+    std::cout << "uhalDirectRead: reading " << s << " as  0x"
+	      << std::hex << std::setfill('0')
+	      << std::setw(8) << lReg.value()
+	      << std::dec << std::setfill(' ')
+	      << std::endl;
+
+    return lReg.value();
+  }
+  
   uint32_t uhalRead(const std::string &s, bool pl=false) {
     //const uhal::Node& lNode = lHW.getNode(std::string("payload.")+s);
     const uhal::Node& lNode = lHW.getNode((pl?"payload":_uhalTopString)+"."+s);

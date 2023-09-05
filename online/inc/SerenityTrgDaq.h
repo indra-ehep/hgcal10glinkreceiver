@@ -32,7 +32,8 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool makeTable() {
-      SerenityUhal::makeTable("payload.trigger_ro");
+      //SerenityUhal::makeTable("payload.trigger_ro");
+      _uhalTopString="payload.trigger_ro";
       return true;
     }
 

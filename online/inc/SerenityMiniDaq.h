@@ -94,8 +94,9 @@ namespace Hgcal10gLinkReceiver {
 	sout << "Elink_mapping.Elink" << i << ".";
 
 	// THIS IS THE REAL ONE! EAST IF ONE MODULE
-	if(_miniDaqId=="") {
+	//if(_miniDaqId=="") {
 	//if(true) {  // WILL PUT ECON-D0 INTO BOTH MINIDAQS
+	if(false) {
 	  if(i<2*nEcond) {
 	    uhalWrite(sout.str()+"ID",i/2);
 	  } else {

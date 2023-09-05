@@ -275,7 +275,7 @@ namespace Hgcal10gLinkReceiver {
       }
 
       if(_keyCfgA==996 || _strCfgA=="FakeBeamRun") {
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-uint32_t(419.43*20.0+0.5));
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-uint32_t(419.43*100.0+0.5));
 	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl1.l1a_prbs_threshold",0xffff-164);
  
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_random",1);

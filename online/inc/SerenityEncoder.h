@@ -57,8 +57,11 @@ namespace Hgcal10gLinkReceiver {
       m["payload_ctrl_stat.ctrl0.fc_dec_force_lock"   ]=uhalRead("payload_ctrl_stat.ctrl0.fc_dec_force_lock",true);
       m["payload_ctrl_stat.ctrl0.fc_dec_prel1a_offset"]=uhalRead("payload_ctrl_stat.ctrl0.fc_dec_prel1a_offset",true);
 
+#ifdef DthHardware
+#else
       m["DAQ_SLink_readout0.source_id"]=uhalRead("DAQ_SLink_readout.source_id",true);
       m["DAQ_SLink_readout1.source_id"]=uhalRead("DAQ_SLink_readout1.source_id",true);
+#endif
     }
     /*
     void configuration(std::unordered_map<std::string,uint32_t> &m) {

@@ -26,6 +26,7 @@
 #include "Serenity10gx.h"
 #include "SerenityTrgDaq.h"
 #include "SerenityAligner.h"
+#include "SerenitySlink.h"
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
@@ -52,8 +53,18 @@ namespace Hgcal10gLinkReceiver {
     
   public:
     ProcessorFastControl() {      
+      _nMiniDaqs=1;
+
       std::system("empbutler -c etc/connections.xml do x0 info");
+
+      uint32_t dna[3];
+      dna[0]=_serenityTrgDaq.uhalDirectRead("info.device.dna.word0");
+      dna[1]=_serenityTrgDaq.uhalDirectRead("info.device.dna.word1");
+      dna[2]=_serenityTrgDaq.uhalDirectRead("info.device.dna.word2");
+
       daqBoard=3;
+      if(dna[2]==0x40020000 && dna[1]==0x01290ba6 && dna[0]==0x0430a085) daqBoard=4;
+      std::cout << "DAQ board set to " << daqBoard << std::endl;
     }
 
     virtual ~ProcessorFastControl() {
@@ -63,11 +74,12 @@ namespace Hgcal10gLinkReceiver {
       _serenityEncoder.makeTable();
       _serenityLpgbt.makeTable();
       _serenityMiniDaq[0].makeTable();
-      _serenityMiniDaq[1].makeTable("1");
+      if(_nMiniDaqs>1) _serenityMiniDaq[1].makeTable("1");
       _serenityTrgDaq.makeTable();
       _serenityAligner.makeTable();
 
 #ifdef DthHardware
+      _serenitySlink.makeTable();
 #else
       _serenity10g.makeTable();
       //_serenity10gx.makeTable();
@@ -87,14 +99,18 @@ namespace Hgcal10gLinkReceiver {
       
       _serenityMiniDaq[0].setDefaults();
       _serenityMiniDaq[0].print();
-      _serenityMiniDaq[1].setDefaults();
-      _serenityMiniDaq[1].print();
+      if(_nMiniDaqs>1) {
+	_serenityMiniDaq[1].setDefaults();
+	_serenityMiniDaq[1].print();
+      }
       _serenityTrgDaq.setDefaults();
       _serenityTrgDaq.print();
 
       //_serenityAligner.print(); // Does all payload
 
 #ifdef DthHardware
+      _serenitySlink.setDefaults();
+      _serenitySlink.print();
 #else
       _serenity10g.setDefaults();
       _serenity10g.print();
@@ -126,9 +142,14 @@ namespace Hgcal10gLinkReceiver {
 
       writeContinuing();
 
+#ifdef DthHardware
+      _serenitySlink.setSourceId(0,0xce000000|daqBoard<<4|1); // DAQ is on channel 0 = Link 1
+      _serenitySlink.setSourceId(1,0xce000000|daqBoard<<4|0); // TRG is on channel 1 = Link 0
+#else
       _serenityTrgDaq.uhalWrite("trigger_ro.SLink.source_id"  ,0xce000000|daqBoard<<4|0,true);
       _serenityEncoder.uhalWrite("DAQ_SLink_readout.source_id",0xce000000|daqBoard<<4|1,true);
       _serenityEncoder.uhalWrite("DAQ_SLink_readout1.source_id",0xce000000|daqBoard<<4|2,true);
+#endif
 
       return true;
     }
@@ -246,6 +267,9 @@ namespace Hgcal10gLinkReceiver {
       total["Aligner"]=na;
 
 #ifdef DthHardware
+      YAML::Node nsl;
+      _serenitySlink.configuration(nsl);
+      total["Slink"]=nsl;
 #else
       YAML::Node n10g;
       _serenity10g.configuration(n10g);
@@ -268,9 +292,11 @@ namespace Hgcal10gLinkReceiver {
 
       total["LpgbtPair"]["1"]["Id"]=1;
 
-      YAML::Node nm01;
-      _serenityMiniDaq[1].configuration(nm01);
-      total["LpgbtPair"]["1"]["MiniDaq"]=nm01;
+      if(_nMiniDaqs>1) {
+	YAML::Node nm01;
+	_serenityMiniDaq[1].configuration(nm01);
+	total["LpgbtPair"]["1"]["MiniDaq"]=nm01;
+      }
 
       YAML::Node nl01;
       _serenityLpgbt.configuration(nl01);
@@ -288,7 +314,7 @@ namespace Hgcal10gLinkReceiver {
       ///////////////////////////////////////////////////
       
       _serenityMiniDaq[0].reset();
-      _serenityMiniDaq[1].reset();
+      if(_nMiniDaqs>1) _serenityMiniDaq[1].reset();
 
       _serenityEncoder.resetSlinkFifo();
 
@@ -296,6 +322,7 @@ namespace Hgcal10gLinkReceiver {
       _serenityEncoder.resetTrgReadout();
 
 #ifdef DthHardware
+      _serenitySlink.channelReset();
 #else
       _serenity10g.reset();
 #endif
@@ -379,9 +406,11 @@ namespace Hgcal10gLinkReceiver {
 
       total["LpgbtPair"]["1"]["Id"]=1;
 
-      YAML::Node nm01;
-      _serenityMiniDaq[1].status(nm01);
-      total["LpgbtPair"]["1"]["MiniDaq"]=nm01;
+      if(_nMiniDaqs>1) {
+	YAML::Node nm01;
+	_serenityMiniDaq[1].status(nm01);
+	total["LpgbtPair"]["1"]["MiniDaq"]=nm01;
+      }
 
       if(_printEnable) std::cout << "Yaml status" << std::endl << total << std::endl;
       
@@ -407,8 +436,10 @@ namespace Hgcal10gLinkReceiver {
       
       _serenityMiniDaq[0].setDefaults();
       _serenityMiniDaq[0].print();
+      if(_nMiniDaqs>1) {
       _serenityMiniDaq[1].setDefaults();
       _serenityMiniDaq[1].print();
+      }
 
       //_serenity10g.setDefaults();
       //_serenity10g.print();
@@ -711,6 +742,8 @@ namespace Hgcal10gLinkReceiver {
     uint32_t _eventNumberInConfiguration;
     uint32_t _eventNumberInSuperRun;
 
+    unsigned _nMiniDaqs;
+
     SerenityEncoder _serenityEncoder;
     SerenityLpgbt _serenityLpgbt;
     SerenityMiniDaq _serenityMiniDaq[2];  
@@ -718,6 +751,7 @@ namespace Hgcal10gLinkReceiver {
     Serenity10gx _serenity10gx;
     SerenityTrgDaq _serenityTrgDaq;
     SerenityAligner _serenityAligner;
+    SerenitySlink _serenitySlink;
   };
 
 }
