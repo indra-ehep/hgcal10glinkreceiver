@@ -29,7 +29,7 @@ using namespace Hgcal10gLinkReceiver;
 
 
 #define BUFFER_SIZE             (1024*1024)             /* 1 MB */
-int BUFFER_SIZE_MAX=BUFFER_SIZE;                                    /* What buffer size to use? Up to 1MB */
+int BUFFER_SIZE_MAX=BUFFER_SIZE-1024;                                    /* What buffer size to use? Up to 1MB */
 
 bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false, bool p=false) {
   std::cout << "DthDataLinkToFifo called with key = 0x"
@@ -162,6 +162,8 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false, bool p=false) 
 
     if(n<8 || (n%8)!=0) std::cerr << "WARNING: number of bytes read = " << n << " gives n%8 = " << (n%8)
 			   << " != 0" << std::endl;
+    if(n>=BUFFER_SIZE) std::cerr << "WARNING: number of bytes read = " << n << " >= "
+				      << BUFFER_SIZE << std::endl;
 
     //n = recvfrom(sockfd, (char *)rt, MAXLINE,
     //	   MSG_WAITALL, ( struct sockaddr *) &cliaddr,
@@ -225,6 +227,9 @@ bool DthDataLinkToFifo(uint32_t key, uint16_t port, bool w=false, bool p=false) 
     }
     */
     if(i64Packet>=n64Packet && (dthh.blockStop() || cludgeStop)) {
+      if(nWords>=8*1024) std::cerr << "WARNING: number of packet words = " << nWords << " >= "
+				      << 8*1024 << std::endl;
+
       rt->setPayloadLength(nWords);
       if(printEnable) rt->print();
 
