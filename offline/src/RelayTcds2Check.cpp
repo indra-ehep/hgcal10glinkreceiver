@@ -1,5 +1,5 @@
 /*
-g++ -Wall -Icommon/inc src/RelayTcds2Check.cpp -lyaml-cpp -o bin/RelayTcds2Check.exe
+  g++ -Wall -Icommon/inc src/RelayTcds2Check.cpp -lyaml-cpp -o bin/RelayTcds2Check.exe
 */
 
 #include <iostream>
@@ -16,6 +16,7 @@ g++ -Wall -Icommon/inc src/RelayTcds2Check.cpp -lyaml-cpp -o bin/RelayTcds2Check
 #include "EcontEnergies.h"
 #include "RelayTcds2Check.h"
 
+#define NumberOfLinks 3
 
 int main(int argc, char** argv) {
   if(argc<2) {
@@ -39,14 +40,14 @@ int main(int argc, char** argv) {
   
   // Create the file reader
   /*
-  Hgcal10gLinkReceiver::RelayReader _relayReader;
-  _relayReader.enableLink(0,true);
-  _relayReader.enableLink(1,false);
-  _relayReader.enableLink(2,false);
+    Hgcal10gLinkReceiver::RelayReader _relayReader;
+    _relayReader.enableLink(0,true);
+    _relayReader.enableLink(1,false);
+    _relayReader.enableLink(2,false);
   */
   
   Hgcal10gLinkReceiver::FileReader _relayReader;
-  Hgcal10gLinkReceiver::FileReader runReader[3];
+  Hgcal10gLinkReceiver::FileReader runReader[NumberOfLinks];
 
   _relayReader.openRelay(relayNumber);
 
@@ -60,11 +61,11 @@ int main(int argc, char** argv) {
   Hgcal10gLinkReceiver::RelayTcds2Check rtc;
   
   // Make the buffer space for the records and some useful casts for configuration and event records
-  Hgcal10gLinkReceiver::RecordT<4095> *rRun(new Hgcal10gLinkReceiver::RecordT<4095>[3]);
+  Hgcal10gLinkReceiver::RecordT<4095> *rRun(new Hgcal10gLinkReceiver::RecordT<4095>[NumberOfLinks]);
 
   //std::vector< Hgcal10gLinkReceiver::RecordT<4095>* > vRunning;
   std::vector<const Hgcal10gLinkReceiver::Record*> vRunning;
-  vRunning.resize(3);
+  vRunning.resize(NumberOfLinks);
   //vRunning.push_back(new Hgcal10gLinkReceiver::RecordT<4095>);
   //vRunning.push_back(new Hgcal10gLinkReceiver::RecordT<4095>);
   //vRunning.push_back(new Hgcal10gLinkReceiver::RecordT<4095>);
@@ -74,44 +75,162 @@ int main(int argc, char** argv) {
   unsigned nEvents(0);
   uint64_t relayUtc(0);
   uint64_t runUtc;
+
+  uint32_t nRunningRecords_[NumberOfLinks];
+  std::memset(nRunningRecords_,0,4*NumberOfLinks);
+
+  bool repeated[NumberOfLinks];
+  std::memset(repeated,0,sizeof(bool)*NumberOfLinks);
+
+  bool stopped[NumberOfLinks];
+  std::memset(stopped,0,sizeof(bool)*NumberOfLinks);
+  
+  RecordHeader rh_[NumberOfLinks];
+  Hgcal10gLinkReceiver::SlinkBoe boe_[NumberOfLinks];
+  Hgcal10gLinkReceiver::SlinkEoe eoe_[NumberOfLinks];
   
   while(_relayReader.read(rxxx)) {
+    std::cout << "Relay read successful, record state = " << FsmState::stateName(rxxx->state()) << std::endl;
+    
     if(rxxx->state()==Hgcal10gLinkReceiver::FsmState::Starting) {
       Hgcal10gLinkReceiver::RecordYaml *rCfg((Hgcal10gLinkReceiver::RecordYaml*)rxxx);
       YAML::Node n(YAML::Load(rCfg->string()));
 
       unsigned runNumber(n["RunNumber"].as<unsigned>());
-      runReader[0].openRun(runNumber,0);
-      runReader[1].openRun(runNumber,1);
-      runReader[2].openRun(runNumber,2);
-
-      runReader[0].read(rRun  );
-      runReader[1].read(rRun+1);
-      runReader[2].read(rRun+2);
+      for(unsigned l(0);l<NumberOfLinks;l++) {
+	runReader[l].openRun(runNumber,l);
+	runReader[l].read(rRun+l);
+      }
     }
     
     if(rxxx->state()==Hgcal10gLinkReceiver::FsmState::Stopping) {
       bool done(false);
-
+      
       while(!done) {
 	done=true;
+	uint32_t eventId(0xffffffff);
 
-	for(unsigned l(0);l<3;l++) {
-	  if(runReader[l].read(rRun+l)) {
-	    done=false;
-	    vRunning[l]=(Hgcal10gLinkReceiver::Record*)(rRun+l);
-	  } else {
-	    std::cout << "WARNING: read failed for link " << l << std::endl;
-	    vRunning[l]=nullptr;
+	for(unsigned l(0);l<NumberOfLinks;l++) {
+	  if(!stopped[l] && !repeated[l]) {
+	    if(runReader[l].read(rRun+l)) {
+	      if(rRun[l].state()!=Hgcal10gLinkReceiver::FsmState::Running) stopped[l]=true;
+
+	      if(!stopped[l]) {
+		done=false;
+
+		vRunning[l]=(Hgcal10gLinkReceiver::Record*)(rRun+l);
+		
+		Hgcal10gLinkReceiver::RecordRunning *rEvt((Hgcal10gLinkReceiver::RecordRunning*)rRun[l]);
+		const Hgcal10gLinkReceiver::SlinkBoe *b(rEvt->slinkBoe());
+		assert(b!=nullptr);
+		if(eventId>b->eventId()) eventId=b->eventId();
+
+	      } else {
+		std::cout << "WARNING: read stopped for link " << l << std::endl;
+		vRunning[l]=nullptr;
+	      }
+	      
+	    } else {
+	      std::cout << "WARNING: read failed for link " << l << std::endl;
+	      vRunning[l]=nullptr;
+	    }
+	  }
+	}
+
+	for(unsigned l(0);l<NumberOfLinks;l++) {
+	  if(!stopped[l]) {
+	    Hgcal10gLinkReceiver::RecordRunning *rEvt((Hgcal10gLinkReceiver::RecordRunning*)rRun[l]);
+	    const Hgcal10gLinkReceiver::SlinkBoe *b(rEvt->slinkBoe());
+	    assert(b!=nullptr);
+
+	    if(b->eventId()>eventId) {
+	      if(!repeated[l]) {
+		std::cout << "ERROR: running records for link " << l << " = " << std::setw(10) << nRunningRecords_[l] << std::endl;
+		rh_[l].RecordHeader::print();
+		rEvt->RecordHeader::print();
+
+		boe_[l].print();
+		b->print();
+		
+		uint32_t diffEventId(b->eventId()-eventId);
+		uint32_t diffSequence(rEvt->sequenceCounter()-rh_[l]->sequenceCounter());
+		assert(diffEventId==diffSequence);
+	      }
+	      repeated[l]=true;
+
+	    } else {
+	      repeated[l]=false;
+	    }
 	  }
 	}
 	
-	rtc.runningRecord(vRunning);
+	//rtc.runningRecord(vRunning);
+
+	unsigned eventId(0xffffffff);
+      
+	for(unsigned l(0);l<r.size();l++) {
+	  if(r[l]!=nullptr) {
+	    Hgcal10gLinkReceiver::RecordRunning *rEvt((Hgcal10gLinkReceiver::RecordRunning*)r[l]);
+	    nRunningRecords_[l]++;
+
+	    const Hgcal10gLinkReceiver::SlinkBoe *b(rEvt->slinkBoe());
+	    assert(b!=nullptr);
+	    if(nRunningRecords_[l]>200000000) {
+	      std::cout << "INFO: running records for link " << l << " = " << std::setw(10) << nRunningRecords_[l] << std::endl;
+	      b->print();
+	    }
+	  
+	    const Hgcal10gLinkReceiver::SlinkEoe *e(rEvt->slinkEoe());
+	    assert(e!=nullptr);
+	    //e->print();
+	  
+	    if(eventId==0xffffffff) {
+	      eventId=b->eventId();
+	      if(nRunningRecords_[0]>200000000) {
+		std::cout << "INFO: running records for link " << l << " = " << std::setw(10) << nRunningRecords_[l]
+			  << ", event id set to " << eventId << std::endl;
+	      }
+	    } else {
+	      if(nRunningRecords_[0]>200000000) {
+		std::cout << "INFO: running records for link " << l << " = " << std::setw(10) << nRunningRecords_[l]
+			  << ", event id check " << eventId << " vs " << b->eventId() << std::endl;
+	      }
+	      if(eventId!=b->eventId()) {
+		std::cout << "WARNING: running records for link " << l << " = " << std::setw(10) << nRunningRecords_[l]
+			  << ", event id check failed " << eventId << " vs " << b->eventId() << std::endl;
+		rh_[l].print();
+		boe_[l].print();
+		r[l]->RecordHeader::print();
+		b->print();
+	      }
+	    }
+
+	    // Save for next event
+	    rh_[l]=*((Hgcal10gLinkReceiver::RecordHeader*)r[l]);
+	    boe_[l]=*b;
+	    eoe_[l]=*e;
+
+	  } else {
+	    std::cout << "WARNING: nullptr for running records for link " << l << " = " << std::setw(10) << nRunningRecords_[l] << std::endl;
+	  }
+	}
       }
+
+
+
     }
     
-    rtc.nonRunningRecord(rxxx);
+    if(rxxx->state()==Hgcal10gLinkReceiver::FsmState::Status) {
+      Hgcal10gLinkReceiver::RecordYaml *rCfg((Hgcal10gLinkReceiver::RecordYaml*)rxxx);
+      YAML::Node n(YAML::Load(rCfg->string()));
+
+      if(n["Source"].as<std::string>()=="TCDS2") {
+	// L1A total
+      }
+    }
   }
+    
+  //rtc.nonRunningRecord(rxxx);
   
   std::cout << "Total number of events found = " << nEvents << std::endl;
   
