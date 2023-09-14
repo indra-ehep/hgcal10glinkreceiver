@@ -85,12 +85,14 @@ int main(int argc, char** argv) {
   bool stopped[NumberOfLinks];
   std::memset(stopped,0,sizeof(bool)*NumberOfLinks);
   
-  RecordHeader rh_[NumberOfLinks];
+  Hgcal10gLinkReceiver::RecordHeader rh[NumberOfLinks],rhFirst[NumberOfLinks];
   Hgcal10gLinkReceiver::SlinkBoe boe_[NumberOfLinks];
   Hgcal10gLinkReceiver::SlinkEoe eoe_[NumberOfLinks];
+
+  bool firstEventInRun(true);
   
   while(_relayReader.read(rxxx)) {
-    std::cout << "Relay read successful, record state = " << FsmState::stateName(rxxx->state()) << std::endl;
+    std::cout << "Relay read successful, record state = " << Hgcal10gLinkReceiver::FsmState::stateName(rxxx->state()) << std::endl;
     
     if(rxxx->state()==Hgcal10gLinkReceiver::FsmState::Starting) {
       Hgcal10gLinkReceiver::RecordYaml *rCfg((Hgcal10gLinkReceiver::RecordYaml*)rxxx);
@@ -101,6 +103,8 @@ int main(int argc, char** argv) {
 	runReader[l].openRun(runNumber,l);
 	runReader[l].read(rRun+l);
       }
+      
+      firstEventInRun=true;
     }
     
     if(rxxx->state()==Hgcal10gLinkReceiver::FsmState::Stopping) {
@@ -109,6 +113,16 @@ int main(int argc, char** argv) {
       while(!done) {
 	done=true;
 	uint32_t eventId(0xffffffff);
+
+	if(firstEventInRun) {
+	  for(unsigned l(0);l<NumberOfLinks;l++) {
+	    assert(runReader[l].read(rRun+l));
+	    rhFirst[l]=*((Hgcal10gLinkReceiver::RecordHeader*)(rRun+l));
+	    std::cout << "INFO: first running record for link " << l << std::endl;
+	    rhFirst[l].print();
+	  }
+	  firstEventInRun=false;
+	}
 
 	for(unsigned l(0);l<NumberOfLinks;l++) {
 	  if(!stopped[l] && !repeated[l]) {
@@ -120,7 +134,7 @@ int main(int argc, char** argv) {
 
 		vRunning[l]=(Hgcal10gLinkReceiver::Record*)(rRun+l);
 		
-		Hgcal10gLinkReceiver::RecordRunning *rEvt((Hgcal10gLinkReceiver::RecordRunning*)rRun[l]);
+		Hgcal10gLinkReceiver::RecordRunning *rEvt((Hgcal10gLinkReceiver::RecordRunning*)(rRun+l));
 		const Hgcal10gLinkReceiver::SlinkBoe *b(rEvt->slinkBoe());
 		assert(b!=nullptr);
 		if(eventId>b->eventId()) eventId=b->eventId();
@@ -139,33 +153,41 @@ int main(int argc, char** argv) {
 
 	for(unsigned l(0);l<NumberOfLinks;l++) {
 	  if(!stopped[l]) {
-	    Hgcal10gLinkReceiver::RecordRunning *rEvt((Hgcal10gLinkReceiver::RecordRunning*)rRun[l]);
+	    Hgcal10gLinkReceiver::RecordRunning *rEvt((Hgcal10gLinkReceiver::RecordRunning*)(rRun+l));
 	    const Hgcal10gLinkReceiver::SlinkBoe *b(rEvt->slinkBoe());
 	    assert(b!=nullptr);
+
+	    const Hgcal10gLinkReceiver::SlinkEoe *e(rEvt->slinkEoe());
+	    assert(e!=nullptr);
 
 	    if(b->eventId()>eventId) {
 	      if(!repeated[l]) {
 		std::cout << "ERROR: running records for link " << l << " = " << std::setw(10) << nRunningRecords_[l] << std::endl;
-		rh_[l].RecordHeader::print();
+		rh[l].RecordHeader::print();
 		rEvt->RecordHeader::print();
 
 		boe_[l].print();
 		b->print();
 		
 		uint32_t diffEventId(b->eventId()-eventId);
-		uint32_t diffSequence(rEvt->sequenceCounter()-rh_[l]->sequenceCounter());
+		uint32_t diffSequence(rEvt->sequenceCounter()-rh[l].sequenceCounter());
 		assert(diffEventId==diffSequence);
 	      }
 	      repeated[l]=true;
 
 	    } else {
 	      repeated[l]=false;
+
+	      // Save for next event
+	      rh[l]=*((Hgcal10gLinkReceiver::RecordHeader*)(rRun+l));
+	      boe_[l]=*b;
+	      eoe_[l]=*e;
 	    }
 	  }
 	}
 	
 	//rtc.runningRecord(vRunning);
-
+	/*
 	unsigned eventId(0xffffffff);
       
 	for(unsigned l(0);l<r.size();l++) {
@@ -198,7 +220,7 @@ int main(int argc, char** argv) {
 	      if(eventId!=b->eventId()) {
 		std::cout << "WARNING: running records for link " << l << " = " << std::setw(10) << nRunningRecords_[l]
 			  << ", event id check failed " << eventId << " vs " << b->eventId() << std::endl;
-		rh_[l].print();
+		rh[l].print();
 		boe_[l].print();
 		r[l]->RecordHeader::print();
 		b->print();
@@ -206,7 +228,7 @@ int main(int argc, char** argv) {
 	    }
 
 	    // Save for next event
-	    rh_[l]=*((Hgcal10gLinkReceiver::RecordHeader*)r[l]);
+	    rh[l]=*((Hgcal10gLinkReceiver::RecordHeader*)r[l]);
 	    boe_[l]=*b;
 	    eoe_[l]=*e;
 
@@ -214,10 +236,9 @@ int main(int argc, char** argv) {
 	    std::cout << "WARNING: nullptr for running records for link " << l << " = " << std::setw(10) << nRunningRecords_[l] << std::endl;
 	  }
 	}
+	*/
+
       }
-
-
-
     }
     
     if(rxxx->state()==Hgcal10gLinkReceiver::FsmState::Status) {
@@ -225,6 +246,7 @@ int main(int argc, char** argv) {
       YAML::Node n(YAML::Load(rCfg->string()));
 
       if(n["Source"].as<std::string>()=="TCDS2") {
+	std::cout << n << std::endl;
 	// L1A total
       }
     }
