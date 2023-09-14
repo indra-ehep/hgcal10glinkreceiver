@@ -183,7 +183,7 @@ int main(int argc, char *argv[]) {
       if(nx==  0) maxNumberOfConfigurations=1;
       if(nx>0 && nx<38) maxNumberOfConfigurations=8;
       if(nx== 38) maxNumberOfConfigurations=8*37;
-      if(nx==123) maxNumberOfConfigurations=2;
+      if(nx==123) maxNumberOfConfigurations=1;
       if(nx==124) maxNumberOfConfigurations=4;
       if(nx==125) {
 	nRca["RunType"]="L1aBxScan";
@@ -233,7 +233,14 @@ int main(int argc, char *argv[]) {
       }
       if(nx==202) {
 	nRca["RunType"]="RandomTriggerTest";
-	nRca["RandomRateKhz"]=100.0;
+
+	double rateKhz(0.0);
+	while(rateKhz<0.001 || rateKhz>2000.0) {
+	  std::cout << "Random rate (kHz)"
+		    << std::endl;
+	  std::cin >> rateKhz;
+	}
+	nRca["RandomRateKhz"]=rateKhz;
 	maxNumberOfConfigurations=1;
       }
       if(nx==203) {
@@ -242,6 +249,14 @@ int main(int argc, char *argv[]) {
       }
       if(nx==204) {
 	nRca["RunType"]="RegularTriggerTest";
+
+	unsigned period(0);
+	while(period<1 || period>1000000) {
+	  std::cout << "Regular period"
+		    << std::endl;
+	  std::cin >> period;
+	}
+	nRca["RegularPeriod"]=period;
 	maxNumberOfConfigurations=1;
       }
       if(nx==205) {
