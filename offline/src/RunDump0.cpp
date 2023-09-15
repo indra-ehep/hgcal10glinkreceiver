@@ -47,15 +47,16 @@ void econtEnergies(const uint64_t *p, std::vector<uint16_t> &v) {
   v[23]=(e1>>42)&0x7f;
 }
 
-void unpackerEnergies(const uint64_t *p, std::vector<uint16_t> &v) {
+unsigned unpackerEnergies(const uint64_t *p, std::vector<uint16_t> &v) {
   v.resize(24);
-
   for(unsigned i(0);i<6;i++) {
     v[2*i   ]=(p[i]    )&0x7f;
     v[2*i+ 1]=(p[i]>>13)&0x7f;
     v[2*i+12]=(p[i]>>32)&0x7f;
     v[2*i+13]=(p[i]>>45)&0x7f;
   }
+
+  return (p[0]>>26)&0xf;
 }
 
 int main(int argc, char** argv) {
@@ -157,9 +158,9 @@ int main(int argc, char** argv) {
 	  }
 	  std::cout << std::endl;
 	}
-	for(unsigned u(0);u<7;u++) {
-	  unpackerEnergies(p64+65+6*u,v);
-	  std::cout << "Unpacker energies " << u << std::endl;
+	for(unsigned u(0);u<15;u++) {
+	  unsigned bx(unpackerEnergies(p64+65+6*u,v));
+	  std::cout << "Unpacker energies " << u << ", bx = " << bx << std::endl;
 	  for(unsigned j(0);j<12;j++) {
 	    std::cout << " " << std::setw(3) << v[j];
 	  }
