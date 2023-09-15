@@ -36,17 +36,15 @@ int main(int argc, char *argv[]) {
   smd.makeTable();
   //return 0;
 
-  bool spill(true);
-  
   while(true) {
 
     // Unthrottle
-    smd.uhalWrite("reg_320.ctrl1",0x0);
-    usleep(spill? 5000000:89);
+    smd.uhalWrite("reg_320.ctrl1.l1a_throttle_user",0x0);
+    usleep( 5000000);
 
     // Throttle
-    smd.uhalWrite("reg_320.ctrl1",0x2);
-    usleep(spill?25000000:89);
+    smd.uhalWrite("reg_320.ctrl1.l1a_throttle_user",0x1);
+    usleep(10000000);
   }
 
   return 0;

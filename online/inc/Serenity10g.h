@@ -56,6 +56,26 @@ namespace Hgcal10gLinkReceiver {
       }
     }
   
+    void setHeartbeat(bool b) {
+      bool doReset(false);
+      
+      for(unsigned j(0);j<nLinks;j++) {
+	uhalWrite("quad_ctrl.select",0x0);
+	uhalWrite("quad.channel_ctrl.select",j);
+	if(doReset) uhalWrite("quad.channel.ctrl.reg.rst",1);
+
+	uhalWrite("quad.channel.ctrl.reg.heartbeat",b?1:0);
+      }
+
+      usleep(1000);
+
+      for(unsigned j(0);j<nLinks;j++) {
+	uhalWrite("quad_ctrl.select",0x0);
+	uhalWrite("quad.channel_ctrl.select",j);
+	if(doReset) uhalWrite("quad.channel.ctrl.reg.rst",0);
+      }
+    }
+  
     bool setDefaults() {
 
       if(true) {
@@ -167,7 +187,9 @@ namespace Hgcal10gLinkReceiver {
 
 	  uhalWrite("quad.channel.ctrl.watchdog_threshold",watchdog_threshold[j]);
 	  uhalWrite("quad.channel.ctrl.reg.heartbeat",1);
-	  uhalWrite("quad.channel.ctrl.heartbeat_threshold",0x13000000);
+	  //uhalWrite("quad.channel.ctrl.heartbeat_threshold",0x13000000);
+	  uhalWrite("quad.channel.ctrl.heartbeat_threshold",0x13000000/1000);
+	  //uhalWrite("quad.channel.ctrl.reg.heartbeat",0); // Better to disable this?
 	}
 	/*
 	  uhalWrite("quad_ctrl.select",0x0);
@@ -193,14 +215,14 @@ namespace Hgcal10gLinkReceiver {
       }
 
       // Cludge for now; move later
-      uhalWrite("reg_320.ctrl1.slink_daq_readout_bp_en",0,true);
-      uhalWrite("reg_320.ctrl1.slink_trig_readout_bp_en",0,true);
+      uhalWrite("reg_320.ctrl1.slink_daq_readout_bp_en",1,true);
+      uhalWrite("reg_320.ctrl1.slink_trig_readout_bp_en",1,true);
 
       // SHOULD BE ONE FOR NOW!!!!
-      uhalWrite("reg_320.ctrl1.rate_throttle_daq_en",1,true);
-      uhalWrite("reg_320.ctrl1.rate_throttle_trig_en",1,true);
-      //uhalWrite("reg_320.ctrl1.rate_throttle_daq_en",0,true);
-      //uhalWrite("reg_320.ctrl1.rate_throttle_trig_en",0,true);
+      //uhalWrite("reg_320.ctrl1.rate_throttle_daq_en",1,true);
+      //uhalWrite("reg_320.ctrl1.rate_throttle_trig_en",1,true);
+      uhalWrite("reg_320.ctrl1.rate_throttle_daq_en",0,true);
+      uhalWrite("reg_320.ctrl1.rate_throttle_trig_en",0,true);
 
       return true;
     }  
@@ -225,6 +247,10 @@ namespace Hgcal10gLinkReceiver {
 
 	m[std::string("quad.channel.ctrl.reg.aggregate_"      )+sout.str()]=uhalRead("quad.channel.ctrl.reg.aggregate");
 	m[std::string("quad.channel.ctrl.reg.aggregate_limit_")+sout.str()]=uhalRead("quad.channel.ctrl.reg.aggregate_limit");
+
+	m[std::string("quad.channel.ctrl.watchdog_threshold_")+sout.str()]=uhalRead("quad.channel.ctrl.watchdog_threshold");
+	m[std::string("quad.channel.ctrl.reg.heartbeat_")+sout.str()]=uhalRead("quad.channel.ctrl.reg.heartbeat");
+	m[std::string("quad.channel.ctrl.heartbeat_threshold_")+sout.str()]=uhalRead("quad.channel.ctrl.heartbeat_threshold");
       }
 
       m["reg_320.ctrl1.slink_daq_readout_bp_en"]=uhalRead("reg_320.ctrl1.slink_daq_readout_bp_en",true);

@@ -94,9 +94,9 @@ namespace Hgcal10gLinkReceiver {
 	sout << "Elink_mapping.Elink" << i << ".";
 
 	// THIS IS THE REAL ONE! EAST IF ONE MODULE
-	//if(_miniDaqId=="") {
+	if(_miniDaqId=="") {
 	//if(true) {  // WILL PUT ECON-D0 INTO BOTH MINIDAQS
-	if(false) {
+	//if(false) {
 	  if(i<2*nEcond) {
 	    uhalWrite(sout.str()+"ID",i/2);
 	  } else {
@@ -105,6 +105,8 @@ namespace Hgcal10gLinkReceiver {
 
 	  // THIS IS A HACK!!!! WEST IF ONE MODULE
 	} else {
+	  //if(i==4 || i==5) {
+	  //uhalWrite(sout.str()+"ID",(i-4)/2);
 	  if(i==2 || i==3) {
 	    uhalWrite(sout.str()+"ID",(i-2)/2);
 	  } else {
@@ -153,7 +155,7 @@ namespace Hgcal10gLinkReceiver {
     void status(YAML::Node &m) {
       m=YAML::Node();
 
-      if(true) {
+      if(false) {
 	m["UNCOMMENT_REAL_VALUES"]=0;
 
       } else {

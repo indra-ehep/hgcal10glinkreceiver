@@ -6,7 +6,8 @@
 
 //#define REMOVE_FOR_TESTING
 
-#define DthHardware
+//#define DthHardware
+#undef DthHardware
 
 
 
@@ -53,7 +54,7 @@ namespace Hgcal10gLinkReceiver {
     
   public:
     ProcessorFastControl() {      
-      _nMiniDaqs=1;
+      _nMiniDaqs=2;
 
       std::system("empbutler -c etc/connections.xml do x0 info");
 
@@ -198,7 +199,7 @@ namespace Hgcal10gLinkReceiver {
 
 
  	if(_keyCfgA==127 || _keyCfgA==128) {
-	  _serenityMiniDaq[0].setNumberOfEconds(2);
+	  if(_nMiniDaqs==1) _serenityMiniDaq[0].setNumberOfEconds(2);
 	}
 
  	if(_keyCfgA==133 || _keyCfgA==135) {
@@ -323,11 +324,13 @@ namespace Hgcal10gLinkReceiver {
 
 #ifdef DthHardware
       _serenitySlink.channelReset();
+      usleep(2*1000000);
 #else
       _serenity10g.reset();
+      usleep(2*1000000);
+      _serenity10g.setHeartbeat(false);
 #endif
 
-      usleep(2*1000000);
       return true;
     }
 
@@ -354,6 +357,8 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool stopping() {
+      _serenity10g.setHeartbeat(true);
+
       //_serenity10gx.uhalWrite("ctrl.reg.en",0);
       /*
 	_eventNumberInConfiguration+=_eventNumberInRun;

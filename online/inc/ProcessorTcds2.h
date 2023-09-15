@@ -107,11 +107,19 @@ namespace Hgcal10gLinkReceiver {
 	
       if((_keyCfgA>0 && _keyCfgA<=38) || _keyCfgA==123) {
 
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",95);
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",0);
+	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",95);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",95-26);
 
-	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold",127,true);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",1);
+
+	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold", 80,true);
 	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
+	
+	//_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl1.l1a_delay",1,true);
+	//_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl1.l1a_delay",1,true);
+	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl1.l1a_delay",0,true);
+	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl1.l1a_delay",0,true);
 
 	// Hardwire CalComing
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
@@ -122,8 +130,18 @@ namespace Hgcal10gLinkReceiver {
 	//_serenityTcds2.uhalWrite("seq_mem.data",(   3<<16)|0x0040);
 	//_serenityTcds2.uhalWrite("seq_mem.data",(   4<<16)|0x0040);
 	//_serenityTcds2.uhalWrite("seq_mem.data",(   5<<16)|0x0040);
-	_serenityTcds2.uhalWrite("seq_mem.data",(3510<<16)|0x0004); // CalComing: L1A BC = this+delay+1
 
+	//_serenityTcds2.uhalWrite("seq_mem.data",(3510<<16)|0x0004); // CalComing: L1A BC = this+delay+1
+	_serenityTcds2.uhalWrite("seq_mem.data",((3510-15)<<16)|0x0004); // CalComing: L1A BC = this+delay+1
+
+	// DEBUG HACK
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",2);
+	_serenityTcds2.uhalWrite("seq_mem.data",(74<<16)|0x0040); // NOT 60, 46, 32, 18, 
+
+	if(false) { // STOP CALPULSE!!!
+	  _serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
+	  _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",0);
+	}
       }
 
       if(_keyCfgA==125) {
@@ -238,6 +256,9 @@ namespace Hgcal10gLinkReceiver {
       if(_keyCfgA==204 || _keyCfgA==205) {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_regular_period",713-1); // 3565 = 5x23x31 = 5x713
 
+	double period(nRsa["RegularPeriod"].as<unsigned>());
+	if(period>0 && period<1000000) _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_regular_period",period-1);
+
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_regular",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
       }
@@ -253,10 +274,16 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("seq_mem.data",(   2<<16)|0x0040);
 	_serenityTcds2.uhalWrite("seq_mem.data",(   3<<16)|0x0040);
 	*/
+	/*
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",2);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
 	_serenityTcds2.uhalWrite("seq_mem.data",( 10<<16)|0x0040);
 	_serenityTcds2.uhalWrite("seq_mem.data",(110<<16)|0x0040);
+	*/
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",2);
+	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	_serenityTcds2.uhalWrite("seq_mem.data",( 10<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",( 96<<16)|0x0040);
 
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",1);
       }
