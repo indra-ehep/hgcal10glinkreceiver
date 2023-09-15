@@ -93,17 +93,27 @@ namespace Hgcal10gLinkReceiver {
 	//   << std::setw(2) << i << ".";
 	sout << "Elink_mapping.Elink" << i << ".";
 
-	// THIS IS THE REAL ONE! EAST IF ONE MODULE
-	//if(_miniDaqId=="") {
-	//if(true) {  // WILL PUT ECON-D0 INTO BOTH MINIDAQS
-	if(false) {
+#ifdef DthHardware
+
+	// DTH needs both ECON-Ds in same MiniDAQ=""
+	if(_miniDaqId=="") {
+ 	  if     (i==0 || i==1) uhalWrite(sout.str()+"ID",0);
+	  //else if(i==2 || i==3) uhalWrite(sout.str()+"ID",1); // Cludge: duplicate
+	  else if(i==4 || i==5) uhalWrite(sout.str()+"ID",1); // Cludge: duplicate
+	  else                  uhalWrite(sout.str()+"ID",0xf);
+	} else {
+	  assert(false);
+	}
+#else
+
+	// 10G needs one ECON-D in each
+	if(_miniDaqId=="") {
 	  if(i<2*nEcond) {
 	    uhalWrite(sout.str()+"ID",i/2);
 	  } else {
 	    uhalWrite(sout.str()+"ID",0xf);
 	  }
 
-	  // THIS IS A HACK!!!! WEST IF ONE MODULE
 	} else {
 	  if(i==2 || i==3) {
 	    uhalWrite(sout.str()+"ID",(i-2)/2);
@@ -111,6 +121,7 @@ namespace Hgcal10gLinkReceiver {
 	    uhalWrite(sout.str()+"ID",0xf);
 	  }	  
 	}
+#endif
 
 	if(i<nEcond) {
 	  uhalWrite(sout.str()+"start_addr",i*memPerEcond);
@@ -130,8 +141,11 @@ namespace Hgcal10gLinkReceiver {
     }  
 
     bool setDefaults() {
+#ifdef DthHardware
+      setNumberOfEconds(2);
+#else
       setNumberOfEconds(1);
-      //setNumberOfEconds(2); // SHOULD BE THIS!!!
+#endif
 
       uhalWrite("rstn",0);
 

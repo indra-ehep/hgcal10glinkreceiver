@@ -238,6 +238,9 @@ namespace Hgcal10gLinkReceiver {
       if(_keyCfgA==204 || _keyCfgA==205) {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_regular_period",713-1); // 3565 = 5x23x31 = 5x713
 
+	unsigned rPeriod(nRsa["RegularPeriod"].as<unsigned>());
+	if(rPeriod>0 && rPeriod<10000) _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_regular_period",rPeriod);
+
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_regular",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
       }
