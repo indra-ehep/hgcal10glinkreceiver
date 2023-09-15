@@ -6,10 +6,6 @@
 
 //#define REMOVE_FOR_TESTING
 
-//#define DthHardware
-#undef DthHardware
-
-
 
 #include <iostream>
 #include <iomanip>
@@ -54,7 +50,11 @@ namespace Hgcal10gLinkReceiver {
     
   public:
     ProcessorFastControl() {      
+#ifdef DthHardware
+      _nMiniDaqs=1;
+#else
       _nMiniDaqs=2;
+#endif
 
       std::system("empbutler -c etc/connections.xml do x0 info");
 
