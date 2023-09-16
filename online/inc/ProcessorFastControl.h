@@ -357,7 +357,9 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool stopping() {
+#ifndef DthHardware
       _serenity10g.setHeartbeat(true);
+#endif
 
       //_serenity10gx.uhalWrite("ctrl.reg.en",0);
       /*

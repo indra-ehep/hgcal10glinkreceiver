@@ -28,6 +28,7 @@ namespace Hgcal10gLinkReceiver {
   public:
   
     SerenityUnpacker() {
+      histSel_=0;
     }
     
     virtual ~SerenityUnpacker() {
@@ -39,11 +40,13 @@ namespace Hgcal10gLinkReceiver {
     }
   
     bool setDefaults() {
-      uhalWrite("ctrl.reg.en",0);
-      uhalWrite("ctrl.reg.duty_cycle",3);
-      uhalWrite("ctrl.pkt_len",0x20);
-      uhalWrite("ctrl.reg.decrement_len",0);
-      uhalWrite("ctrl.pause_interval",0);
+      uhalWrite("ctrl_stat.ctrl0.nelinks_loc",4);
+      uhalWrite("ctrl_stat.ctrl0.trig_threshold",127);
+      uhalWrite("ctrl_stat.ctrl0.hist_sel",histSel_);
+      uhalWrite("ctrl_stat.ctrl1.bx_latency",0);
+      uhalWrite("ctrl_stat.ctrl1.l1a_delay",0);
+      
+      histSel_=(histSel_+1)%4;
 
       return true;
     }  
@@ -86,21 +89,28 @@ namespace Hgcal10gLinkReceiver {
       //uint64_t tempTotal(0);
       //uint64_t tempStc;
 
-      for(unsigned i(0);i<=128;i++) {
-	std::ostringstream sout;
-	sout << "hist_hoc_stc" << std::setfill('0') << (ab==0?"A":"B");
-	if(i<128) sout << "_" << (ea?"En":"Add") << std::setw(3) << i;
-	else sout << "_total";
+      if(ea==0) {
+	for(unsigned i(0);i<=24;i++) {
+	  std::ostringstream sout;
+	  sout << "hist_hoc_stc" << std::setfill('0') << std::setw(2) << (i+24*ab)/4;
+	  if(i<24) sout << "_Address" << std::setw(1) << i%4;
+	  else sout << "_total";
 
-	m[sout.str()+"_l"]=uhalRead("hist_hoc.d");
-	m[sout.str()+"_h"]=uhalRead("hist_hoc.d");
+	  m[sout.str()+"_l"]=uhalRead("hist_hoc.d");
+	  m[sout.str()+"_h"]=uhalRead("hist_hoc.d");
+	}
+
+      } else {
+	for(unsigned i(0);i<=128;i++) {
+	  std::ostringstream sout;
+	  sout << "hist_hoc_stc" << std::setfill('0') << (ab==0?"A":"B");
+	  if(i<128) sout << "_Energy" << std::setw(3) << i;
+	  else sout << "_total";
+
+	  m[sout.str()+"_l"]=uhalRead("hist_hoc.d");
+	  m[sout.str()+"_h"]=uhalRead("hist_hoc.d");
+	}
       }
-
-    /*
-|    |    ├──payload.unpacker0.hist_hoc
-|    |    |    ├──payload.unpacker0.hist_hoc.ptr
-|    |    |    ├──payload.unpacker0.hist_hoc.d
-    */
     }  
 
     void sendPulse(const std::string &s) {
@@ -135,7 +145,7 @@ namespace Hgcal10gLinkReceiver {
 
   
   protected:
-
+    unsigned histSel_;
   };
 
 }
