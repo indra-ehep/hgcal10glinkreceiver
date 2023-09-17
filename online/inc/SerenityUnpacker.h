@@ -16,10 +16,10 @@
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
 
-#ifdef ProcessorHardware
-#include "uhal/uhal.hpp"
-#include "uhal/ValMem.hpp"
-#endif
+//#ifdef ProcessorHardware
+//#include "uhal/uhal.hpp"
+//#include "uhal/ValMem.hpp"
+//#endif
 
 namespace Hgcal10gLinkReceiver {
 
@@ -28,7 +28,6 @@ namespace Hgcal10gLinkReceiver {
   public:
   
     SerenityUnpacker() {
-      histSel_=0;
     }
     
     virtual ~SerenityUnpacker() {
@@ -36,18 +35,19 @@ namespace Hgcal10gLinkReceiver {
     
     bool makeTable(const std::string &s="") {
       SerenityUhal::makeTable(std::string("payload.unpacker")+s);
+      histSel_=uhalRead("ctrl_stat.ctrl0.hist_sel");
       return true;
     }
   
     bool setDefaults() {
+      histSel_=(histSel_+1)%4;
+
       uhalWrite("ctrl_stat.ctrl0.nelinks_loc",4);
       uhalWrite("ctrl_stat.ctrl0.trig_threshold",127);
       uhalWrite("ctrl_stat.ctrl0.hist_sel",histSel_);
       uhalWrite("ctrl_stat.ctrl1.bx_latency",0);
-      uhalWrite("ctrl_stat.ctrl1.l1a_delay",0);
+      uhalWrite("ctrl_stat.ctrl1.l1a_delay",10);
       
-      histSel_=(histSel_+1)%4;
-
       return true;
     }  
 
@@ -89,29 +89,29 @@ namespace Hgcal10gLinkReceiver {
       //uint64_t tempTotal(0);
       //uint64_t tempStc;
 
-      if(ea==0) {
-	for(unsigned i(0);i<=24;i++) {
-	  std::ostringstream sout;
-	  sout << "hist_hoc_stc" << std::setfill('0') << std::setw(2) << (i+24*ab)/4;
-	  if(i<24) sout << "_Address" << std::setw(1) << i%4;
-	  else sout << "_total";
-
-	  m[sout.str()+"_l"]=uhalRead("hist_hoc.d");
-	  m[sout.str()+"_h"]=uhalRead("hist_hoc.d");
-	}
-
-      } else {
-	for(unsigned i(0);i<=128;i++) {
+      for(unsigned i(0);i<=128;i++) {
+	if(ea==0) {
+	  if((i>=24*ab && i<24*(ab+1)) || i==128) {
+	    std::ostringstream sout;
+	    sout << "hist_hoc_stc";
+	    if(i!=128) sout << std::setfill('0') << std::setw(2) << i/4 << "_Address" << std::setw(1) << i%4;
+	    else sout << (ab==0?"A":"B") << "_total";
+	    
+	    m[sout.str()+"_l"]=uhalRead("hist_hoc.d");
+	    m[sout.str()+"_h"]=uhalRead("hist_hoc.d");
+	  }
+	  
+	} else {
 	  std::ostringstream sout;
 	  sout << "hist_hoc_stc" << std::setfill('0') << (ab==0?"A":"B");
-	  if(i<128) sout << "_Energy" << std::setw(3) << i;
+	  if(i!=128) sout << "_Energy" << std::setw(3) << i;
 	  else sout << "_total";
-
+	  
 	  m[sout.str()+"_l"]=uhalRead("hist_hoc.d");
 	  m[sout.str()+"_h"]=uhalRead("hist_hoc.d");
 	}
       }
-    }  
+    }
 
     void sendPulse(const std::string &s) {
       if(uhalRead(s)!=0) uhalWrite(s,0);

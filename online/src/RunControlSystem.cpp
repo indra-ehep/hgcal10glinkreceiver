@@ -55,6 +55,17 @@ int main(int argc, char *argv[]) {
       assertEnable=true;
     }
   }
+
+
+  std::vector<std::string> vRunType;
+  vRunType.push_back("Pedestal");
+  vRunType.push_back("NoTriggerTest");
+  vRunType.push_back("RandomTriggerTest");
+  vRunType.push_back("SoftwareTriggerTest");
+  vRunType.push_back("RegularTriggerTest");
+  vRunType.push_back("BeamRun");
+  vRunType.push_back("EcontTriggerThresholdScan");
+
   
   std::vector< ShmSingleton<FsmInterface> > vShmSingleton(9);
   std::vector<FsmInterface*> vPtr;
@@ -137,6 +148,7 @@ int main(int argc, char *argv[]) {
       unsigned nx(999999);
       unsigned numberOfSecs(1000000000);
       //while(nx==0 || nx>1000) {
+      /*
       while(nx>38 && 
 	    nx!=123 && nx!=124 && nx!=125 && nx!=126 && nx!=127 && nx!=128 &&
 	    nx!=131 && nx!=132 && nx!=133 && nx!=134 && nx!=135 &&
@@ -146,6 +158,16 @@ int main(int argc, char *argv[]) {
 	std::cout << "Relay type (0-38,123,124,125,126,127,128,131,132,133,134,135,200,201,202,203,204,205,209,997,998,999)"
 		<< std::endl;
 	std::cin >> nx;
+      }
+      */
+      std::cout << "Relay keys and types:" << std::endl;
+      for(unsigned i(0);i<vRunType.size();i++) {
+	std::cout << std::setw(3) << i << ": " << vRunType[i] << std::endl;
+      }
+      std::cout << "Enter key" << std::endl;
+      while(nx>=vRunType.size()) {
+	std::cin >> nx;
+	if(nx>=vRunType.size()) std::cout << "Invalid key: re-enter" << std::endl;
       }
 
       while(numberOfSecs>1000001) {
@@ -172,16 +194,15 @@ int main(int argc, char *argv[]) {
 
       //if(x=='y') rca.setRelayNumber();
       //else rca.setRelayNumber(0xffffffff);
-      uint32_t srNumber(x=='y'?uint32_t(time(0)):0xffffffff);
 
       YAML::Node nRca;
-      nRca["RelayNumber"]=srNumber;
 
-      nRca["RunType"]="Default";
+      //nRca["RunType"]="Default";
+      nRca["RunType"]=vRunType[nx];
       unsigned maxNumberOfConfigurations(1);
 
-      if(nx==  0) maxNumberOfConfigurations=1;
-      if(nx>0 && nx<38) maxNumberOfConfigurations=8;
+      //if(nx==  0) maxNumberOfConfigurations=1;
+      //if(nx>0 && nx<38) maxNumberOfConfigurations=8;
       if(nx== 38) maxNumberOfConfigurations=8*37;
       if(nx==123) maxNumberOfConfigurations=1;
       if(nx==124) maxNumberOfConfigurations=4;
@@ -197,8 +218,8 @@ int main(int argc, char *argv[]) {
 	nRca["RunType"]="BeGenericTest";
 	maxNumberOfConfigurations=1;
       }
-      if(nx==128) {
-	nRca["RunType"]="Pedestal";
+
+      if(vRunType[nx]=="Pedestal") {
 	maxNumberOfConfigurations=1;
       }
 
@@ -223,16 +244,13 @@ int main(int argc, char *argv[]) {
 	maxNumberOfConfigurations=50;
       }
 
-      if(nx==200) {
-	nRca["RunType"]="NoTriggerTest";
+      if(vRunType[nx]=="NoTriggerTest") {
 	maxNumberOfConfigurations=1;
       }
-      if(nx==201) {
-	nRca["RunType"]="PhysicsTriggerTest";
+      if(vRunType[nx]=="PhysicsTriggerTest") {
 	maxNumberOfConfigurations=1;
       }
-      if(nx==202) {
-	nRca["RunType"]="RandomTriggerTest";
+      if(vRunType[nx]=="RandomTriggerTest") {
 
 	double rateKhz(0.0);
 	while(rateKhz<0.001 || rateKhz>2000.0) {
@@ -243,12 +261,10 @@ int main(int argc, char *argv[]) {
 	nRca["RandomRateKhz"]=rateKhz;
 	maxNumberOfConfigurations=1;
       }
-      if(nx==203) {
-	nRca["RunType"]="SoftwareTriggerTest";
+      if(vRunType[nx]=="SoftwareTriggerTest") {
 	maxNumberOfConfigurations=1;
       }
-      if(nx==204) {
-	nRca["RunType"]="RegularTriggerTest";
+      if(vRunType[nx]=="RegularTriggerTest") {
 
 	unsigned period(0);
 	while(period<1 || period>1000000) {
@@ -259,6 +275,15 @@ int main(int argc, char *argv[]) {
 	nRca["RegularPeriod"]=period;
 	maxNumberOfConfigurations=1;
       }
+
+      if(vRunType[nx]=="EcontTriggerThresholdScan") {
+	maxNumberOfConfigurations=20;
+      }
+
+      if(vRunType[nx]=="BeamRun") {
+	maxNumberOfConfigurations=1000000;
+      }
+
       if(nx==205) {
 	nRca["RunType"]="MixedTriggerTest";
 	maxNumberOfConfigurations=1;
@@ -292,19 +317,11 @@ int main(int argc, char *argv[]) {
 
       nRca["MaxNumberOfConfigurations"]=maxNumberOfConfigurations;
 
-      // Configuration
-      /*
-      rca.setProcessKey(RunControlDummyFsmShmKey,nx);
-      rca.setProcessKey(RunControlFrontEndFsmShmKey,nx);
-      rca.setProcessKey(RunControlFastControlFsmShmKey,0);
-      rca.setProcessKey(RunControlTcds2FsmShmKey,nx);
-      rca.setProcessKey(RunControlRelayFsmShmKey,0);
-      rca.setProcessKey(RunControlStageFsmShmKey,0);
-      rca.setProcessKey(RunControlDaqLink0FsmShmKey,0);
-      rca.setProcessKey(RunControlDaqLink1FsmShmKey,0);
-      */
-      
-      nRca["ProcessorKey"]=nx;
+      uint32_t srNumber(x=='y'?uint32_t(time(0)):0xffffffff);
+      nRca["RelayNumber"]=srNumber;
+
+      //nRca["ProcessorKey"]=nx;
+      nRca["ProcessorKey"]=999999;
 
       std::ostringstream sRca;
       sRca << nRca;

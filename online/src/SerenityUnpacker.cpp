@@ -30,6 +30,8 @@ int main(int argc, char *argv[]) {
   SerenityUnpacker smd;
   smd.makeTable("0");
 
+  smd.setDefaults();
+
   YAML::Node n;
   smd.configuration(n);
   std::cout << n << std::endl;

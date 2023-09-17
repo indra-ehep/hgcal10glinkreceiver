@@ -118,8 +118,8 @@ namespace Hgcal10gLinkReceiver {
       } else {
 
 	// Testing
-	unsigned bxLatency(9);
-	unsigned scintLatency(34+16); // Sep 2023?
+	unsigned bxLatency(19);
+	unsigned scintLatency(43);
 
 	// ECON-T output
 	uhalWrite("daq_ro.DAQro0.latency",1+4*bxLatency);

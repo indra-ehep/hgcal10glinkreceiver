@@ -1,12 +1,6 @@
 #ifndef Hgcal10gLinkReceiver_ProcessorTcds2_h
 #define Hgcal10gLinkReceiver_ProcessorTcds2_h
 
-
-
-//#define REMOVE_FOR_TESTING
-
-
-
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -21,20 +15,12 @@
 #include "ProcessorBase.h"
 #include "DataFifo.h"
 
-
-
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
 #include "RecordConfigured.h"
 
-
-
 #include "RecordPrinter.h"
 
-//#ifdef ProcessorHardware
-//#include "uhal/uhal.hpp"
-//#include "uhal/ValMem.hpp"
-//#endif
 
 namespace Hgcal10gLinkReceiver {
 
@@ -102,13 +88,35 @@ namespace Hgcal10gLinkReceiver {
 
       //_keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
       YAML::Node nRsa(YAML::Load(r.string()));
-      _keyCfgA=nRsa["ProcessorKey"].as<uint32_t>();
+      _keyCfgA=999999;//nRsa["ProcessorKey"].as<uint32_t>();
       _strCfgA=nRsa["RunType"].as<std::string>();
+
+      _randomRateKhz=5*40000.0/3564;
+      if(nRsa["RandomRateKhz"]) _randomRateKhz=nRsa["RandomRateKhz"].as<double>();
 	
+      _regularPeriod=713;
+      if(nRsa["RegularPeriod"]) _regularPeriod=nRsa["RegularPeriod"].as<unsigned>();
+
+      return allConfiguring();
+    }
+    
+    bool reconfiguring() {
+      _cfgForRunStart=true;
+      _configuringBCounter++;
+
+      RecordReconfiguring &r((RecordReconfiguring&)(_ptrFsmInterface->record()));
+      if(_printEnable) r.print();
+
+      return allConfiguring();
+    }
+
+    bool allConfiguring() {
       if((_keyCfgA>0 && _keyCfgA<=38) || _keyCfgA==123) {
 
 	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",95);
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",95-26);
+	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",95-26);
+	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",70+8);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",78+_configuringBCounter);
 
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",1);
@@ -116,10 +124,11 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold", 80,true);
 	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
 	
+	// Now done in SerenityUnpacker
 	//_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl1.l1a_delay",1,true);
 	//_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl1.l1a_delay",1,true);
-	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl1.l1a_delay",0,true);
-	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl1.l1a_delay",0,true);
+	//_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl1.l1a_delay",10,true);
+	//_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl1.l1a_delay",10,true);
 
 	// Hardwire CalComing
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
@@ -132,11 +141,14 @@ namespace Hgcal10gLinkReceiver {
 	//_serenityTcds2.uhalWrite("seq_mem.data",(   5<<16)|0x0040);
 
 	//_serenityTcds2.uhalWrite("seq_mem.data",(3510<<16)|0x0004); // CalComing: L1A BC = this+delay+1
-	_serenityTcds2.uhalWrite("seq_mem.data",((3510-15)<<16)|0x0004); // CalComing: L1A BC = this+delay+1
+	//_serenityTcds2.uhalWrite("seq_mem.data",((3510-15)<<16)|0x0004); // CalComing: L1A BC = this+delay+1
+	_serenityTcds2.uhalWrite("seq_mem.data",((3510-15+58-68)<<16)|0x0004); // CalComing: L1A BC = this+delay+1
 
 	// DEBUG HACK
+	/*
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",2);
 	_serenityTcds2.uhalWrite("seq_mem.data",(74<<16)|0x0040); // NOT 60, 46, 32, 18, 
+	*/
 
 	if(false) { // STOP CALPULSE!!!
 	  _serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
@@ -155,9 +167,12 @@ namespace Hgcal10gLinkReceiver {
       }
 
       if(_keyCfgA==126) {
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
-	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
-	_serenityTcds2.uhalWrite("seq_mem.data",(   1<<16)|0x0040);
+        _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1+_configuringBCounter);
+        _serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	for(unsigned i(0);i<1+_configuringBCounter;i++) {
+	  _serenityTcds2.uhalWrite("seq_mem.data",((1+200*i)<<16)|0x0040);
+	}
+
 	/*
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",5);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
@@ -180,7 +195,7 @@ namespace Hgcal10gLinkReceiver {
       }
 
       if(_strCfgA=="HgcrocBufferTest") {
-	unsigned nL1A(33);
+	unsigned nL1A(33+_configuringBCounter);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",nL1A);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
 	for(unsigned i(0);i<nL1A;i++) {
@@ -241,29 +256,27 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
       }
 
-      if(_keyCfgA==202 || _keyCfgA==205) {
+      if(_strCfgA=="RandomTriggerTest") {
 	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-91*256);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-50);
 	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-1); // ~2 Hz
 
-	double rateKhz(nRsa["RandomRateKhz"].as<double>());
-	if(rateKhz>0.0 && rateKhz<1000.0) _serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-uint32_t(419.43*rateKhz+0.5));
+	if(_randomRateKhz>0.0 && _randomRateKhz<2000.0) _serenityTcds2.uhalWrite("ctrl_stat.ctrl3.l1a_prbs_threshold",0xffffff-uint32_t(419.43*_randomRateKhz+0.5));
 
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_random",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
       }
 
-      if(_keyCfgA==204 || _keyCfgA==205) {
+      if(_strCfgA=="RegularTriggerTest") {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_regular_period",713-1); // 3565 = 5x23x31 = 5x713
 
-	double period(nRsa["RegularPeriod"].as<unsigned>());
-	if(period>0 && period<1000000) _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_regular_period",period-1);
+	if(_regularPeriod>0 && _regularPeriod<1000000) _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_regular_period",_regularPeriod-1);
 
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_regular",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
       }
 
-      if(_keyCfgA==203 || _keyCfgA==205) {
+      if(_strCfgA=="SoftwareTriggerTest") {
 	/*
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",6);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
@@ -339,65 +352,13 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
       }
 
-      return true;
-    }
-    
-    bool reconfiguring() {
-      _cfgForRunStart=true;
+      if(_strCfgA=="EcontTriggerThresholdScan") {
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",1);
 
-      RecordReconfiguring &r((RecordReconfiguring&)(_ptrFsmInterface->record()));
-      if(_printEnable) r.print();
-
-      _configuringBCounter++;
-
-      //_keyCfgB=r.processorKey(RunControlTcds2FsmShmKey);
-
-      if(_keyCfgA==123) {
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",_configuringBCounter);
-      }
-	
-      if(_keyCfgA==125) {
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
-	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
-
-	uint16_t l1aBc(((3548+(_configuringBCounter%32))%3564)+1);
-	std::cout << "L1A BC = " << l1aBc << std::endl;
-
-	_serenityTcds2.uhalWrite("seq_mem.data",(l1aBc<<16)|0x0040);
-      }
-
-      if(_keyCfgA==126) {
-        _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1+_configuringBCounter);
-        _serenityTcds2.uhalWrite("seq_mem.pointer",0);
-	for(unsigned i(0);i<1+_configuringBCounter;i++) {
-	  _serenityTcds2.uhalWrite("seq_mem.data",((1+200*i)<<16)|0x0040);
-	}
-      }
-
-      if(_strCfgA=="HgcrocBufferTest") {
-	unsigned nL1A(33+_configuringBCounter);
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",nL1A);
-	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
-	for(unsigned i(0);i<nL1A;i++) {
-	  _serenityTcds2.uhalWrite("seq_mem.data",((i+1)<<16)|0x0040);
-	}
-      }
-
-      if(_strCfgA=="CalPulseIntTimeScan") {
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",30+_configuringBCounter);
-	/*
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
-	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
-	_serenityTcds2.uhalWrite("seq_mem.data",(3469<<16)|0x0004); // CalComing: L1A BC = this+delay+1
-	*/
-      }
-
-      if(_strCfgA=="BeamRam1TimeScan") {
-	_serenityTcds2.uhalWrite("reg_320.ctrl1.ext_trigger_delay",10+(_configuringBCounter%20),true);
-      }
-
-      if(_strCfgA=="BeamRam1TimeScan2") {
-	_serenityTcds2.uhalWrite("reg_320.ctrl1.ext_trigger_delay",1+(_configuringBCounter%100),true);
+	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold",100-_configuringBCounter,true);
+	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);	
       }
 
       return true;
@@ -600,6 +561,8 @@ namespace Hgcal10gLinkReceiver {
     uint32_t _keyCfgA;
     std::string _strCfgA;
     //uint32_t _keyCfgB;
+    double _randomRateKhz;
+    unsigned _regularPeriod;
 
     uint32_t _configuringBCounter;
 

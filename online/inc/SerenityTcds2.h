@@ -101,7 +101,7 @@ namespace Hgcal10gLinkReceiver {
 	m[sout.str()]=uhalRead("seq_mem.data");
       }
     }
-
+    /*
     void status(std::unordered_map<std::string,uint32_t> &m) {
       m.clear();
 
@@ -118,7 +118,7 @@ namespace Hgcal10gLinkReceiver {
       m["ctrl_stat.stat0.tts_hgcroc"]=uhalRead("ctrl_stat.stat0.tts_hgcroc");
       m["ctrl_stat.stat0.tts_ext"]=uhalRead("ctrl_stat.stat0.tts_ext");
     }
-
+    */
     void status(YAML::Node &m) {
       m=YAML::Node();
 
@@ -174,7 +174,7 @@ namespace Hgcal10gLinkReceiver {
 
       // Cludge here for now
       //uhalWrite("reg_320.ctrl1.ext_trigger_delay",17,true);
-      uhalWrite("reg_320.ctrl1.ext_trigger_delay",21,true); // Runs 1691157443 and 1691159729
+      uhalWrite("reg_320.ctrl1.ext_trigger_delay",36,true);
 
       return true;
     }  

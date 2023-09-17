@@ -191,6 +191,9 @@ namespace Hgcal10gLinkReceiver {
   }
 
 #else
+  uint32_t uhalDirectRead(const std::string &s) {
+    return 999;
+  }
 
   virtual uint32_t uhalRead(const std::string &s, bool pl=false) {
     return 999;

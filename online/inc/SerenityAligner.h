@@ -52,6 +52,16 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }  
 
+    void setBxDelay(unsigned i, bool b) {
+      if(i>=4) return;
+
+      for(unsigned j(0);j<7;j++) {
+	std::ostringstream sout;
+	sout << "lpgbt" << i << ".lpgbt_frame.shift_elink" << j;
+	uhalWrite(sout.str(),(uhalRead(sout.str())&0xbf)|(b?0x40:0x00));
+      }
+    }
+
     void configuration(YAML::Node &m) {
       m=YAML::Node();
 

@@ -20,7 +20,7 @@
 using namespace Hgcal10gLinkReceiver;
 
 int main(int argc, char *argv[]) {
-
+  /*
   // Turn off printing
   bool printEnable(false);
 
@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
       std::cout << "Setting printEnable to true" << std::endl;
     printEnable=true;
   }
-
+  */
   SerenityUhal::setUhalLogLevel();
 
   Serenity10g smd;

@@ -14,12 +14,13 @@
 #include "SerenityHgcroc.h"
 #include "SerenityMiniDaq.h"
 #include "SerenityTcds2.h"
+#include "SerenityReg320.h"
 #include "ProcessorFastControlPlusDaq.h"
 
 using namespace Hgcal10gLinkReceiver;
 
 int main(int argc, char *argv[]) {
-
+  /*
   // Turn off printing
   bool printEnable(false);
 
@@ -29,21 +30,21 @@ int main(int argc, char *argv[]) {
       std::cout << "Setting printEnable to true" << std::endl;
     printEnable=true;
   }
-
+  */
   SerenityUhal::setUhalLogLevel();
 
-  SerenityUhal smd;
+  SerenityReg320 smd;
   smd.makeTable();
   //return 0;
 
   while(true) {
 
     // Unthrottle
-    smd.uhalWrite("reg_320.ctrl1.l1a_throttle_user",0x0);
+    smd.uhalWrite("ctrl1.l1a_throttle_user",0x0);
     usleep( 5000000);
 
     // Throttle
-    smd.uhalWrite("reg_320.ctrl1.l1a_throttle_user",0x1);
+    smd.uhalWrite("ctrl1.l1a_throttle_user",0x1);
     usleep(10000000);
   }
 

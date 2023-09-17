@@ -24,6 +24,7 @@
 #include "SerenityTrgDaq.h"
 #include "SerenityAligner.h"
 #include "SerenitySlink.h"
+#include "SerenityUnpacker.h"
 #include "ShmSingleton.h"
 #include "ProcessorBase.h"
 #include "DataFifo.h"
@@ -39,10 +40,10 @@
 #include "RecordPrinter.h"
 #include "RecordHalted.h"
 
-#ifdef ProcessorHardware
-#include "uhal/uhal.hpp"
-#include "uhal/ValMem.hpp"
-#endif
+//#ifdef ProcessorHardware
+//#include "uhal/uhal.hpp"
+//#include "uhal/ValMem.hpp"
+//#endif
 
 namespace Hgcal10gLinkReceiver {
 
@@ -55,6 +56,7 @@ namespace Hgcal10gLinkReceiver {
 #else
       _nMiniDaqs=2;
 #endif
+      _nUnpackers=2;
 
       std::system("empbutler -c etc/connections.xml do x0 info");
 
@@ -78,6 +80,8 @@ namespace Hgcal10gLinkReceiver {
       if(_nMiniDaqs>1) _serenityMiniDaq[1].makeTable("1");
       _serenityTrgDaq.makeTable();
       _serenityAligner.makeTable();
+      _serenityUnpacker[0].makeTable("0");
+      if(_nUnpackers>1) _serenityUnpacker[1].makeTable("1");
 
 #ifdef DthHardware
       _serenitySlink.makeTable();
@@ -108,6 +112,13 @@ namespace Hgcal10gLinkReceiver {
       _serenityTrgDaq.print();
 
       //_serenityAligner.print(); // Does all payload
+
+      _serenityUnpacker[0].setDefaults();
+      _serenityUnpacker[0].print();
+      if(_nUnpackers>1) {
+	_serenityUnpacker[1].setDefaults();
+	_serenityUnpacker[1].print();
+      }
 
 #ifdef DthHardware
       _serenitySlink.setDefaults();
@@ -147,8 +158,8 @@ namespace Hgcal10gLinkReceiver {
       _serenitySlink.setSourceId(0,0xce000000|daqBoard<<4|1); // DAQ is on channel 0 = Link 1
       _serenitySlink.setSourceId(1,0xce000000|daqBoard<<4|0); // TRG is on channel 1 = Link 0
 #else
-      _serenityTrgDaq.uhalWrite("trigger_ro.SLink.source_id"  ,0xce000000|daqBoard<<4|0,true);
-      _serenityEncoder.uhalWrite("DAQ_SLink_readout.source_id",0xce000000|daqBoard<<4|1,true);
+      _serenityTrgDaq.uhalWrite( "trigger_ro.SLink.source_id"  ,0xce000000|daqBoard<<4|0,true);
+      _serenityEncoder.uhalWrite("DAQ_SLink_readout.source_id" ,0xce000000|daqBoard<<4|1,true);
       _serenityEncoder.uhalWrite("DAQ_SLink_readout1.source_id",0xce000000|daqBoard<<4|2,true);
 #endif
 
@@ -182,6 +193,28 @@ namespace Hgcal10gLinkReceiver {
       //_keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
       YAML::Node nRsa(YAML::Load(r.string()));
       _keyCfgA=nRsa["ProcessorKey"].as<uint32_t>();
+      _strCfgA=nRsa["RunType"].as<std::string>();
+
+      return allConfiguring();
+    }
+
+    
+    bool reconfiguring() {
+      _configuringBCounter++;
+
+      return allConfiguring();
+    }
+
+    bool allConfiguring() {
+
+      if(_strCfgA=="EcontTriggerThresholdScan") {
+        _serenityUnpacker[0].uhalWrite("ctrl_stat.ctrl0.trig_threshold",127);
+        _serenityUnpacker[1].uhalWrite("ctrl_stat.ctrl0.trig_threshold",127);
+
+	unsigned unpacker((_configuringBCounter%20)/10);
+	unsigned threshold((unpacker==0?79:99)-((_configuringBCounter%20)%10));
+        _serenityUnpacker[unpacker].uhalWrite("ctrl_stat.ctrl0.trig_threshold",threshold);
+      }
 
       if(_keyCfgA==125) {
 	_serenityEncoder.uhalWrite("ctrl.l1a_stretch",_configuringBCounter/32);
@@ -205,24 +238,11 @@ namespace Hgcal10gLinkReceiver {
  	if(_keyCfgA==133 || _keyCfgA==135) {
 	  //_saveData=_serenityTrgDaq.uhalRead("daq_ro.DAQro2.latency");
 	  _saveData=3;
+	  _serenityTrgDaq.uhalWrite("daq_ro.DAQro2.latency",_saveData+_serenityTrgDaq.uhalRead("daq_ro.DAQro2.event_size")*(_configuringBCounter%50));
 	}
 
  	if(_keyCfgA==999) {
 	}
-
-      return true;
-    }
-    
-    bool reconfiguring() {
-      _configuringBCounter++;
-
-      if(_keyCfgA==125) {
-	_serenityEncoder.uhalWrite("ctrl.l1a_stretch",_configuringBCounter/32);
-      }
-
-      if(_keyCfgA==133 || _keyCfgA==135) {
-	_serenityTrgDaq.uhalWrite("daq_ro.DAQro2.latency",_saveData+_serenityTrgDaq.uhalRead("daq_ro.DAQro2.event_size")*(_configuringBCounter%50));
-      }
 
       return true;
     }
@@ -285,6 +305,10 @@ namespace Hgcal10gLinkReceiver {
       _serenityMiniDaq[0].configuration(nm00);
       total["LpgbtPair"]["0"]["MiniDaq"]=nm00;
 
+      YAML::Node nu00;
+      _serenityUnpacker[0].configuration(nu00);
+      total["LpgbtPair"]["0"]["Unpacker"]=nu00;
+
       YAML::Node nl00;
       _serenityLpgbt.configuration(nl00);
       total["LpgbtPair"]["0"]["FcStream"]=nl00;
@@ -297,6 +321,12 @@ namespace Hgcal10gLinkReceiver {
 	YAML::Node nm01;
 	_serenityMiniDaq[1].configuration(nm01);
 	total["LpgbtPair"]["1"]["MiniDaq"]=nm01;
+      }
+
+      if(_nUnpackers>1) {
+	YAML::Node nu01;
+	_serenityUnpacker[1].configuration(nu01);
+	total["LpgbtPair"]["1"]["Unpacker"]=nu01;
       }
 
       YAML::Node nl01;
@@ -316,6 +346,9 @@ namespace Hgcal10gLinkReceiver {
       
       _serenityMiniDaq[0].reset();
       if(_nMiniDaqs>1) _serenityMiniDaq[1].reset();
+
+      _serenityUnpacker[0].reset();
+      if(_nUnpackers>1) _serenityUnpacker[1].reset();
 
       _serenityEncoder.resetSlinkFifo();
 
@@ -409,6 +442,10 @@ namespace Hgcal10gLinkReceiver {
       _serenityMiniDaq[0].status(nm00);
       total["LpgbtPair"]["0"]["MiniDaq"]=nm00;
 
+      YAML::Node nu00;
+      _serenityUnpacker[0].status(nu00);
+      total["LpgbtPair"]["0"]["Unpacker"]=nu00;
+
       ////////////////////
 
       total["LpgbtPair"]["1"]["Id"]=1;
@@ -417,6 +454,12 @@ namespace Hgcal10gLinkReceiver {
 	YAML::Node nm01;
 	_serenityMiniDaq[1].status(nm01);
 	total["LpgbtPair"]["1"]["MiniDaq"]=nm01;
+      }
+
+      if(_nUnpackers>1) {
+	YAML::Node nu01;
+	_serenityUnpacker[1].status(nu01);
+	total["LpgbtPair"]["1"]["Unpacker"]=nu01;
       }
 
       if(_printEnable) std::cout << "Yaml status" << std::endl << total << std::endl;
@@ -446,6 +489,13 @@ namespace Hgcal10gLinkReceiver {
       if(_nMiniDaqs>1) {
       _serenityMiniDaq[1].setDefaults();
       _serenityMiniDaq[1].print();
+      }
+
+      _serenityUnpacker[0].setDefaults();
+      _serenityUnpacker[0].print();
+      if(_nUnpackers>1) {
+      _serenityUnpacker[1].setDefaults();
+      _serenityUnpacker[1].print();
       }
 
       //_serenity10g.setDefaults();
@@ -739,6 +789,7 @@ namespace Hgcal10gLinkReceiver {
 
     uint32_t _configuringBCounter;
     uint32_t _keyCfgA;
+    std::string _strCfgA;
 
     uint32_t _relayNumber;
     uint32_t _runNumber;
@@ -750,10 +801,12 @@ namespace Hgcal10gLinkReceiver {
     uint32_t _eventNumberInSuperRun;
 
     unsigned _nMiniDaqs;
+    unsigned _nUnpackers;
 
     SerenityEncoder _serenityEncoder;
     SerenityLpgbt _serenityLpgbt;
     SerenityMiniDaq _serenityMiniDaq[2];  
+    SerenityUnpacker _serenityUnpacker[2];  
     Serenity10g _serenity10g;
     Serenity10gx _serenity10gx;
     SerenityTrgDaq _serenityTrgDaq;
