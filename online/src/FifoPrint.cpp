@@ -28,6 +28,8 @@ int main() {
 
   uint32_t w[3],wOld[3]={0,0,0},wDiff[3];
   
+  std::cout << std::setprecision(3) << std::fixed;
+
   while(true) {
     system("clear");
     for(unsigned i(0);i<3;i++) {

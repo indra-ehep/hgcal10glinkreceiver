@@ -21,7 +21,7 @@ namespace Hgcal10gLinkReceiver {
     FileWriter() : MaximumBytesPerFile(4000000000),
 		   MaximumEventsPerFile(1000000),
 		   MaximumOrbitsPerFile(2000000),
-		   _directory("dat/"), _protectFiles(false), _flushRecords(true), _rawCcode(false) {      
+		   _directory("dat/"), _protectFiles(false), _flushRecords(false), _rawCcode(true) {      
       _outputFilePtr=nullptr;
     }
 

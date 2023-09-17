@@ -4,14 +4,16 @@
 #include <vector>
 
 #include "FileReader.h"
+#include "EcontEnergies.h"
 
+/*
 void econtEnergies(const uint64_t *p, std::vector<uint16_t> &v) {
   v.resize(24);
 
   uint64_t e0,e1;
   
-  e0=p[0]<<32|p[1]&0xffffffff;
-  e1=p[1]<<48|(p[2]&0xffffffff)<<16|(p[3]&0xffffffff)>>16;
+  e0=(p[0]<<32)|(p[1]&0xffffffff);
+  e1=(p[1]<<48)|(p[2]&0xffffffff)<<16|(p[3]&0xffffffff)>>16;
   //std::cout << "e0,e1 = " << std::hex << e0 << "," << e1 << std::endl;
   
   v[ 0]=(e0>> 1)&0x7f;
@@ -28,7 +30,7 @@ void econtEnergies(const uint64_t *p, std::vector<uint16_t> &v) {
   v[10]=(e1>>35)&0x7f;
   v[11]=(e1>>42)&0x7f;
   
-  e0= p[0]&0xffffffff00000000     |(p[1]&0xffffffff00000000)>>32;
+  e0=(p[0]&0xffffffff00000000)    |(p[1]&0xffffffff00000000)>>32;
   e1=(p[1]&0xffffffff00000000)<<16|(p[2]&0xffffffff00000000)>>16|(p[3]&0xffffffff00000000)>>48;
   //std::cout << "e0,e1 = " << std::hex << e0 << "," << e1 << std::endl;
   
@@ -58,6 +60,7 @@ unsigned unpackerEnergies(const uint64_t *p, std::vector<uint16_t> &v) {
 
   return (p[0]>>26)&0xf;
 }
+*/
 
 int main(int argc, char** argv) {
   if(argc<2) {
@@ -80,6 +83,8 @@ int main(int argc, char** argv) {
     std::cerr << argv[0] << ": relay and/or run numbers uninterpretable" << std::endl;
     return 2;
   }
+
+  std::vector<uint16_t> v;
 
   // Create the file reader
   Hgcal10gLinkReceiver::FileReader _fileReader;
@@ -111,6 +116,8 @@ int main(int argc, char** argv) {
   bool doubleEvents(false);
   unsigned nEventsPerOrbit(1);
   */
+  uint32_t eventIdOld(0);
+
   while(_fileReader.read(r)) {
     if(       r->state()==Hgcal10gLinkReceiver::FsmState::Starting) {
       rStart->print();
@@ -139,15 +146,24 @@ int main(int argc, char** argv) {
 	// This should always be present; check pattern is correct
 	const Hgcal10gLinkReceiver::SlinkEoe *e(rEvent->slinkEoe());
 	assert(e!=nullptr);
+
+	const uint64_t *p64(((const uint64_t*)rEvent)+1);
+	unsigned nEcontWords(p64[3]&0xff);
+	unsigned nUnpackerWords(p64[4+nEcontWords]&0xff);
 	
-      if(print) {
+	unsigned bx(Hgcal10gLinkReceiver::unpackerEnergies(p64+5+nEcontWords+6*((nUnpackerWords/6)/2),v));
+
+	if(b->eventId()==eventIdOld || b->eventId()!=eventIdOld+1) {
+	  std::cout << "ERROR: Old, new BX id = " << eventIdOld << ", " << b->eventId() << std::endl;
+	}
+	eventIdOld=b->eventId();
+	
+	if(print || bx==15 || e->bxId()==55) {
 	std::cout << std::endl;
 	rEvent->print();
-	const uint64_t *p64(((const uint64_t*)rEvent)+1);
 
-	std::vector<uint16_t> v;
-	for(unsigned u(0);u<15;u++) {
-	  econtEnergies(p64+4+4*u,v);
+	for(unsigned u(0);u<(nEcontWords/4);u++) {
+	  Hgcal10gLinkReceiver::econtEnergies(p64+4+4*u,v);
 	  std::cout << "ECON-T energies " << u << std::endl;
 	  for(unsigned j(0);j<12;j++) {
 	    std::cout << " " << std::setw(3) << v[j];
@@ -158,8 +174,8 @@ int main(int argc, char** argv) {
 	  }
 	  std::cout << std::endl;
 	}
-	for(unsigned u(0);u<15;u++) {
-	  unsigned bx(unpackerEnergies(p64+65+6*u,v));
+	for(unsigned u(0);u<(nUnpackerWords/6);u++) {
+	  bx=Hgcal10gLinkReceiver::unpackerEnergies(p64+5+nEcontWords+6*u,v);
 	  std::cout << "Unpacker energies " << u << ", bx = " << bx << std::endl;
 	  for(unsigned j(0);j<12;j++) {
 	    std::cout << " " << std::setw(3) << v[j];
