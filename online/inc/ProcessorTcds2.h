@@ -111,7 +111,25 @@ namespace Hgcal10gLinkReceiver {
     }
 
     bool allConfiguring() {
-      if((_keyCfgA>0 && _keyCfgA<=38) || _keyCfgA==123) {
+
+      if(_strCfgA=="EcontTriggerCalPulseIntTest") {
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",78);
+
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",1);
+
+	//_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold", 80,true);
+	//_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
+
+	// Hardwire CalComing
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",1);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
+	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	_serenityTcds2.uhalWrite("seq_mem.data",((3510-15+58-68)<<16)|0x0004); // CalComing: L1A BC = this+delay+1
+
+      }
+
+      if(_keyCfgA>0 && _keyCfgA<=38) {
 
 	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",95);
 	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",95-26);

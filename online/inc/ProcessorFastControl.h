@@ -207,6 +207,10 @@ namespace Hgcal10gLinkReceiver {
 
     bool allConfiguring() {
 
+      if(_strCfgA=="EcontTriggerCalPulseIntTest") {
+        _serenityUnpacker[0].uhalWrite("ctrl_stat.ctrl0.trig_threshold", 80);
+      }
+ 
       if(_strCfgA=="EcontTriggerThresholdScan") {
         _serenityUnpacker[0].uhalWrite("ctrl_stat.ctrl0.trig_threshold",127);
         _serenityUnpacker[1].uhalWrite("ctrl_stat.ctrl0.trig_threshold",127);

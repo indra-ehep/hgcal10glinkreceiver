@@ -64,6 +64,7 @@ int main(int argc, char *argv[]) {
   vRunType.push_back("SoftwareTriggerTest");
   vRunType.push_back("RegularTriggerTest");
   vRunType.push_back("BeamRun");
+  vRunType.push_back("EcontTriggerCalPulseIntTest");
   vRunType.push_back("EcontTriggerThresholdScan");
 
   
@@ -282,6 +283,10 @@ int main(int argc, char *argv[]) {
 
       if(vRunType[nx]=="BeamRun") {
 	maxNumberOfConfigurations=1000000;
+      }
+
+      if(vRunType[nx]=="EcontTriggerCalPulseIntTest") {
+	maxNumberOfConfigurations=1;
       }
 
       if(nx==205) {
