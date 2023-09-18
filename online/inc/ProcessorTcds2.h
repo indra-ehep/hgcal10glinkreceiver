@@ -361,13 +361,13 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
       }
 
-      if(_keyCfgA==999 || _strCfgA=="ElectronBeamRun") {
+      if(_strCfgA=="ElectronBeamRun" || _strCfgA=="BeamRun") {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",2);
 
-	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold",127,true);
-	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
+	//_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold",127,true);
+	//_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
       }
 
       if(_strCfgA=="EcontTriggerThresholdScan") {
