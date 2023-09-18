@@ -16,11 +16,6 @@
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
 
-//#ifdef ProcessorHardware
-//#include "uhal/uhal.hpp"
-//#include "uhal/ValMem.hpp"
-//#endif
-
 namespace Hgcal10gLinkReceiver {
 
   class SerenityReg320 : public SerenityUhal {
@@ -51,25 +46,34 @@ namespace Hgcal10gLinkReceiver {
 
     /*
 
+// Not to be touched
 |    |    |    ├──payload.reg_320.ctrl0.eb_rd_ack
+|    |    |    ├──payload.reg_320.ctrl2.buffer_rst
+|    |    |    ├──payload.reg_320.ctrl2.buffer_en
 
+// Encoder -> MiniDaq?
 |    |    |    ├──payload.reg_320.ctrl0.daq_readout_rst
 |    |    |    ├──payload.reg_320.ctrl0.trig_readout_rst
-|    |    |    ├──payload.reg_320.ctrl2.buffer_rst
+
+// Fake spill -> TCDS2
+|    |    |    ├──payload.reg_320.ctrl1.l1a_throttle_user
+
+// 10G (!!!)
+// Reset for counters
 |    |    |    ├──payload.reg_320.ctrl3.pkt_counters_rst
 
-
-
-|    |    |    ├──payload.reg_320.ctrl1.l1a_throttle_user
 |    |    |    ├──payload.reg_320.ctrl1.slink_daq_readout_bp_en
 |    |    |    ├──payload.reg_320.ctrl1.slink_trig_readout_bp_en
 |    |    |    ├──payload.reg_320.ctrl1.rate_throttle_daq_en
 |    |    |    ├──payload.reg_320.ctrl1.rate_throttle_trig_en
+
+// TCDS2
 |    |    |    ├──payload.reg_320.ctrl1.ext_trigger_delay
-|    |    |    ├──payload.reg_320.ctrl2.buffer_en
+|    |    |    ├──payload.reg_320.ctrl1.ext_trigger_window
 
 
-     */
+payload_ctrl_stat.ctrl0.throttle_en_miniDAQ
+    */
 
     void configuration(YAML::Node &m) {
       m=YAML::Node();
@@ -105,18 +109,31 @@ namespace Hgcal10gLinkReceiver {
       m["stat3.mDAQ_pktsize_error"     ]=uhalRead("stat3.mDAQ_pktsize_error");
       m["stat3.mDAQ_big_pkt_size"      ]=uhalRead("stat3.mDAQ_big_pkt_size");
     }
-    /*
-    void sendPulse(const std::string &s) {
-      if(uhalRead(s)!=0) uhalWrite(s,0);
-      uhalWrite(s,1);
-      uhalWrite(s,0);
+
+    uint32_t uhalReg040Read(const std::string &s) {
+      return uhalTopRead("payload.payload_ctrl_stat."+s);
+    }
+
+    bool uhalReg040Write(const std::string &s, uint32_t v) {
+      return uhalTopRead("payload.payload_ctrl_stat."+s,v);
+    }
+
+    void sendReg040Pulse(const std::string &s) {
+      sendPulse(std::string("payload_ctrl_stat.")+s);
     }  
 
-    void reset() {
-      sendPulse("ctrl_stat.ctrl0.rst");
-      sendPulse("ctrl_stat.ctrl0.rst_counters");
+    uint32_t uhalReg320Read(const std::string &s) {
+      return uhalTopRead("payload.reg320."+s);
+    }
+
+    bool uhalReg320Write(const std::string &s, uint32_t v) {
+      return uhalTopRead("payload.reg320."+s,v);
+    }
+
+    void sendReg320Pulse(const std::string &s) {
+      sendPulse(std::string("reg_320.")+s);
     }  
-    */
+
     void print(std::ostream &o=std::cout) {
       o << "SerenityReg320::print()" << std::endl;
       o << " Current settings for " << _uhalString.size()

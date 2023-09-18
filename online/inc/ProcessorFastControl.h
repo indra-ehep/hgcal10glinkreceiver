@@ -1,12 +1,6 @@
 #ifndef Hgcal10gLinkReceiver_ProcessorFastControl_h
 #define Hgcal10gLinkReceiver_ProcessorFastControl_h
 
-
-
-
-//#define REMOVE_FOR_TESTING
-
-
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -61,9 +55,9 @@ namespace Hgcal10gLinkReceiver {
       std::system("empbutler -c etc/connections.xml do x0 info");
 
       uint32_t dna[3];
-      dna[0]=_serenityTrgDaq.uhalDirectRead("info.device.dna.word0");
-      dna[1]=_serenityTrgDaq.uhalDirectRead("info.device.dna.word1");
-      dna[2]=_serenityTrgDaq.uhalDirectRead("info.device.dna.word2");
+      dna[0]=_serenityTrgDaq.uhalTopRead("info.device.dna.word0");
+      dna[1]=_serenityTrgDaq.uhalTopRead("info.device.dna.word1");
+      dna[2]=_serenityTrgDaq.uhalTopRead("info.device.dna.word2");
 
       daqBoard=3;
       if(dna[2]==0x40020000 && dna[1]==0x01290ba6 && dna[0]==0x0430a085) daqBoard=4;
@@ -354,10 +348,12 @@ namespace Hgcal10gLinkReceiver {
       _serenityUnpacker[0].reset();
       if(_nUnpackers>1) _serenityUnpacker[1].reset();
 
+      // L1A FIFO; should this be reset before MiniDaq?
       _serenityEncoder.resetSlinkFifo();
 
-      _serenityEncoder.resetDaqReadout();
-      _serenityEncoder.resetTrgReadout();
+      // Now in MiniDaq
+      //_serenityEncoder.resetDaqReadout();
+      //_serenityEncoder.resetTrgReadout();
 
 #ifdef DthHardware
       _serenitySlink.channelReset();
@@ -366,6 +362,7 @@ namespace Hgcal10gLinkReceiver {
       _serenity10g.reset();
       usleep(2*1000000);
       _serenity10g.setHeartbeat(false);
+      _serenity10g.resetCounters();
 #endif
 
       return true;

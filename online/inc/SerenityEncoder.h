@@ -105,7 +105,7 @@ namespace Hgcal10gLinkReceiver {
       //uhalWrite("ctrl_3.rst_slink_fifo",1);
       //uhalWrite("ctrl_3.rst_slink_fifo",0);
     }  
-
+    /*
     void resetDaqReadout() {
       uhalWrite("reg_320.ctrl0.daq_readout_rst",1,true);
       uhalWrite("reg_320.ctrl0.daq_readout_rst",0,true);
@@ -115,7 +115,7 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("reg_320.ctrl0.trig_readout_rst",1,true);
       uhalWrite("reg_320.ctrl0.trig_readout_rst",0,true);
     }  
-
+    */
     bool setDefaults() {
 
       // Zero all fundamental values

@@ -194,7 +194,10 @@ namespace Hgcal10gLinkReceiver {
 
 	    while((r=(RecordYaml*)_ptrFifoShm[i]->readRecord())!=nullptr) {
 	    
-	      if(r->state()==FsmState::Configuration) {
+	      if(r->state()==FsmState::Status) {
+		_fileWriter.write(r);
+
+	      } else if(r->state()==FsmState::Configuration) {
 		_fileWriter.write(r);
 
 		//const RecordYaml *rc((const RecordYaml*)r);
@@ -344,6 +347,9 @@ namespace Hgcal10gLinkReceiver {
 	    while((r=(RecordYaml*)_ptrFifoShm[i]->readRecord())!=nullptr) {
 	    
 	      if(r->state()==FsmState::Status) {
+		_fileWriter.write(r);
+
+	      } else if(r->state()==FsmState::Configuration) {
 		_fileWriter.write(r);
 
 	      } else if(r->state()==FsmState::Continuing) {

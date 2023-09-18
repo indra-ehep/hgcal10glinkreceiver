@@ -10,18 +10,18 @@
 #include <string>
 #include <cstring>
 
-#include "SerenityUhal.h"
+#include "SerenityRegs.h"
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
 
-#ifdef ProcessorHardware
-#include "uhal/uhal.hpp"
-#include "uhal/ValMem.hpp"
-#endif
+//#ifdef ProcessorHardware
+//#include "uhal/uhal.hpp"
+//#include "uhal/ValMem.hpp"
+//#endif
 
 namespace Hgcal10gLinkReceiver {
 
-  class SerenityMiniDaq : public SerenityUhal {
+  class SerenityMiniDaq : public SerenityRegs {
     
   public:
   
@@ -163,6 +163,8 @@ namespace Hgcal10gLinkReceiver {
 
       uhalWrite("rstn",1);
 
+      uhalReg040Write("ctrl0.throttle_en_miniDAQ",1);
+
       return true;
     }  
 
@@ -190,11 +192,33 @@ namespace Hgcal10gLinkReceiver {
       }
     }
 
+    void monitoring(YAML::Node &m) {
+      m=YAML::Node();
+
+#ifndef DthHardware
+      if(_miniDaqId=="") {
+	m["reg_320.stat3.ch_daq_backpressure"   ]=uhalReg320Read("stat3.ch1_daq_backpressure");
+	m["reg_320.stat3.mDAQ_evbuf_empty"      ]=uhalReg320Read("stat3.mDAQ_evbuf_empty");
+	m["reg_320.stat3.mDAQ_packet_in_buffer" ]=uhalReg320Read("stat3.mDAQ_packet_in_buffer");
+	m["reg_320.stat3.mDAQ_eth_pktsize_error"]=uhalReg320Read("stat3.mDAQ_eth_pktsize_error");
+	m["reg_320.stat3.mDAQ_pktsize_error"    ]=uhalReg320Read("stat3.mDAQ_pktsize_error");
+	m["reg_320.stat3.mDAQ_big_pkt_size"     ]=uhalReg320Read("stat3.mDAQ_big_pkt_size");
+
+      } else if(_miniDaqId=="1") {
+	m["reg_320.stat3.ch_daq_backpressure"   ]=uhalReg320Read("stat3.ch2_daq_backpressure");
+	m["reg_320.stat3.mDAQ_evbuf_empty"      ]=uhalReg320Read("stat3.mDAQ1_evbuf_empty");
+	m["reg_320.stat3.mDAQ_packet_in_buffer" ]=uhalReg320Read("stat3.mDAQ1_packet_in_buffer");
+	m["reg_320.stat3.mDAQ_eth_pktsize_error"]=uhalReg320Read("stat3.mDAQ1_eth_pktsize_error");
+      }
+#endif
+    }
+
     void reset() {
       uhalWrite("rstn",0);
       uhalWrite("rstn",1);
+      sendReg320Pulse("ctrl0.daq_readout_rst");
     }
-
+    
     void print(std::ostream &o=std::cout) {
       o << "SerenityMiniDaq::print()" << "  ID = " << _miniDaqId << std::endl;
       o << " Current settings for " << _uhalString.size()

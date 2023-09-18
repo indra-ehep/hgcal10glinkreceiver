@@ -13,18 +13,18 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "SerenityUhal.h"
+#include "SerenityRegs.h"
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
 
-#ifdef ProcessorHardware
-#include "uhal/uhal.hpp"
-#include "uhal/ValMem.hpp"
-#endif
+//#ifdef ProcessorHardware
+//#include "uhal/uhal.hpp"
+//#include "uhal/ValMem.hpp"
+//#endif
 
 namespace Hgcal10gLinkReceiver {
 
-  class SerenityTcds2 : public SerenityUhal {
+  class SerenityTcds2 : public SerenityRegs {
     
   public:
   
@@ -68,8 +68,9 @@ namespace Hgcal10gLinkReceiver {
         m[sout.str()]=uhalRead("seq_mem.data");
       }
 
-      // Cludge for now
-      m["reg_320.ctrl1.ext_trigger_delay"]=uhalRead("reg_320.ctrl1.ext_trigger_delay",true);
+      m["reg_320.ctrl1.ext_trigger_delay" ]=uhalReg320Read("ctrl1.ext_trigger_delay");
+      m["reg_320.ctrl1.ext_trigger_window"]=uhalReg320Read("ctrl1.ext_trigger_window");
+      m["reg_320.ctrl1.l1a_throttle_user"]=uhalReg320Read("ctrl1.l1a_throttle_user");
     }
 
     void configuration(std::unordered_map<std::string,uint32_t> &m) {
@@ -124,6 +125,7 @@ namespace Hgcal10gLinkReceiver {
 
       m["ctrl_stat.stat0.tts_all"   ]=uhalRead("ctrl_stat.stat0.tts_all");
       m["ctrl_stat.stat0.tts_ext"   ]=uhalRead("ctrl_stat.stat0.tts_ext");
+      m["ctrl_stat.stat0.tts_daq"   ]=uhalRead("ctrl_stat.stat0.tts_daq");
       m["ctrl_stat.stat0.tts_hgcroc"]=uhalRead("ctrl_stat.stat0.tts_hgcroc");
 
       m["counters.l1a_physics"    ]=uhalRead("counters.l1a_physics");
@@ -135,11 +137,14 @@ namespace Hgcal10gLinkReceiver {
       m["counters.l1a_subtype0"   ]=uhalRead("counters.l1a_subtype0");
       m["counters.l1a_subtype1"   ]=uhalRead("counters.l1a_subtype1");
 
-      m["counters.tts_all"   ]=uhalRead("counters.tts_all");
-      m["counters.tts_soft"  ]=uhalRead("counters.tts_soft");
-      m["counters.tts_hgcroc"]=uhalRead("counters.tts_hgcroc");
-      m["counters.tts_ext"   ]=uhalRead("counters.tts_ext");
-      m["counters.tts_mdaq"  ]=uhalRead("counters.tts_mdaq");
+      m["counters.tts_all"      ]=uhalRead("counters.tts_all");
+      m["counters.tts_soft"     ]=uhalRead("counters.tts_soft");
+      m["counters.tts_hgcroc"   ]=uhalRead("counters.tts_hgcroc");
+      m["counters.tts_ext"      ]=uhalRead("counters.tts_ext");
+      m["counters.tts_mdaq"     ]=uhalRead("counters.tts_mdaq");
+      m["counters.tts_all_bx"   ]=uhalRead("counters.tts_all_bx");
+      m["counters.tts_mdaq_bx"  ]=uhalRead("counters.tts_mdaq_bx");
+      m["counters.tts_hgcroc_bx"]=uhalRead("counters.tts_hgcroc_bx");
     }
   
     bool setDefaults() {
@@ -172,9 +177,10 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("seq_mem.pointer",0);
       uhalWrite("seq_mem.data",(1<<16)|0x0040);
 
-      // Cludge here for now
       //uhalWrite("reg_320.ctrl1.ext_trigger_delay",17,true);
-      uhalWrite("reg_320.ctrl1.ext_trigger_delay",36,true);
+      uhalReg320Write("ctrl1.ext_trigger_delay",36);
+      uhalReg320Write("ctrl1.ext_trigger_window",16);
+      uhalReg320Write("ctrl1.l1a_throttle_user",0);
 
       return true;
     }  
@@ -185,13 +191,13 @@ namespace Hgcal10gLinkReceiver {
       // From Version 0x118
       uhalWrite("ctrl_stat.ctrl2.tts_tcds2",b?0:1);
     }
-
+    /*
     void sendPulse(const std::string &s) {
       if(uhalRead(s)!=0) uhalWrite(s,0);
       uhalWrite(s,1);
       uhalWrite(s,0);
     }  
-
+    */
     void sendSequence() {
       sendPulse("ctrl_stat.ctrl1.arm_seq");
     }  

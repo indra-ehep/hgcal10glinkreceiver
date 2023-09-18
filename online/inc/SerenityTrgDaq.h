@@ -10,18 +10,18 @@
 #include <string>
 #include <cstring>
 
-#include "SerenityUhal.h"
+#include "SerenityRegs.h"
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
 
-#ifdef ProcessorHardware
-#include "uhal/uhal.hpp"
-#include "uhal/ValMem.hpp"
-#endif
+//#ifdef ProcessorHardware
+//#include "uhal/uhal.hpp"
+//#include "uhal/ValMem.hpp"
+//#endif
 
 namespace Hgcal10gLinkReceiver {
 
-  class SerenityTrgDaq : public SerenityUhal {
+  class SerenityTrgDaq : public SerenityRegs {
     
   public:
   
@@ -160,10 +160,14 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("daq_ro.DAQro7.latency",0);
       uhalWrite("daq_ro.DAQro7.event_size",0);
       uhalWrite("daq_ro.DAQro7.ext_ro",0);
-
+      
       return true;
     }  
 
+    void reset() {
+      sendReg320Pulse("ctrl0.trig_readout_rst");
+    }
+    
     void configuration(std::vector<uint32_t> &v) {
       v.resize(0);
       /*
@@ -181,6 +185,12 @@ namespace Hgcal10gLinkReceiver {
       }
       */
     }  
+
+    void monitoring(YAML::Node &m) {
+      m=YAML::Node();
+
+      m["reg_320.stat3.ch0_trg_backpressure"]=uhalReg320Read("stat3.ch0_trg_backpressure");
+    }
 
     void print(std::ostream &o=std::cout) {
       o << "SerenityTrgDaq::print()" << std::endl;

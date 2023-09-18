@@ -12,18 +12,18 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include "SerenityUhal.h"
-#include "I2cInstruction.h"
-#include "UhalInstruction.h"
+#include "SerenityRegs.h"
+//#include "I2cInstruction.h"
+//#include "UhalInstruction.h"
 
-#ifdef ProcessorHardware
-#include "uhal/uhal.hpp"
-#include "uhal/ValMem.hpp"
-#endif
+//#ifdef ProcessorHardware
+//#include "uhal/uhal.hpp"
+//#include "uhal/ValMem.hpp"
+//#endif
 
 namespace Hgcal10gLinkReceiver {
 
-  class Serenity10g : public SerenityUhal {
+  class Serenity10g : public SerenityRegs {
     
   public:
   
@@ -74,6 +74,10 @@ namespace Hgcal10gLinkReceiver {
 	uhalWrite("quad.channel_ctrl.select",j);
 	if(doReset) uhalWrite("quad.channel.ctrl.reg.rst",0);
       }
+    }
+  
+    void resetCounters() {
+      sendReg320Pulse("ctrl3.pkt_counters_rst");
     }
   
     bool setDefaults() {
@@ -215,14 +219,14 @@ namespace Hgcal10gLinkReceiver {
       }
 
       // Cludge for now; move later
-      uhalWrite("reg_320.ctrl1.slink_daq_readout_bp_en",1,true);
-      uhalWrite("reg_320.ctrl1.slink_trig_readout_bp_en",1,true);
+      uhalReg320Write("ctrl1.slink_daq_readout_bp_en",1);
+      uhalReg320Write("ctrl1.slink_trig_readout_bp_en",1);
 
       // SHOULD BE ONE FOR NOW!!!!
       //uhalWrite("reg_320.ctrl1.rate_throttle_daq_en",1,true);
       //uhalWrite("reg_320.ctrl1.rate_throttle_trig_en",1,true);
-      uhalWrite("reg_320.ctrl1.rate_throttle_daq_en",0,true);
-      uhalWrite("reg_320.ctrl1.rate_throttle_trig_en",0,true);
+      uhalReg320Write("reg_320.ctrl1.rate_throttle_daq_en",0);
+      uhalReg320Write("reg_320.ctrl1.rate_throttle_trig_en",0);
 
       return true;
     }  
@@ -253,18 +257,29 @@ namespace Hgcal10gLinkReceiver {
 	m[std::string("quad.channel.ctrl.heartbeat_threshold_")+sout.str()]=uhalRead("quad.channel.ctrl.heartbeat_threshold");
       }
 
-      m["reg_320.ctrl1.slink_daq_readout_bp_en"]=uhalRead("reg_320.ctrl1.slink_daq_readout_bp_en",true);
-      m["reg_320.ctrl1.slink_trig_readout_bp_en"]=uhalRead("reg_320.ctrl1.slink_trig_readout_bp_en",true);
-      m["reg_320.ctrl1.rate_throttle_daq_en"]=uhalRead("reg_320.ctrl1.rate_throttle_daq_en",true);
-      m["reg_320.ctrl1.rate_throttle_trig_en"]=uhalRead("reg_320.ctrl1.rate_throttle_trig_en",true);
+      m["reg_320.ctrl1.slink_daq_readout_bp_en" ]=uhalReg320Read("ctrl1.slink_daq_readout_bp_en");
+      m["reg_320.ctrl1.slink_trig_readout_bp_en"]=uhalReg320Read("ctrl1.slink_trig_readout_bp_en");
+      m["reg_320.ctrl1.rate_throttle_daq_en"    ]=uhalReg320Read("ctrl1.rate_throttle_daq_en");
+      m["reg_320.ctrl1.rate_throttle_trig_en"   ]=uhalReg320Read("ctrl1.rate_throttle_trig_en");
     }
 
     void status(YAML::Node &m) {
       m=YAML::Node();
-
+      
       uhalWrite("quad_ctrl.select",0x0);
 
       for(unsigned j(0);j<nLinks;j++) {
+	if(j==0) {
+	  m["counters.ch0_trg_start "  ]=uhalCounterRead("ch0_trg_start");
+	  m["counters.ch0_trg_finish"  ]=uhalCounterRead("ch0_trg_finish");
+	} else if(j==1) {
+	  m["counters.ch1_mdaq_start " ]=uhalCounterRead("ch1_mdaq_start");
+	  m["counters.ch1_mdaq_finish" ]=uhalCounterRead("ch2_mdaq_finish");
+	} else if(j==2) {
+	  m["counters.ch2_mdaq1_start "]=uhalCounterRead("ch1_mdaq1_start");
+	  m["counters.ch2_mdaq1_finish"]=uhalCounterRead("ch2_mdaq1_finish");
+	}
+
 	uhalWrite("quad.channel_ctrl.select",j);	
 	{
 	std::ostringstream sout;

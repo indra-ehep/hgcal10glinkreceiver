@@ -382,9 +382,8 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool starting() {
+    void sendConfiguration() {
 
-      // Configuration at run start
       RecordYaml *r; 
       while((r=(RecordYaml*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(1000);
 
@@ -408,6 +407,15 @@ namespace Hgcal10gLinkReceiver {
       if(_printEnable) r->print();
       
       ptrFifoShm2->writeIncrement();
+    }
+
+    bool starting() {
+
+      // Configuration at run start
+      sendConfiguration();
+      
+      // Status at run start
+      sendStatus();
 
       writeContinuing();
 
@@ -452,8 +460,16 @@ namespace Hgcal10gLinkReceiver {
       _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_run_ctrl",0);
 
       /////////////////////////////////////////////////////
-      
+
       // Status at run end
+      sendStatus();
+
+      writeContinuing();
+
+      return true;
+    }
+
+    void sendStatus() {
       RecordYaml *r; 
       while((r=(RecordYaml*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(1000);
 	
@@ -477,9 +493,6 @@ namespace Hgcal10gLinkReceiver {
       if(_printEnable) r->print();
       
       ptrFifoShm2->writeIncrement();
-      
-      writeContinuing();
-      return true;
     }
     
     bool halting() {
