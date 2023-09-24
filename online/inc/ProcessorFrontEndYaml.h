@@ -27,7 +27,10 @@ namespace Hgcal10gLinkReceiver {
       _fifoCounter=0;
       _sequenceCount=0;
       _cfgForRunStart=false;
+
       daqBoard=3;
+      slink=1;
+      lpgbtPair=0;
     }
 
     virtual ~ProcessorFrontEndYaml() {
@@ -36,35 +39,47 @@ namespace Hgcal10gLinkReceiver {
     void setUpAll(uint32_t rcKey, uint32_t fifoKey) {
       ShmSingleton<RelayWriterDataFifo> shm2;
       ptrFifoShm2=shm2.setup(fifoKey);
-      //ptrFifoShm2=nullptr;
       startFsm(rcKey);
+    }
+
+    uint32_t electronicsId(unsigned m) {
+#ifdef DthHardware
+	// Two modules into same MiniDAQ and on same Slink
+	return daqBoard<<22|1<<18|m<<14|0x3fff;
+#else
+	// Two modules into different MiniDAQs and on different Slinks
+	return daqBoard<<22|(m+1)<<18|m<<14|0x3fff;
+#endif
     }
 
     virtual bool initializing() {     
       RecordYaml *r;
 
-      while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(1000);
-      r->setHeader(_sequenceCount++);
-      r->setState(FsmState::Constants);
+      for(unsigned m(0);m<2;m++) {
+	while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(1000);
+	r->setHeader(_sequenceCount++);
+	r->setState(FsmState::Constants);
 
-      YAML::Node n;
-      n["Source"]="FE";
-      n["ElectronicsId"]=123456789;
-      n["HgrocVersion"]="V3";
-      n["EconDVersion"]="Emulator";
-      n["EconTVersion"]="Emulator";
+	YAML::Node n;
+	n["Source"]="Module";
+	n["HgrocVersion"]="V3";
+	n["EconDVersion"]="ECON-D-P1";
+	n["EconTVersion"]="ECON-T-P1";
+	n["ElectronicsId"]=electronicsId(m);
 
-      std::ostringstream sout0;
-      sout0 << n;
-      r->setString(sout0.str());
-      
-      if(_printEnable) r->print();
-      ptrFifoShm2->writeIncrement();
-      
+	std::ostringstream sout0;
+	sout0 << n;
+	r->setString(sout0.str());
+	
+	if(_printEnable) r->print();
+	ptrFifoShm2->writeIncrement();
+      }
+
       writeContinuing();
+
       return true;
     }
-
+  
     bool configuring() {
       _cfgForRunStart=true;
       _configuringBCounter=0;
@@ -80,41 +95,57 @@ namespace Hgcal10gLinkReceiver {
     }
 
     bool starting() {
-      unsigned slink(1);
-      unsigned lpgbtPair(3);
       
       RecordYaml *r;
-
-      while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(1000);
-      r->setHeader(_sequenceCount++);
-      r->setState(FsmState::Configuration);
-
-      YAML::Node n;
-      n["Source"]="Engine";
-      n["DaqBoard"]=daqBoard;
-      n["Slink"]=slink;
-      n["LpgbtPair"]=lpgbtPair;
-      n["Lpgbt"]=0;
-      n["ElectronicsId"]=daqBoard<<22|slink<<18|lpgbtPair<<14|0<<10|0x3ff;
-	
-       std::ostringstream soutl;
-       soutl << "cfg/Engine" << 0 << ".yaml";
-       n["Configuration"]=YAML::LoadFile(soutl.str());
-
-       std::ostringstream sout0;
-       sout0 << n;
-       r->setString(sout0.str());
-	
-       if(_printEnable) r->print();
-       ptrFifoShm2->writeIncrement();
-
-	
-       for(unsigned e(0);e<2;e++) {
-       	while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(1000);
-       	r->setHeader(_sequenceCount++);
+      
+      for(unsigned m(0);m<2;m++) {
+	while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(1000);
+	r->setHeader(_sequenceCount++);
 	r->setState(FsmState::Configuration);
+	
+	YAML::Node n;
+	n["Source"]="Module";
+	n["DaqBoard"]=daqBoard;
 
-       	YAML::Node n0;
+	std::cout << "STATUS " << n << std::endl;
+
+
+#ifdef DthHardware
+	// Two modules into same MiniDAQ and on same Slink
+	n["Slink"]=1;
+	n["LpgbtPair"]=m;
+#else
+	// Two modules into different MiniDAQs and on different Slinks
+	n["Slink"]=m+1;
+	n["LpgbtPair"]=m;
+#endif
+	//n["ElectronicsId"]=daqBoard<<22|slink<<18|lpgbtPair<<14|0<<10|0x3ff;
+	n["ElectronicsId"]=electronicsId(m);
+	
+	std::ostringstream soutl;
+	soutl << "/dev/shm/front_end_config_train_" << m << ".yaml";
+	n["Configuration"]=YAML::LoadFile(soutl.str());
+	
+	std::ostringstream sout0;
+	sout0 << n;
+
+	std::cout << "Size of Yaml string = " << sout0.str().size()
+		  << " bytes = " << sout0.str().size()/8 << " words" << std::endl;
+
+	r->setString(sout0.str());
+	
+	if(_printEnable) r->print();
+	
+	ptrFifoShm2->writeIncrement();
+      }
+
+	/*	
+	for(unsigned e(0);e<2;e++) {
+	while((r=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(1000);
+	r->setHeader(_sequenceCount++);
+	r->setState(FsmState::Configuration);
+	  
+	YAML::Node n0;
        	n0["Source"]="ECOND";
 	n0["DaqBoard"]=daqBoard;
 	n0["Slink"]=slink;
@@ -182,7 +213,7 @@ namespace Hgcal10gLinkReceiver {
 	  ptrFifoShm2->writeIncrement();
 	}
        }
-
+	*/
       writeContinuing();
        return true;
     }
@@ -258,7 +289,10 @@ namespace Hgcal10gLinkReceiver {
         
   protected:
     RelayWriterDataFifo *ptrFifoShm2;
-      unsigned daqBoard;
+
+    unsigned daqBoard;
+    unsigned slink;
+    unsigned lpgbtPair;
 
     bool _cfgForRunStart;
 

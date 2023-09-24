@@ -186,7 +186,7 @@ namespace Hgcal10gLinkReceiver {
 
       //_keyCfgA=r.processorKey(RunControlTcds2FsmShmKey);
       YAML::Node nRsa(YAML::Load(r.string()));
-      _keyCfgA=nRsa["ProcessorKey"].as<uint32_t>();
+      if(nRsa["ProcessorKey"]) _keyCfgA=nRsa["ProcessorKey"].as<uint32_t>();
       _strCfgA=nRsa["RunType"].as<std::string>();
 
       return allConfiguring();
@@ -210,8 +210,25 @@ namespace Hgcal10gLinkReceiver {
         _serenityUnpacker[1].uhalWrite("ctrl_stat.ctrl0.trig_threshold",127);
 
 	unsigned unpacker((_configuringBCounter%20)/10);
-	unsigned threshold((unpacker==0?79:99)-((_configuringBCounter%20)%10));
+	unsigned threshold((unpacker==0?100:100)-10*(_configuringBCounter%10));
         _serenityUnpacker[unpacker].uhalWrite("ctrl_stat.ctrl0.trig_threshold",threshold);
+      }
+
+      if(_strCfgA=="BeamRun" || _strCfgA=="BeamRunNZS") {
+        _serenityUnpacker[0].uhalWrite("ctrl_stat.ctrl0.trig_threshold",40);
+        _serenityUnpacker[0].uhalWrite("ctrl_stat.config1.tc_self_trig_mask",0xffb);
+        _serenityUnpacker[1].uhalWrite("ctrl_stat.ctrl0.trig_threshold",40);
+      }
+
+      if(_strCfgA=="BeamRunScintillator" || _strCfgA=="BeamRunScintillatorNZS") {
+        _serenityUnpacker[0].uhalWrite("ctrl_stat.ctrl0.trig_threshold",127);
+        _serenityUnpacker[1].uhalWrite("ctrl_stat.ctrl0.trig_threshold",127);
+      }
+
+      if(_strCfgA=="BeamRunEcontTrigger" || _strCfgA=="BeamRunEcontTriggerNZS") {
+        _serenityUnpacker[0].uhalWrite("ctrl_stat.ctrl0.trig_threshold",40);
+        _serenityUnpacker[0].uhalWrite("ctrl_stat.config1.tc_self_trig_mask",0xffb);
+        _serenityUnpacker[1].uhalWrite("ctrl_stat.ctrl0.trig_threshold",40);
       }
 
       if(_keyCfgA==125) {
@@ -245,23 +262,7 @@ namespace Hgcal10gLinkReceiver {
       return true;
     }
 
-    bool starting() {
-      /*
-	_pauseCounter=0;
-	_eventNumberInRun=0;
-
-	RecordStarting *r;
-	while((r=(RecordStarting*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
-	r->deepCopy(_ptrFsmInterface->commandPacket().record());
-
-	_runNumber=r->runNumber();
-	if(_printEnable) r->print();
-	ptrFifoShm2->writeIncrement();
-
-	//ptrFifoShm2->print();
-	//assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
-	*/
-
+    void sendConfiguration() {
       RecordYaml *ry;
       while((ry=(RecordYaml*)ptrFifoShm2->getWriteRecord())==nullptr) usleep(1000);
       ry->setHeader(_cfgSeqCounter++);
@@ -338,7 +339,11 @@ namespace Hgcal10gLinkReceiver {
 
       ptrFifoShm2->writeIncrement();
 
-      writeContinuing();
+    }
+
+    bool starting() {
+
+      sendConfiguration();
 
       ///////////////////////////////////////////////////
       
@@ -364,6 +369,10 @@ namespace Hgcal10gLinkReceiver {
       _serenity10g.setHeartbeat(false);
       _serenity10g.resetCounters();
 #endif
+
+      sendStatus();
+
+      writeContinuing();
 
       return true;
     }
@@ -391,35 +400,22 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool stopping() {
+
+      // Status at run end
+      sendStatus();
+
 #ifndef DthHardware
       _serenity10g.setHeartbeat(true);
 #endif
-
-      //_serenity10gx.uhalWrite("ctrl.reg.en",0);
-      /*
-	_eventNumberInConfiguration+=_eventNumberInRun;
-
-	RecordStopping *r;
-	while((r=(RecordStopping*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(10);
-	r->deepCopy(_ptrFsmInterface->commandPacket().record());
-
-	r->setNumberOfEvents(_eventNumberInRun);
-	r->setNumberOfPauses(_pauseCounter);
-	if(_printEnable) r->print();
-	ptrFifoShm2->writeIncrement();
-
-	//RecordStopping rr;
-	//rr.deepCopy(_ptrFsmInterface->commandPacket().record());
-	//rr.setNumberOfEvents(_eventNumberInRun);
-	//rr.setNumberOfPauses(_pauseCounter);
-	//rr.print();
-	//ptrFifoShm2->print();
-	//assert(ptrFifoShm2->write(rr.totalLength(),(uint64_t*)(&rr)));
-	*/
-
-      /////////////////////////////////////////////////////
       
-      // Status at run end
+      sendConfiguration();
+
+      writeContinuing();
+
+      return true;      
+    }
+    
+    void sendStatus() {
       RecordYaml *r; 
       while((r=(RecordYaml*)(ptrFifoShm2->getWriteRecord()))==nullptr) usleep(1000);
 	
@@ -472,10 +468,6 @@ namespace Hgcal10gLinkReceiver {
       if(_printEnable) r->print();
       
       ptrFifoShm2->writeIncrement();
-      
-      writeContinuing();
-
-      return true;
     }
 
     bool halting() {

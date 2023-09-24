@@ -200,7 +200,13 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite(s,0);
     }  
 
+    void resetGlobalCore() {
+      //uhalWrite("csr.ctrl.quad_select",0);
+      sendPulse("quad.csr.ctrl.global_core_reset");
+    }  
+
     void globalQuadReset() {
+      uhalWrite("csr.ctrl.quad_select",0);
       sendPulse("csr.ctrl.global_quad_reset");
     }  
 

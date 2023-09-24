@@ -36,6 +36,16 @@ int main(int argc, char *argv[]) {
   smd.makeTable();
   smd.print();
 
+  YAML::Node n;
+  smd.configuration(n);
+  std::cout  << std::endl << n << std::endl << std::endl;
+
+  YAML::Node n2;
+  smd.status(n2);
+  std::cout  << std::endl << n2 << std::endl << std::endl;
+
+  return 0;
+
   char x;
 
   uint32_t r,w;

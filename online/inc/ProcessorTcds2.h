@@ -112,8 +112,22 @@ namespace Hgcal10gLinkReceiver {
 
     bool allConfiguring() {
 
+      if(_strCfgA=="Pedestal") {
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_regular_period",713-1); // 3565 = 5x23x31 = 5x713
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_regular",1);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
+
+	/*
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
+	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	_serenityTcds2.uhalWrite("seq_mem.data",(1<<16)|0x0040);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",1);
+	*/
+      }
+
       if(_strCfgA=="EcontTriggerCalPulseIntTest") {
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",78);
+	//_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",78);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.calpulse_delay",107);
 
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",1);
@@ -125,7 +139,8 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",1);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
-	_serenityTcds2.uhalWrite("seq_mem.data",((3510-15+58-68)<<16)|0x0004); // CalComing: L1A BC = this+delay+1
+	//_serenityTcds2.uhalWrite("seq_mem.data",((3510-15+58-68)<<16)|0x0004); // CalComing: L1A BC = this+delay+1
+	_serenityTcds2.uhalWrite("seq_mem.data",((3510-25-29)<<16)|0x0004); // CalComing: L1A BC = this+delay+1
 
       }
 
@@ -295,27 +310,34 @@ namespace Hgcal10gLinkReceiver {
       }
 
       if(_strCfgA=="SoftwareTriggerTest") {
-	/*
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",6);
+
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",12);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
+	_serenityTcds2.uhalWrite("seq_mem.data",(3557<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(3558<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(3559<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(3560<<16)|0x0040);
+	_serenityTcds2.uhalWrite("seq_mem.data",(3561<<16)|0x0040);
 	_serenityTcds2.uhalWrite("seq_mem.data",(3562<<16)|0x0040);
 	_serenityTcds2.uhalWrite("seq_mem.data",(3563<<16)|0x0040);
 	_serenityTcds2.uhalWrite("seq_mem.data",(3564<<16)|0x0040);
 	_serenityTcds2.uhalWrite("seq_mem.data",(   1<<16)|0x0040);
 	_serenityTcds2.uhalWrite("seq_mem.data",(   2<<16)|0x0040);
 	_serenityTcds2.uhalWrite("seq_mem.data",(   3<<16)|0x0040);
-	*/
+	_serenityTcds2.uhalWrite("seq_mem.data",(   4<<16)|0x0040);
+
 	/*
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",2);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
 	_serenityTcds2.uhalWrite("seq_mem.data",( 10<<16)|0x0040);
 	_serenityTcds2.uhalWrite("seq_mem.data",(110<<16)|0x0040);
 	*/
+	/*
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_length",2);
 	_serenityTcds2.uhalWrite("seq_mem.pointer",0);
 	_serenityTcds2.uhalWrite("seq_mem.data",( 10<<16)|0x0040);
 	_serenityTcds2.uhalWrite("seq_mem.data",( 96<<16)|0x0040);
-
+	*/
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",1);
       }
 
@@ -361,13 +383,26 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
       }
 
-      if(_strCfgA=="ElectronBeamRun" || _strCfgA=="BeamRun") {
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
-	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",2);
 
-	//_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold",127,true);
-	//_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);
+      if(_strCfgA=="BeamRun" ||
+	 _strCfgA=="BeamRunScintillator" ||
+	 _strCfgA=="BeamRunEcontTrigger" ||
+	 _strCfgA=="BeamRunNZS" ||
+	 _strCfgA=="BeamRunScintillatorNZS" ||
+	 _strCfgA=="BeamRunEcontTriggerNZS") {
+
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_software",0);
+	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
+
+	if(_strCfgA=="BeamRun"             || _strCfgA=="BeamRunNZS"            ) _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",3);
+	if(_strCfgA=="BeamRunScintillator" || _strCfgA=="BeamRunScintillatorNZS") _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",2);
+	if(_strCfgA=="BeamRunEcontTrigger" || _strCfgA=="BeamRunEcontTriggerNZS") _serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",1);
+
+	if(_strCfgA=="BeamRunNZS" ||
+	   _strCfgA=="BeamRunScintillatorNZS" ||
+	   _strCfgA=="BeamRunEcontTriggerNZS") {
+	  _serenityTcds2.uhalWrite("ctrl_stat.ctrl1.en_nzs_physics",1);
+	}
       }
 
       if(_strCfgA=="EcontTriggerThresholdScan") {
@@ -375,8 +410,8 @@ namespace Hgcal10gLinkReceiver {
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl.en_l1a_physics",1);
 	_serenityTcds2.uhalWrite("ctrl_stat.ctrl2.l1a_physics_mask",1);
 
-	_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold",100-_configuringBCounter,true);
-	_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);	
+	//_serenityTcds2.uhalWrite("unpacker0.ctrl_stat.ctrl0.trig_threshold",100-_configuringBCounter,true);
+	//_serenityTcds2.uhalWrite("unpacker1.ctrl_stat.ctrl0.trig_threshold",127,true);	
       }
 
       return true;
@@ -413,11 +448,6 @@ namespace Hgcal10gLinkReceiver {
 
       // Configuration at run start
       sendConfiguration();
-      
-      // Status at run start
-      sendStatus();
-
-      writeContinuing();
 
       /////////////////////////////////////////////////////
       
@@ -433,6 +463,11 @@ namespace Hgcal10gLinkReceiver {
 
       // Reset event counters
       _serenityTcds2.resetCounters();
+      
+      // Status at run start
+      sendStatus();
+
+      writeContinuing();
 
       // Release throttle
       _serenityTcds2.setThrottle(false);
@@ -455,14 +490,19 @@ namespace Hgcal10gLinkReceiver {
 
       // Impose throttle
       _serenityTcds2.setThrottle(true);
+
+      // Status at run end
+      sendStatus();
+
+      /////////////////////////////////////////////////////
 	
       // Disable sequencer
       _serenityTcds2.uhalWrite("ctrl_stat.ctrl.seq_run_ctrl",0);
 
       /////////////////////////////////////////////////////
 
-      // Status at run end
-      sendStatus();
+      // Configuration at run end
+      sendConfiguration();      
 
       writeContinuing();
 

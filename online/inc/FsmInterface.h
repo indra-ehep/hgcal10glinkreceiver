@@ -157,7 +157,7 @@ namespace Hgcal10gLinkReceiver {
       return _processState==systemState();
     }
     
-    const RecordT<15>& record() const {
+    const RecordT<31>& record() const {
       return _record;
     }
     /*
@@ -175,7 +175,7 @@ namespace Hgcal10gLinkReceiver {
       _record.deepCopy(r);
     }
 
-    RecordT<15>& getRecord() {
+    RecordT<31>& getRecord() {
       return _record;
     }
 
@@ -235,7 +235,7 @@ namespace Hgcal10gLinkReceiver {
     }
   
   private:
-    RecordT<15> _record;
+    RecordT<31> _record;
     FsmState::State _processState;
     //Handshake _handshake;
 

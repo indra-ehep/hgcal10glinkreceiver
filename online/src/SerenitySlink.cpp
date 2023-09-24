@@ -30,6 +30,11 @@ int main(int argc, char *argv[]) {
   SerenitySlink smd;
   smd.makeTable();
 
+  smd.resetGlobalCore();
+
+  return 0;
+
+
   smd.setSourceId(0,0xce001234);
   smd.setSourceId(1,0xce001235);
 

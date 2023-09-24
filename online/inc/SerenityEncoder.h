@@ -13,18 +13,18 @@
 
 #include <yaml-cpp/yaml.h>
 
-#ifdef ProcessorHardware
-#include "uhal/uhal.hpp"
-#include "uhal/ValMem.hpp"
-#endif
+//#ifdef ProcessorHardware
+//#include "uhal/uhal.hpp"
+//#include "uhal/ValMem.hpp"
+//#endif
 
-#include "SerenityUhal.h"
+#include "SerenityRegs.h"
 #include "I2cInstruction.h"
 #include "UhalInstruction.h"
 
 namespace Hgcal10gLinkReceiver {
 
-  class SerenityEncoder : public SerenityUhal {
+  class SerenityEncoder : public SerenityRegs {
 
   public:
   
@@ -140,8 +140,8 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("payload_ctrl_stat.ctrl0.fc_dec_force_lock",0,true);
       uhalWrite("payload_ctrl_stat.ctrl0.fc_dec_prel1a_offset",2,true);
 
-      uhalWrite("reg_320.ctrl0.daq_readout_rst",0,true);
-      uhalWrite("reg_320.ctrl0.trig_readout_rst",0,true);
+      uhalReg320Write("ctrl0.daq_readout_rst",0);
+      uhalReg320Write("ctrl0.trig_readout_rst",0);
 
       //uhalWrite("DAQ_SLink_readout.source_id",0xce000000|daqBoard<<4|1,true);
 
