@@ -225,8 +225,8 @@ namespace Hgcal10gLinkReceiver {
       // SHOULD BE ONE FOR NOW!!!!
       //uhalWrite("reg_320.ctrl1.rate_throttle_daq_en",1,true);
       //uhalWrite("reg_320.ctrl1.rate_throttle_trig_en",1,true);
-      uhalReg320Write("reg_320.ctrl1.rate_throttle_daq_en",0);
-      uhalReg320Write("reg_320.ctrl1.rate_throttle_trig_en",0);
+      uhalReg320Write("ctrl1.rate_throttle_daq_en",0);
+      uhalReg320Write("ctrl1.rate_throttle_trig_en",0);
 
       return true;
     }  

@@ -63,9 +63,14 @@ int main(int argc, char *argv[]) {
   vRunType.push_back("RandomTriggerTest");
   vRunType.push_back("SoftwareTriggerTest");
   vRunType.push_back("RegularTriggerTest");
-  vRunType.push_back("BeamRun");
   vRunType.push_back("EcontTriggerCalPulseIntTest");
   vRunType.push_back("EcontTriggerThresholdScan");
+  vRunType.push_back("BeamRun");
+  vRunType.push_back("BeamRunScintillator");
+  vRunType.push_back("BeamRunEcontTrigger");
+  vRunType.push_back("BeamRunNZS");
+  vRunType.push_back("BeamRunScintillatorNZS");
+  vRunType.push_back("BeamRunEcontTriggerNZS");
 
   
   std::vector< ShmSingleton<FsmInterface> > vShmSingleton(9);
@@ -171,19 +176,6 @@ int main(int argc, char *argv[]) {
 	if(nx>=vRunType.size()) std::cout << "Invalid key: re-enter" << std::endl;
       }
 
-      while(numberOfSecs>1000001) {
-	std::cout << "Time per run (secs)"
-		<< std::endl;
-	std::cin >> numberOfSecs;
-      }
-
-      x='z';
-      while(x!='y' && x!='n') {
-	std::cout << "Write to disk y/n"
-		  << std::endl;
-	std::cin >> x;
-      }
-      
       continueRelay=true;
 
       unsigned nc(0);
@@ -222,6 +214,7 @@ int main(int argc, char *argv[]) {
 
       if(vRunType[nx]=="Pedestal") {
 	maxNumberOfConfigurations=1;
+	numberOfSecs=6;
       }
 
       if(nx==131) {
@@ -278,10 +271,15 @@ int main(int argc, char *argv[]) {
       }
 
       if(vRunType[nx]=="EcontTriggerThresholdScan") {
-	maxNumberOfConfigurations=20;
+	maxNumberOfConfigurations=80;
       }
 
-      if(vRunType[nx]=="BeamRun") {
+      if(vRunType[nx]=="BeamRun" ||
+	 vRunType[nx]=="BeamRunScintillator" ||
+	 vRunType[nx]=="BeamRunEcontTrigger" ||
+	 vRunType[nx]=="BeamRunNZS" ||
+	 vRunType[nx]=="BeamRunScintillatorNZS" ||
+	 vRunType[nx]=="BeamRunEcontTriggerNZS") {
 	maxNumberOfConfigurations=1000000;
       }
 
@@ -318,6 +316,19 @@ int main(int argc, char *argv[]) {
 	maxNumberOfConfigurations=1000000;
       }
 
+      while(numberOfSecs==0 || numberOfSecs>10000001) {
+	std::cout << "Time per run (secs)"
+		<< std::endl;
+	std::cin >> numberOfSecs;
+      }
+
+      x='z';
+      while(x!='y' && x!='n') {
+	std::cout << "Write to disk y/n"
+		  << std::endl;
+	std::cin >> x;
+      }
+      
       //rca.setMaxNumberOfConfigurations(maxNumberOfConfigurations);
 
       nRca["MaxNumberOfConfigurations"]=maxNumberOfConfigurations;

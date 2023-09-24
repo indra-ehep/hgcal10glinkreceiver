@@ -177,9 +177,9 @@ namespace Hgcal10gLinkReceiver {
       uhalWrite("seq_mem.pointer",0);
       uhalWrite("seq_mem.data",(1<<16)|0x0040);
 
-      //uhalWrite("reg_320.ctrl1.ext_trigger_delay",17,true);
-      uhalReg320Write("ctrl1.ext_trigger_delay",36);
-      uhalReg320Write("ctrl1.ext_trigger_window",16);
+      uhalReg320Write("ctrl1.ext_trigger_delay",32);
+      //uhalReg320Write("ctrl1.ext_trigger_window",30);
+      uhalReg320Write("ctrl1.ext_trigger_window",24);
       uhalReg320Write("ctrl1.l1a_throttle_user",0);
 
       return true;

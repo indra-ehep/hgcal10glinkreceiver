@@ -34,6 +34,7 @@ namespace Hgcal10gLinkReceiver {
     }
     
     bool makeTable(const std::string &s="") {
+      unpackerId_=s;
       SerenityUhal::makeTable(std::string("payload.unpacker")+s);
       histSel_=uhalRead("ctrl_stat.ctrl0.hist_sel");
       return true;
@@ -44,9 +45,10 @@ namespace Hgcal10gLinkReceiver {
 
       uhalWrite("ctrl_stat.ctrl0.nelinks_loc",4);
       uhalWrite("ctrl_stat.ctrl0.trig_threshold",127);
+      uhalWrite("ctrl_stat.config1.tc_self_trig_mask",0xfff);
       uhalWrite("ctrl_stat.ctrl0.hist_sel",histSel_);
       uhalWrite("ctrl_stat.ctrl1.bx_latency",0);
-      uhalWrite("ctrl_stat.ctrl1.l1a_delay",10);
+      uhalWrite("ctrl_stat.ctrl1.l1a_delay",8);
       
       return true;
     }  
@@ -54,11 +56,12 @@ namespace Hgcal10gLinkReceiver {
     void configuration(YAML::Node &m) {
       m=YAML::Node();
       
-      m["ctrl_stat.ctrl0.nelinks_loc"   ]=uhalRead("ctrl_stat.ctrl0.nelinks_loc");
-      m["ctrl_stat.ctrl0.trig_threshold"]=uhalRead("ctrl_stat.ctrl0.trig_threshold");
-      m["ctrl_stat.ctrl1.bx_latency"    ]=uhalRead("ctrl_stat.ctrl1.bx_latency");
-      m["ctrl_stat.ctrl1.l1a_delay"     ]=uhalRead("ctrl_stat.ctrl1.l1a_delay");
-      m["ctrl_stat.ctrl0.hist_sel"      ]=uhalRead("ctrl_stat.ctrl0.hist_sel");
+      m["ctrl_stat.ctrl0.nelinks_loc"        ]=uhalRead("ctrl_stat.ctrl0.nelinks_loc");
+      m["ctrl_stat.ctrl0.trig_threshold"     ]=uhalRead("ctrl_stat.ctrl0.trig_threshold");
+      m["ctrl_stat.config1.tc_self_trig_mask"]=uhalRead("ctrl_stat.config1.tc_self_trig_mask");
+      m["ctrl_stat.ctrl1.bx_latency"         ]=uhalRead("ctrl_stat.ctrl1.bx_latency");
+      m["ctrl_stat.ctrl1.l1a_delay"          ]=uhalRead("ctrl_stat.ctrl1.l1a_delay");
+      m["ctrl_stat.ctrl0.hist_sel"           ]=uhalRead("ctrl_stat.ctrl0.hist_sel");
     }
 
     void status(YAML::Node &m) {
@@ -145,6 +148,7 @@ namespace Hgcal10gLinkReceiver {
 
   
   protected:
+    std::string unpackerId_;
     unsigned histSel_;
   };
 

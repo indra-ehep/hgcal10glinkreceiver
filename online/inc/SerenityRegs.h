@@ -61,7 +61,9 @@ namespace Hgcal10gLinkReceiver {
     }
 
     void sendReg040Pulse(const std::string &s) {
-      sendPulse(std::string("payload_ctrl_stat.")+s);
+      if(uhalReg040Read(s)!=0) uhalReg040Write(s,0);
+      uhalReg040Write(s,1);
+      uhalReg040Write(s,0);
     }  
 
     uint32_t uhalReg320Read(const std::string &s) {
@@ -73,7 +75,9 @@ namespace Hgcal10gLinkReceiver {
     }
 
     void sendReg320Pulse(const std::string &s) {
-      sendPulse(std::string("reg_320.")+s);
+      if(uhalReg320Read(s)!=0) uhalReg320Write(s,0);
+      uhalReg320Write(s,1);
+      uhalReg320Write(s,0);
     }  
 
     uint32_t uhalCounterRead(const std::string &s) {

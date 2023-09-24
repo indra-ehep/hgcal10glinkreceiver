@@ -118,31 +118,31 @@ namespace Hgcal10gLinkReceiver {
       } else {
 
 	// Testing
-	unsigned bxLatency(19);
-	unsigned scintLatency(43);
+	unsigned bxLatency(18);
+	unsigned scintLatency(39);
 
 	// ECON-T output
-	uhalWrite("daq_ro.DAQro0.latency",1+4*bxLatency);
+	uhalWrite("daq_ro.DAQro0.latency",0+4*(bxLatency  ));
 	uhalWrite("daq_ro.DAQro0.event_size",4);
 	uhalWrite("daq_ro.DAQro0.ext_ro",7);
 	
 	// Unpacker outputs
-	uhalWrite("daq_ro.DAQro1.latency",0+6*(bxLatency-1));
+	uhalWrite("daq_ro.DAQro1.latency",0+6*(bxLatency-2));
 	uhalWrite("daq_ro.DAQro1.event_size",6);
 	uhalWrite("daq_ro.DAQro1.ext_ro",7);
 	
 	// Scintillators
 	uhalWrite("daq_ro.DAQro2.latency",3+5*scintLatency);
 	uhalWrite("daq_ro.DAQro2.event_size",5);
-	uhalWrite("daq_ro.DAQro2.ext_ro",1);
+	uhalWrite("daq_ro.DAQro2.ext_ro",4);
 	
 	// Output of Stage 1 block 0
-	uhalWrite("daq_ro.DAQro3.latency",3+8*(bxLatency-2));
+	uhalWrite("daq_ro.DAQro3.latency",3+8*(bxLatency-3));
 	uhalWrite("daq_ro.DAQro3.event_size",8);
 	uhalWrite("daq_ro.DAQro3.ext_ro",0);
 	
 	// Output of Stage 1 block 1
-	uhalWrite("daq_ro.DAQro4.latency",3+8*(bxLatency-2));
+	uhalWrite("daq_ro.DAQro4.latency",3+8*(bxLatency-3));
 	uhalWrite("daq_ro.DAQro4.event_size",8);
 	uhalWrite("daq_ro.DAQro4.ext_ro",0);
       }

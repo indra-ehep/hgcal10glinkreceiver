@@ -98,8 +98,8 @@ namespace Hgcal10gLinkReceiver {
 	// DTH needs both ECON-Ds in same MiniDAQ=""
 	if(_miniDaqId=="") {
  	  if     (i==0 || i==1) uhalWrite(sout.str()+"ID",0);
-	  //else if(i==2 || i==3) uhalWrite(sout.str()+"ID",1); // Cludge: duplicate
-	  else if(i==4 || i==5) uhalWrite(sout.str()+"ID",1); // Cludge: duplicate
+	  else if(i==2 || i==3) uhalWrite(sout.str()+"ID",1); // Cludge: duplicate
+	  //else if(i==4 || i==5) uhalWrite(sout.str()+"ID",1); // Cludge: duplicate
 	  else                  uhalWrite(sout.str()+"ID",0xf);
 	} else {
 	  assert(false);
@@ -154,12 +154,15 @@ namespace Hgcal10gLinkReceiver {
       //uhalWrite("ECOND_pkt_conf.Header",0xac);
       //uhalWrite("ECOND_pkt_conf.Idle",0x555555);
       uhalWrite("ECOND_pkt_conf.Header",0x154);
-      uhalWrite("ECOND_pkt_conf.Idle",0xaaaaff);
+      //uhalWrite("ECOND_pkt_conf.Idle",0xaaaaff);
+      uhalWrite("ECOND_pkt_conf.Idle",0xccccff);
 
-      uhalWrite("DAQ_FC_config.BC_rst_value",4);
+      //uhalWrite("DAQ_FC_config.BC_rst_value",4);
+      uhalWrite("DAQ_FC_config.BC_rst_value",5);
       uhalWrite("DAQ_FC_config.OC_rst_value",0);
 
-      uhalWrite("ECOND_pkt_conf.BX_mismatch_passthrough",1);
+      //uhalWrite("ECOND_pkt_conf.BX_mismatch_passthrough",1);
+      uhalWrite("ECOND_pkt_conf.BX_mismatch_passthrough",0);
 
       uhalWrite("rstn",1);
 
