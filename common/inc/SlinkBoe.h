@@ -99,6 +99,7 @@ class SlinkBoe {
     o << s << " Version = " << std::setw(2) << unsigned(version())
       << std::endl;
     o << s << " Event id = " << std::setw(14) << eventId()
+      << ", mod 64 = " << std::setw(2) << (eventId()%64)
       << std::endl;
     o << s << " Content id: L1A type = 0x"
       << std::hex << std::setfill('0')

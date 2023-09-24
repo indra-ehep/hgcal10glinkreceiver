@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "FileReader.h"
+#include "EcondHeader.h"
 
 int main(int argc, char** argv) {
   if(argc<2) {
@@ -71,6 +72,7 @@ int main(int argc, char** argv) {
       nEvents++;
       //bool print(nEvents>100000);// || nEvents>2000);
       bool print(nEvents<=100000);
+      
       //anyError=false;
 
       // Check id is correct
@@ -80,28 +82,36 @@ int main(int argc, char** argv) {
 	const Hgcal10gLinkReceiver::SlinkBoe *b(rEvent->slinkBoe());
 	assert(b!=nullptr);
 	//if(b->l1aType()==0x001c) b->print();
-      
+
+	
 	// Access the Slink trailer ("end-of-event")
 	// This should always be present; check pattern is correct
 	const Hgcal10gLinkReceiver::SlinkEoe *e(rEvent->slinkEoe());
 	assert(e!=nullptr);
 	
+	//if(b->eventId()==2091427) print=true;
+	//if(b->eventId()>2091427 && b->eventId()<=2100000 && e->eventLength()==3) print=true;
+
       if(print) {
 	std::cout << std::endl;
 	rEvent->print();
 
 	const uint64_t *p64(((const uint64_t*)rEvent)+1);
-	b->print();
-	e->print();
+	//b->print();
+	//e->print();
       
 	// Access the BE packet header
 	const Hgcal10gLinkReceiver::BePacketHeader *bph(rEvent->bePacketHeader());
 	//if(bph!=nullptr && print)
-	bph->print();
+	//bph->print();
+
+	// Access ECON-D packet as an array of 32-bit words
+	if(rEvent->payloadLength()>6) {
+	  const Hgcal10gLinkReceiver::EcondHeader *pEcond((const Hgcal10gLinkReceiver::EcondHeader*)rEvent->econdPayload());
+	  pEcond->print(" ");
+	}
+	
 	/*      
-      // Access ECON-D packet as an array of 32-bit words
-      const uint32_t *pEcond(rEvent->econdPayload());
-      
       // Check this is not an empty event
       if(pEcond!=nullptr) {
 
@@ -275,7 +285,7 @@ int main(int argc, char** argv) {
 
 	*/	
 	if(print) {
-	  std::cout << "Record " << nEvents << std::endl;
+	  std::cout << std::endl << "Record " << nEvents << std::endl;
 	  //rEvent->RecordHeader::print();
 
 	  for(unsigned i(0);i<rEvent->payloadLength();i++) {

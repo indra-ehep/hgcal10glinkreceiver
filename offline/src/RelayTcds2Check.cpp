@@ -16,7 +16,7 @@
 #include "EcontEnergies.h"
 #include "RelayTcds2Check.h"
 
-#define NumberOfLinks 3
+#define NumberOfLinks 2
 
 int main(int argc, char** argv) {
   if(argc<2) {
@@ -97,7 +97,8 @@ int main(int argc, char** argv) {
     if(rxxx->state()==Hgcal10gLinkReceiver::FsmState::Starting) {
       Hgcal10gLinkReceiver::RecordYaml *rCfg((Hgcal10gLinkReceiver::RecordYaml*)rxxx);
       YAML::Node n(YAML::Load(rCfg->string()));
-
+      std::cout << n << std::endl << std::endl;
+      
       unsigned runNumber(n["RunNumber"].as<unsigned>());
       for(unsigned l(0);l<NumberOfLinks;l++) {
 	runReader[l].openRun(runNumber,l);
@@ -245,10 +246,19 @@ int main(int argc, char** argv) {
       Hgcal10gLinkReceiver::RecordYaml *rCfg((Hgcal10gLinkReceiver::RecordYaml*)rxxx);
       YAML::Node n(YAML::Load(rCfg->string()));
 
-      if(n["Source"].as<std::string>()=="TCDS2") {
-	std::cout << n << std::endl;
+      //if(n["Source"].as<std::string>()=="TCDS2") {
+      std::cout <<  std::endl << n << std::endl << std::endl;
 	// L1A total
-      }
+	//}
+    }
+    if(rxxx->state()==Hgcal10gLinkReceiver::FsmState::Configuration) {
+      Hgcal10gLinkReceiver::RecordYaml *rCfg((Hgcal10gLinkReceiver::RecordYaml*)rxxx);
+      YAML::Node n(YAML::Load(rCfg->string()));
+
+      //if(n["Source"].as<std::string>()=="TCDS2") {
+      std::cout << std::endl << n << std::endl << std::endl;
+	// L1A total
+	//}
     }
   }
     

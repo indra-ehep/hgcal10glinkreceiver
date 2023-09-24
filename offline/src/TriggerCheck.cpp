@@ -10,6 +10,7 @@
 
 #include "TFileHandler.h"
 #include "FileReader.h"
+#include "EcontEnergies.h"
 
 int main(int argc, char** argv) {
   if(argc<2) {
@@ -37,16 +38,19 @@ int main(int argc, char** argv) {
   sout << "TriggerCheck_Relay" << relayNumber;
   TFileHandler tfh(sout.str().c_str());
 
-  TH1D *hScintFirstWord,*hScintNwords;    
+  TH1D *hScintFirstWord,*hScintNwords,*hStcEnergy[12];
   TH2D *hScintWord;
 
-  TH1D *hPayloadLength,*hSequence,*hSubpackets,*hSubpacketCount,*hEvents,*hScintLength,*hScintLengthS,*hScintLengthE,*hNtrains,*hScintFirst;
-  TH2D *hPayloadLengthVsSeq,*hSubpacketCountVsPl,*hSequenceVsNe;
+  TH1D *hPayloadLength,*hSequence,*hSubpackets,*hSubpacketCount,*hEvents,*hScintLength,*hScintLengthS,*hScintLengthE,*hNtrains,*hScintFirst,*hScintFirst1,*hScintFirst2;
+  TH2D *hPayloadLengthVsSeq,*hSubpacketCountVsPl,*hSequenceVsNe,*hEcontVsBc,*hScintFirstStc[12];
   TH2D *hStcVsCpd[2][12],*hToaVsCpd,*hUStcVsCpd[2][12],*hUStcVsCpdM2[2][12],*hScint,*hTpVsCpd[2],*hScintLengthVsFirst;
   TProfile *pUStcVsCpd[2];
 
 
+  hEcontVsBc=new TH2D("EcontVsBc",";BC value;ECON-T counter value;Number of events",
+		      3600,0,3600,16,0,16);
 
+  
   hScintFirstWord=new TH1D("ScintFirstWord",";Scintillator first word location;Number of events",
 			   256,0,256);
   hScintNwords=new TH1D("ScintNwords",";Scintillator number of words;Number of events",
@@ -59,7 +63,23 @@ int main(int argc, char** argv) {
                               200,0,200,32,0,32);
   hScintFirst=new TH1D("ScintFirst",";Scintillator rising edge;Number of events",
                               32*9,0,32*9);
+  hScintFirst1=new TH1D("ScintFirst1",";Scintillator rising edge;Number of events",
+			32*9,0,32*9);
+  hScintFirst2=new TH1D("ScintFirst2",";Scintillator rising edge;Number of events",
+			32*9,0,32*9);
 
+  for(unsigned i(0);i<12;i++) {
+    std::ostringstream sout;
+    sout << "StcEnergy" << std::setfill('0') << std::setw(2) << i;
+    hStcEnergy[i]=new TH1D(sout.str().c_str(),";STC energy;Number of events",
+			   128,0,128);
+
+    std::ostringstream sout2;
+    sout2 << "ScintFirstStc" << std::setfill('0') << std::setw(2) << i;
+    hScintFirstStc[i]=new TH2D(sout2.str().c_str(),";Scintillator rising edge;STC energy;Number of events",
+			       32*9,0,32*9,128,0,128);
+  }
+  
   hNtrains=new TH1D("Ntrains",";Scintillator trigger number of trains;Number of events",
                     100,0,100);
   hScintLength=new TH1D("ScintLength",";Scintillator trigger train length (units of 0.8ps);Number of events",
@@ -72,6 +92,7 @@ int main(int argc, char** argv) {
   hScintLengthVsFirst=new TH2D("hScintLengthVsFirst",";Scintillator train rising edge;Scintillator train length;Number of events",
 			       32*9,0,32*9,200,0,200);
 
+  std::vector<uint16_t> v;
   
   // Create the file reader
   Hgcal10gLinkReceiver::FileReader _fileReader;
@@ -105,7 +126,7 @@ int main(int argc, char** argv) {
   unsigned nEventsPerOrbit(1);
   */
 
-  std::ofstream fout("Aidan.csv");
+  //std::ofstream fout("Aidan.csv");
   
   
   while(_fileReader.read(r)) {
@@ -126,23 +147,53 @@ int main(int argc, char** argv) {
 
       const uint64_t *p64(((const uint64_t*)rEvent)+1);
 
+      /*
       // Run 1691537835 only
       uint64_t RaghuWord(p64[ 96]);
       uint64_t AidanWord(p64[145]);
+      */
+      
+      const Hgcal10gLinkReceiver::SlinkBoe *boe(rEvent->slinkBoe());
+      assert(boe!=nullptr);
+      const Hgcal10gLinkReceiver::SlinkEoe *eoe(rEvent->slinkEoe());
+      assert(eoe!=nullptr);
 
-      const Hgcal10gLinkReceiver::SlinkBoe *b(rEvent->slinkBoe());
-      assert(b!=nullptr);
-      const Hgcal10gLinkReceiver::SlinkEoe *e(rEvent->slinkEoe());
-      assert(e!=nullptr);
-
-      fout << std::setw(4) << e->bxId() << "," << std::setw(10) << e->orbitId()
-		<< "," << std::setw(10) << b->eventId() << ",0x"
+      /*
+      fout << std::setw(4) << eoe->bxId() << "," << std::setw(10) << eoe->orbitId()
+		<< "," << std::setw(10) << boe->eventId() << ",0x"
 		<< std::hex << std::setfill('0')
 		<< std::setw(8) << (AidanWord>>32) << ",0x"
 		<< std::setw(8) << (RaghuWord&0xffffffff)
 	   << std::dec << std::setfill(' ') << std::endl;
-
+      */
       
+      
+      assert((p64[3]&0xffffffffffffff00)==0xfecafecafecafe00);
+      unsigned nEcontWords(p64[3]&0xff);
+      assert((nEcontWords%4)==0);
+      unsigned nEcontBxs(nEcontWords/4);
+      unsigned nEcontStart(3+1);
+      unsigned nEcontCentre(nEcontStart+4*(nEcontBxs/2));
+      //for(unsigned i(nEcontStart);i<nEcondStart+nEcontWords;i+=4) {
+      //}
+      
+      assert((p64[nEcontStart+nEcontWords]&0xffffffffffffff00)==0xfecafecafecafe00);
+      unsigned nUnpackerWords(p64[nEcontStart+nEcontWords]&0xff);
+      assert((nUnpackerWords%6)==0);
+      unsigned nUnpackerBxs(nUnpackerWords/6);
+      unsigned nUnpackerStart(nEcontStart+nEcontWords+1);
+      unsigned nUnpackerCentre(nUnpackerStart+6*(nUnpackerBxs/2));
+      //for(unsigned i(nUnpackerStart);i<nUnpackerStart+nUnpackerWords;i+=6) {
+      //}
+      
+      unsigned unpackerBx(Hgcal10gLinkReceiver::unpackerEnergies(p64+nUnpackerCentre,v));
+      hEcontVsBc->Fill(eoe->bxId(),unpackerBx);
+      if((boe->l1aSubType()&0x1)!=0) {
+	for(unsigned stc(0);stc<12;stc++) {
+	  hStcEnergy[stc]->Fill(v[stc]);
+	}
+      }
+
       // Scintillator
       unsigned nWord(0),nFirstWord(0),nLastWord(0);
       for(unsigned i(0);i<rEvent->payloadLength();i++) {
@@ -164,7 +215,8 @@ int main(int argc, char** argv) {
 
 
       unsigned nCentre(nFirstWord-2+nWord/2);
-
+      nCentre=176; // HACK
+	
       std::cout << "nCentre = " << nCentre << std::endl;
       if(nCentre<300) {
       bool inTrain(false);
@@ -200,6 +252,14 @@ int main(int argc, char** argv) {
               if(first==0) hScintLengthS->Fill(last-first+1);
               else {
                 hScintFirst->Fill(first);
+                if((boe->l1aSubType()&0x1)!=0) {
+		  hScintFirst1->Fill(first);
+		  for(unsigned stc(0);stc<12;stc++) {
+		    hScintFirstStc[stc]->Fill(first,v[stc]);
+		  }
+		}
+		if((boe->l1aSubType()&0x2)!=0) hScintFirst2->Fill(first);
+
                 hScintLength->Fill(last-first+1);
 		hScintLengthVsFirst->Fill(first,last-first+1);
 	      }
@@ -270,7 +330,7 @@ int main(int argc, char** argv) {
   std::cout << "Final OC offset = " << ocOffset << std::endl;
   */
 
-  fout.close();
+  //fout.close();
   delete r;
 
   return 0;

@@ -147,6 +147,8 @@ int main(int argc, char** argv) {
 	const Hgcal10gLinkReceiver::SlinkEoe *e(rEvent->slinkEoe());
 	assert(e!=nullptr);
 
+	if(b->eventId()>=0x441cea && b->eventId()<0x441cea+10) print=true;
+	
 	const uint64_t *p64(((const uint64_t*)rEvent)+1);
 	unsigned nEcontWords(p64[3]&0xff);
 	unsigned nUnpackerWords(p64[4+nEcontWords]&0xff);

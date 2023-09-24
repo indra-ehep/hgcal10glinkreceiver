@@ -89,7 +89,7 @@ namespace Hgcal10gLinkReceiver {
 
     //bool write(uint64_t *d, unsigned n) {
     bool write(const Record* h) {
-      std::cout << "FileWriter HERE4!" << std::endl;
+      //std::cout << "FileWriter HERE4!" << std::endl;
 
       bool newFile(false);
 

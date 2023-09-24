@@ -130,7 +130,9 @@ class SlinkEoe {
       << std::setw(7) << eventLength()
       << std::endl;
     o << s << " BX id = " << std::setw(4) << bxId() << std::endl;
-    o << s << " Orbit id = " << std::setw(10) << orbitId() << std::endl;
+    o << s << " Orbit id = " << std::setw(10) << orbitId()
+      << ", mod 8 = " << (orbitId()%8)
+      << std::endl;
     o << s << " CRC = 0x"
       << std::hex << std::setfill('0')
       << std::setw(4) << crc()

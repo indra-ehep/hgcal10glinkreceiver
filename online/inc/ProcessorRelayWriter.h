@@ -56,6 +56,8 @@ namespace Hgcal10gLinkReceiver {
 
       _yamlCfg.resize(_ptrFifoShm.size());
 
+      std::cout << "yamlCfg size = " << _yamlCfg.size() << std::endl;
+      
       for(unsigned i(0);i<_ptrFifoShm.size();i++) {
 	_ptrFifoShm[i]->coldStart();
       }
@@ -201,8 +203,11 @@ namespace Hgcal10gLinkReceiver {
 		_fileWriter.write(r);
 
 		//const RecordYaml *rc((const RecordYaml*)r);
-		if(_printEnable) r->print();
-
+		if(_printEnable) {
+		  ((const RecordT<4095>*)_ptrFifoShm[i]->readRecord())->print();
+		  r->print();
+		}
+		
 		YAML::Node n(YAML::Load(r->string()));
 		_yamlCfg[i].push_back(n);
 
@@ -280,8 +285,6 @@ namespace Hgcal10gLinkReceiver {
 			<< " to " << sout2.str() << std::endl;
 	      std::cout << _yamlCfg[i][j] << std::endl;
 	    }
-
-	    
 	    
 	    std::ofstream fout(sout2.str().c_str());
 	    fout << _yamlCfg[i][j] << std::endl;
