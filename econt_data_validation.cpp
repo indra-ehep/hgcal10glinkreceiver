@@ -454,22 +454,27 @@ int main(int argc, char** argv){
       if(daq0_event_size != ev.size_in_cafe[0]){
   	std::cerr << "Event : "<< ev.eventId << " Event size do not match between trigger RO header and first 0xfecafe word" << std::endl;
   	isGood = false;
+	PrintLastEvents(econt_events);
       }
       if(daq1_event_size != ev.size_in_cafe[1]){
   	std::cerr << "Event : "<< ev.eventId << " Event size do not match between trigger RO header and second 0xfecafe word" << std::endl;
   	isGood = false;
+	PrintLastEvents(econt_events);
       }
       if(daq2_event_size != ev.size_in_cafe[2]){
   	std::cerr << "Event : "<< ev.eventId << " Event size do not match between trigger RO header and third 0xfecafe word" << std::endl;
   	isGood = false;
+	PrintLastEvents(econt_events);
       }
       if(daq3_event_size != ev.size_in_cafe[3]){
   	std::cerr << "Event : "<< ev.eventId << " Event size do not match between trigger RO header and fourth 0xfecafe word" << std::endl;
   	isGood = false;
+	PrintLastEvents(econt_events);
       }
       if(ev.daq_nbx[0]!=ev.daq_nbx[1]){
   	std::cerr << "Event : "<< ev.eventId << " Bx size do not match between packed and unpacked data" << std::endl;
   	isGood = false;
+	PrintLastEvents(econt_events);
       }
       
       int bx_index = -1.0*int(ev.daq_nbx[0]);
@@ -644,7 +649,7 @@ int main(int argc, char** argv){
       	  for(int istc=0;istc<12;istc++){
       	    if(energy_raw[iect][ibx][istc]!=energy_unpkd[iect][ibx][istc]){
       	      std::cout << std::dec << std::setfill(' ');
-      	      std::cerr << " Packed and unpacked energies does not match for (event,bx.stc,raw_energy,unpacked_energy) : (" << ev.eventId <<","<< ibx <<","<< istc <<","<< energy_raw[iect][ibx][istc] <<","<< energy_unpkd[iect][ibx][istc] <<") "<< std::endl;
+      	      std::cerr << " Packed and unpacked energies does not match for (Run, event,iecont,bx.stc,raw_energy,unpacked_energy) : (" << runNumber << ","ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< energy_raw[iect][ibx][istc] <<","<< energy_unpkd[iect][ibx][istc] <<") "<< std::endl;
       	      isGood = false;
       	    }
       	  }
