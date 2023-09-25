@@ -29,7 +29,11 @@ do
     rname=`echo $ifile | cut -f 3 -d '/' | cut -d 'n' -f 2 | cut -d '_' -f 1`
     if [ "$rname" -ne "$prevrun" ] ; then
 	echo -e "\n\n ============== Relay : $Relay Run : $rname ================= "
-	./econt_data_validation.exe $Relay $rname
+	if [ ! -d log ] ; then
+	    mkdir -p log
+	fi
+	./econt_data_validation.exe $Relay $rname > log/Relay$Relay_Run$rname.log 2>&1
+	echo -e "See full results in log/Relay$Relay_Run$rname.log" 
 	prevrun=$rname
     fi
 done

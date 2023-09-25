@@ -280,7 +280,7 @@ int main(int argc, char** argv){
   const Hgcal10gLinkReceiver::RecordRunning  *rEvent((Hgcal10gLinkReceiver::RecordRunning*) r);
   _fileReader.setDirectory(std::string("dat/Relay")+argv[1]);
   _fileReader.openRun(runNumber,linkNumber);
-
+  
   uint64_t nEvents = 0;
   uint32_t packet[4];
   uint32_t packet_counter;
@@ -303,8 +303,17 @@ int main(int argc, char** argv){
       }//istc  
     }//iect
   }//itrig
+
+  int nofRStartErrors = 0, nofRStopErrors = 0;
+  TH2I *hErrEcont0Status = new TH2I("hErrEcont0Status", "Errors related to ECONT0 packet status",12,0,12,8,0,8);
+  TH2I *hErrEcont1Status = new TH2I("hErrEcont1Status", "Errors related to ECONT1 packet status",12,0,12,8,0,8);
+  TH1I *hDaqEvtMisMatch = new TH1I("hDaqEvtMisMatch", "Event size mismatch between RO and cafe header",4,0,4);
+  int nofNbxMisMatches = 0;
+  int nofSTCNumberingErrors = 0;
+  int nofSTCLocErrors = 0;
+  int nofEnergyMisMatches = 0; 
+  int nofEmptyTCs = 0;
   
-    
   // to cache where the cafe separators are
   int scintillator_cafe_word_loc;
   int econt_cafe_word_loc;
@@ -326,6 +335,7 @@ int main(int argc, char** argv){
   	isGood = false;
   	rStart->print();
   	std::cout << std::endl;
+	nofRStartErrors++;
       }
     }
     
@@ -335,6 +345,7 @@ int main(int argc, char** argv){
   	isGood = false;
   	rStop->print();
   	std::cout << std::endl;
+	nofRStopErrors++;
       }
     }
     //Else we have an event record 
@@ -412,13 +423,15 @@ int main(int argc, char** argv){
   	ev.ECONT_packet_validity[1][istc] = (ev.ECONT_packet_status[1][istc]==0x0) ? true : false;
   	if(ev.ECONT_packet_validity[0][istc] == false){
   	  isGood = false;
-	  std::cerr << "Event : "<< ev.eventId << " LSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[0][istc] << std::endl;
-	  PrintLastEvents(econt_events);
+	  hErrEcont0Status->Fill(istc, ev.ECONT_packet_status[0][istc]);
+	  std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", LSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[0][istc] << std::endl;
+	  //PrintLastEvents(econt_events);
   	}
   	if(ev.ECONT_packet_validity[1][istc] == false and !skipMSB){
   	  isGood = false;
-	  std::cerr << "Event : "<< ev.eventId << " MSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[1][istc] << std::endl;
-	  PrintLastEvents(econt_events);
+	  hErrEcont1Status->Fill(istc, ev.ECONT_packet_status[1][istc]);
+	  std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", MSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[1][istc] << std::endl;
+	  //PrintLastEvents(econt_events);
   	}
 	
       }
@@ -456,29 +469,34 @@ int main(int argc, char** argv){
       ev.size_in_cafe[3] = p64[fourth_cafe_word_loc] & 0xFF;
       
       if(daq0_event_size != ev.size_in_cafe[0]){
-  	std::cerr << "Event : "<< ev.eventId << " Event size do not match between trigger RO header "<< daq0_event_size << " and first 0xfecafe word " << ev.size_in_cafe[0] << std::endl;
+  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq0_event_size << " and first 0xfecafe word " << ev.size_in_cafe[0] << std::endl;
   	isGood = false;
-	PrintLastEvents(econt_events);
+	hDaqEvtMisMatch->Fill(0);
+	//PrintLastEvents(econt_events);
       }
       if(daq1_event_size != ev.size_in_cafe[1]){
-  	std::cerr << "Event : "<< ev.eventId << " Event size do not match between trigger RO header "<< daq1_event_size << " and second 0xfecafe word " << ev.size_in_cafe[1] << std::endl;
+  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq1_event_size << " and second 0xfecafe word " << ev.size_in_cafe[1] << std::endl;
   	isGood = false;
-	PrintLastEvents(econt_events);
+	hDaqEvtMisMatch->Fill(1);
+	//PrintLastEvents(econt_events);
       }
       if(daq2_event_size != ev.size_in_cafe[2]){
-  	std::cerr << "Event : "<< ev.eventId << " Event size do not match between trigger RO header "<< daq2_event_size << " and third 0xfecafe word " << ev.size_in_cafe[2] << std::endl;
+  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq2_event_size << " and third 0xfecafe word " << ev.size_in_cafe[2] << std::endl;
   	isGood = false;
-	PrintLastEvents(econt_events);
+	hDaqEvtMisMatch->Fill(2);
+	//PrintLastEvents(econt_events);
       }
       if(daq3_event_size != ev.size_in_cafe[3]){
-  	std::cerr << "Event : "<< ev.eventId << " Event size do not match between trigger RO header "<< daq3_event_size << " and fourth 0xfecafe word " << ev.size_in_cafe[3] << std::endl;
+  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq3_event_size << " and fourth 0xfecafe word " << ev.size_in_cafe[3] << std::endl;
   	isGood = false;
-	PrintLastEvents(econt_events);
+	hDaqEvtMisMatch->Fill(3);
+	//PrintLastEvents(econt_events);
       }
       if(ev.daq_nbx[0]!=ev.daq_nbx[1]){
-  	std::cerr << "Event : "<< ev.eventId << " Bx size do not match between packed " << ev.daq_nbx[0] << " and unpacked data " << ev.daq_nbx[1] << std::endl;
+  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Bx size do not match between packed " << ev.daq_nbx[0] << " and unpacked data " << ev.daq_nbx[1] << std::endl;
   	isGood = false;
-	PrintLastEvents(econt_events);
+	nofNbxMisMatches++;
+	//PrintLastEvents(econt_events);
       }
       
       int bx_index = -1.0*int(ev.daq_nbx[0]);
@@ -680,11 +698,13 @@ int main(int argc, char** argv){
       	      std::cout << std::dec << std::setfill(' ');
       	      std::cerr << " Unpacked location index do not match with the STC for (Run, event, iecont, bx, stc, istc_from_unpacked) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< (ev.loc_unpkd[iect][ibx][istc]>>2  & 0xF)  <<") "<< std::endl;
       	      isGood = false;
+	      nofSTCNumberingErrors++;
       	    }
       	    if( (ev.loc_unpkd[iect][ibx][istc] & 0x3) != ev.loc_raw[iect][ibx][istc]){
       	      std::cout << std::dec << std::setfill(' ');
       	      std::cerr << " Unpacked location value do not match with the packed one for (Run, event, iecont, bx, stc, loc_unpacked, loc_packed ) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< (ev.loc_unpkd[iect][ibx][istc] & 0x3)  << "," << ev.loc_raw[iect][ibx][istc] << ") "<< std::endl;
       	      isGood = false;
+	      nofSTCLocErrors++;
       	    }
 	    
       	  }
@@ -700,6 +720,7 @@ int main(int argc, char** argv){
       	      std::cout << std::dec << std::setfill(' ');
       	      std::cerr << " Packed and unpacked energies does not match for (Run, event,iecont,bx.stc,raw_energy,unpacked_energy) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< energy_raw[iect][ibx][istc] <<","<< energy_unpkd[iect][ibx][istc] <<") "<< std::endl;
       	      isGood = false;
+	      nofEnergyMisMatches++;
       	    }
       	  }
       	}
@@ -731,15 +752,46 @@ int main(int argc, char** argv){
 	    if(itrig==2)
 	      std::cerr << "Coincident Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
 	    isGood = false;
+	    nofEmptyTCs++;
 	  }
 	}
       }
     }
   }
+
+  cout<<endl;
+  for(int i=0;i<80;i++) cout<<"=";
+  cout<<endl;
+  cout << "Summary of Relay " << relayNumber << " and Run " << runNumber << endl;
+  cout<<endl;
+  for(int i=0;i<80;i++) cout<<"=";
+  cout<<endl;
+
+  cout<<"Relay\t Run\t NofEvents\t NofPhysTrig\t NofCoinTig\t nofRStartErrors\t nofRStopErrors\t nofECONT0StatusErr\t nofECONT1StatusErr\t nofDAQHeaderErr\t nofNbxMisMatches\t nofSTCNumberingErrors\t nofSTCLocErrors\t nofEnergyMisMatches\t nofEmptyTCs\t"<<endl;
+  cout << relayNumber << "\t"
+       << runNumber << "\t"
+       << nEvents << "\t"
+       <<total_phys_events << "\t"
+       <<total_coinc_events << "\t"
+       <<nofRStartErrors << "\t"
+       << nofRStopErrors << "\t"
+       << hErrEcont0Status->GetEntries() << "\t"
+       << hErrEcont1Status->GetEntries() << "\t"
+       << hDaqEvtMisMatch->GetEntries() << "\t"
+       << nofNbxMisMatches << "\t"
+       << nofSTCNumberingErrors << "\t"
+       << nofSTCLocErrors << "\t"
+       << nofEnergyMisMatches << "\t"
+       << nofEmptyTCs << "\t"
+       <<endl;
   
   if(isGood){
     std::cout << "All fine, no errors found." << std::endl;
   }
+
+  cout<<endl;
+  for(int i=0;i<80;i++) cout<<"=";
+  cout<<endl;
 
   econt_events.clear();
   delete hloc;
