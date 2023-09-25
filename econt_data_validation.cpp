@@ -25,7 +25,7 @@ typedef struct{
 
   uint64_t eventId;
   uint16_t l1aType;
-  uint8_t ECONT_packet_status[2][12];                //2 : LSB/MSB, 12 : STC
+  uint16_t ECONT_packet_status[2][12];                //2 : LSB/MSB, 12 : STC
   bool ECONT_packet_validity[2][12];                 //2 : LSB/MSB, 12 : STC
   uint16_t OC[2],EC[2];                              //2 : LSB/MSB
   uint16_t BC[2];                                    //2 : LSB/MSB
