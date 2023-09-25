@@ -695,14 +695,15 @@ int main(int argc, char** argv){
       	for(int ibx=0;ibx<maxnbx;ibx++){
       	  for(int istc=0;istc<12;istc++){
       	    if((ev.loc_unpkd[iect][ibx][istc]>>2  & 0xF) != istc){
-      	      std::cout << std::dec << std::setfill(' ');
-      	      std::cerr << " Unpacked location index do not match with the STC for (Run, event, iecont, bx, stc, istc_from_unpacked) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< (ev.loc_unpkd[iect][ibx][istc]>>2  & 0xF)  <<") "<< std::endl;
+      	      // std::cout << std::dec << std::setfill(' ');
+      	      // std::cerr << " Unpacked location index do not match with the STC for (Run, event, iecont, bx, stc, istc_from_unpacked) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< (ev.loc_unpkd[iect][ibx][istc]>>2  & 0xF)  <<") "<< std::endl;
       	      isGood = false;
 	      nofSTCNumberingErrors++;
       	    }
       	    if( (ev.loc_unpkd[iect][ibx][istc] & 0x3) != ev.loc_raw[iect][ibx][istc]){
-      	      std::cout << std::dec << std::setfill(' ');
-      	      std::cerr << " Unpacked location value do not match with the packed one for (Run, event, iecont, bx, stc, loc_unpacked, loc_packed ) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< (ev.loc_unpkd[iect][ibx][istc] & 0x3)  << "," << ev.loc_raw[iect][ibx][istc] << ") "<< std::endl;
+      	      // std::cout << std::dec << std::setfill(' ');
+      	      // std::cerr << " Unpacked location value do not match with the packed one for (Run, event, iecont, bx, stc, loc_unpacked, loc_packed ) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<
+	      //< (ev.loc_unpkd[iect][ibx][istc] & 0x3)  << "," << ev.loc_raw[iect][ibx][istc] << ") "<< std::endl;
       	      isGood = false;
 	      nofSTCLocErrors++;
       	    }
@@ -717,8 +718,9 @@ int main(int argc, char** argv){
       	for(int ibx=0;ibx<maxnbx;ibx++){
       	  for(int istc=0;istc<12;istc++){
       	    if(energy_raw[iect][ibx][istc]!=energy_unpkd[iect][ibx][istc]){
-      	      std::cout << std::dec << std::setfill(' ');
-      	      std::cerr << " Packed and unpacked energies does not match for (Run, event,iecont,bx.stc,raw_energy,unpacked_energy) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< energy_raw[iect][ibx][istc] <<","<< energy_unpkd[iect][ibx][istc] <<") "<< std::endl;
+      	      // std::cout << std::dec << std::setfill(' ');
+      	      // std::cerr << " Packed and unpacked energies does not match for (Run, event,iecont,bx.stc,raw_energy,unpacked_energy) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< energy_raw[iec
+	      //																										      t][ibx][istc] <<","<< energy_unpkd[iect][ibx][istc] <<") "<< std::endl;
       	      isGood = false;
 	      nofEnergyMisMatches++;
       	    }
