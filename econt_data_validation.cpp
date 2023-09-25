@@ -424,13 +424,13 @@ int main(int argc, char** argv){
   	if(ev.ECONT_packet_validity[0][istc] == false){
   	  isGood = false;
 	  hErrEcont0Status->Fill(istc, ev.ECONT_packet_status[0][istc]);
-	  std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", LSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[0][istc] << std::endl;
+	  //std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", LSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[0][istc] << std::endl;
 	  //PrintLastEvents(econt_events);
   	}
   	if(ev.ECONT_packet_validity[1][istc] == false and !skipMSB){
   	  isGood = false;
 	  hErrEcont1Status->Fill(istc, ev.ECONT_packet_status[1][istc]);
-	  std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", MSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[1][istc] << std::endl;
+	  //std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", MSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[1][istc] << std::endl;
 	  //PrintLastEvents(econt_events);
   	}
 	
