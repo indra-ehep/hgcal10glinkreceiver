@@ -32,7 +32,7 @@ do
 	if [ ! -d log ] ; then
 	    mkdir -p log
 	fi
-	./econt_data_validation.exe $Relay $rname > log/Relay$Relay_Run$rname.log 2>&1
+	./econt_data_validation.exe $Relay $rname > log/Relay${Relay}_Run${rname}.log 2>&1
 	echo -e "See full results in log/Relay$Relay_Run$rname.log" 
 	prevrun=$rname
     fi
