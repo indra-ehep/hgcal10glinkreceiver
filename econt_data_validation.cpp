@@ -649,7 +649,7 @@ int main(int argc, char** argv){
       	  for(int istc=0;istc<12;istc++){
       	    if(energy_raw[iect][ibx][istc]!=energy_unpkd[iect][ibx][istc]){
       	      std::cout << std::dec << std::setfill(' ');
-      	      std::cerr << " Packed and unpacked energies does not match for (Run, event,iecont,bx.stc,raw_energy,unpacked_energy) : (" << runNumber << ","ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< energy_raw[iect][ibx][istc] <<","<< energy_unpkd[iect][ibx][istc] <<") "<< std::endl;
+      	      std::cerr << " Packed and unpacked energies does not match for (Run, event,iecont,bx.stc,raw_energy,unpacked_energy) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< energy_raw[iect][ibx][istc] <<","<< energy_unpkd[iect][ibx][istc] <<") "<< std::endl;
       	      isGood = false;
       	    }
       	  }
