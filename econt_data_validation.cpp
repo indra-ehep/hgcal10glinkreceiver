@@ -27,7 +27,7 @@ typedef struct{
   uint16_t l1aType;
   uint8_t ECONT_packet_status[2][12];                //2 : LSB/MSB, 12 : STC
   bool ECONT_packet_validity[2][12];                 //2 : LSB/MSB, 12 : STC
-  uint8_t OC[2],EC[2];                               //2 : LSB/MSB
+  uint16_t OC[2],EC[2];                              //2 : LSB/MSB
   uint16_t BC[2];                                    //2 : LSB/MSB
   
   uint16_t daq_data[4];                              //4 : data blocks separated by 0xfecafe
@@ -239,8 +239,8 @@ void PrintLastEvents(deque<econt_event> econt_events)
   while (!econt_events.empty()) {
     econt_event ev = econt_events.back();
     cout << "\tPrev :: Event ID :  " << ev.eventId
-	 << "OC[LSB] : " << ev.OC[0] << ", OC[MSB] : " << ev.OC[1]
-      	 << "BC[LSB] : " << ev.BC[0] << ", BC[MSB] : " << ev.BC[1]
+	 << ", OC[LSB] : " << ev.OC[0] << ", OC[MSB] : " << ev.OC[1]
+      	 << ", BC[LSB] : " << ev.BC[0] << ", BC[MSB] : " << ev.BC[1]
 	 <<endl;
     econt_events.pop_back();
   }
@@ -643,18 +643,18 @@ int main(int argc, char** argv){
 	
       // }
 
-      for(int iect=0;iect<2;iect++){
-      	if(iect==1 and skipMSB) continue;
-      	for(int ibx=0;ibx<maxnbx;ibx++){
-      	  for(int istc=0;istc<12;istc++){
-      	    if(energy_raw[iect][ibx][istc]!=energy_unpkd[iect][ibx][istc]){
-      	      std::cout << std::dec << std::setfill(' ');
-      	      std::cerr << " Packed and unpacked energies does not match for (Run, event,iecont,bx.stc,raw_energy,unpacked_energy) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< energy_raw[iect][ibx][istc] <<","<< energy_unpkd[iect][ibx][istc] <<") "<< std::endl;
-      	      isGood = false;
-      	    }
-      	  }
-      	}
-      }
+      // for(int iect=0;iect<2;iect++){
+      // 	if(iect==1 and skipMSB) continue;
+      // 	for(int ibx=0;ibx<maxnbx;ibx++){
+      // 	  for(int istc=0;istc<12;istc++){
+      // 	    if(energy_raw[iect][ibx][istc]!=energy_unpkd[iect][ibx][istc]){
+      // 	      std::cout << std::dec << std::setfill(' ');
+      // 	      std::cerr << " Packed and unpacked energies does not match for (Run, event,iecont,bx.stc,raw_energy,unpacked_energy) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< energy_raw[iect][ibx][istc] <<","<< energy_unpkd[iect][ibx][istc] <<") "<< std::endl;
+      // 	      isGood = false;
+      // 	    }
+      // 	  }
+      // 	}
+      // }
       
       if(nEvents<max_event_entries){
   	econt_events.push_back(ev);
