@@ -131,31 +131,31 @@ namespace Hgcal10gLinkReceiver {
     }
   
     void print(std::ostream &o=std::cout, std::string s="") const {
-      o << s << "RecordHeader::print()  Data = 0x"
-	<< std::hex << std::setfill('0')
-	<< std::setw(16) << _header
-	<< std::dec << std::setfill(' ') << std::endl;
-      o << s << " Pattern = 0x"
-	<< std::hex << std::setfill('0')
-	<< std::setw(2) << unsigned(pattern())
-	<< std::dec << std::setfill(' ')
-	<< (validPattern()?" = valid":" = invalid")
-	<< std::endl;
-      //o << s << " Identifier = " << identifierName() << std::endl;
-      o << s << " State   = " << FsmState::stateName(state())
-	<< (validState()?" = valid":" = invalid")
-	<< std::endl;
+      // o << s << "RecordHeader::print()  Data = 0x"
+      // 	<< std::hex << std::setfill('0')
+      // 	<< std::setw(16) << _header
+      // 	<< std::dec << std::setfill(' ') << std::endl;
+      // o << s << " Pattern = 0x"
+      // 	<< std::hex << std::setfill('0')
+      // 	<< std::setw(2) << unsigned(pattern())
+      // 	<< std::dec << std::setfill(' ')
+      // 	<< (validPattern()?" = valid":" = invalid")
+      // 	<< std::endl;
+      // //o << s << " Identifier = " << identifierName() << std::endl;
+      // o << s << " State   = " << FsmState::stateName(state())
+      // 	<< (validState()?" = valid":" = invalid")
+      // 	<< std::endl;
       
-      if(FsmState::transientState(state())) {
-	o << s << " UTC = " << std::setw(10) << utc() << " = " << utcDate(); // endl already in ctime
-      } else {
-	o << s << " Sequencer counter = " << sequenceCounter() << std::endl;
-      }
+      // if(FsmState::transientState(state())) {
+      // 	o << s << " UTC = " << std::setw(10) << utc() << " = " << utcDate(); // endl already in ctime
+      // } else {
+      // 	o << s << " Sequencer counter = " << sequenceCounter() << std::endl;
+      // }
 
-      o << s << " Payload length = " << std::setw(6)
-	<< payloadLength() << " eight-byte words " << std::endl;
-      o << s << " Record length   = " << std::setw(6)
-	<< totalLengthInBytes() << " bytes " << std::endl;
+      // o << s << " Payload length = " << std::setw(6)
+      // 	<< payloadLength() << " eight-byte words " << std::endl;
+      // o << s << " Record length   = " << std::setw(6)
+      // 	<< totalLengthInBytes() << " bytes " << std::endl;
     }
   
   private:

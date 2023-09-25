@@ -62,24 +62,24 @@ namespace Hgcal10gLinkReceiver {
     }
    
     void print(std::ostream &o=std::cout, std::string s="") const {
-      o << s << "RecordContinuing::print()" << std::endl;
-      RecordHeader::print(o,s+" ");
+      // o << s << "RecordContinuing::print()" << std::endl;
+      // RecordHeader::print(o,s+" ");
       
-      for(unsigned i(0);i<payloadLength();i++) {
-	o << s << "   Payload word " << std::setw(5) << " = 0x"
-	  << std::hex << std::setfill('0')
-	  << std::setw(16) << _payload[i]
-	  << std::dec << std::setfill(' ') << std::endl;
-      }
+      // for(unsigned i(0);i<payloadLength();i++) {
+      // 	o << s << "   Payload word " << std::setw(5) << " = 0x"
+      // 	  << std::hex << std::setfill('0')
+      // 	  << std::setw(16) << _payload[i]
+      // 	  << std::dec << std::setfill(' ') << std::endl;
+      // }
       
-      o << s << "  Run number       = "
-	<< std::setw(10) << runNumber() << std::endl;
-      o << s << "  File number      = "
-	<< std::setw(10) << fileNumber() << std::endl;
-      o << s << "  Number of events = "
-	<< std::setw(10) << numberOfEvents() << std::endl;
-      o << s << "  Number of bytes  = "
-	<< std::setw(10) << numberOfBytes() << std::endl;
+      // o << s << "  Run number       = "
+      // 	<< std::setw(10) << runNumber() << std::endl;
+      // o << s << "  File number      = "
+      // 	<< std::setw(10) << fileNumber() << std::endl;
+      // o << s << "  Number of events = "
+      // 	<< std::setw(10) << numberOfEvents() << std::endl;
+      // o << s << "  Number of bytes  = "
+      // 	<< std::setw(10) << numberOfBytes() << std::endl;
     }
   private:
   };
