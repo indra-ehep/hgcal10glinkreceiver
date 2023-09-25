@@ -293,15 +293,15 @@ int main(int argc, char** argv){
   int nTrigType = 0;
   for (int itrig=0; itrig<10; itrig++) {
     hloc[itrig] = new TH1I**[2];                // 2 ECONTs
-    for (int ietc=0; ietc<2; ietc++) {
-      hloc[itrig][ietc] = new TH1I*[12];        // 12 STCs
+    for (int iect=0; iect<2; iect++) {
+      hloc[itrig][iect] = new TH1I*[12];        // 12 STCs
       for (int istc=0;istc<12;istc++) {
-	hloc[itrig][ietc][istc] = new TH1I(Form("hloc_%d_%d_%d",itrig,ietc,istc),Form("Trig %d, iECONT %d, STC : %d",itrig,ietc,istc),4,0,4);
-	hloc[itrig][ietc][istc]->SetMinimum(0.0);
-	hloc[itrig][ietc][istc]->GetXaxis()->SetTitle("TC");
-	hloc[itrig][ietc][istc]->GetYaxis()->SetTitle("Entries");
+	hloc[itrig][iect][istc] = new TH1I(Form("hloc_%d_%d_%d",itrig,iect,istc),Form("Trig %d, iECONT %d, STC : %d",itrig,iect,istc),4,0,4);
+	hloc[itrig][iect][istc]->SetMinimum(0.0);
+	hloc[itrig][iect][istc]->GetXaxis()->SetTitle("TC");
+	hloc[itrig][iect][istc]->GetYaxis()->SetTitle("Entries");
       }//istc  
-    }//ietc
+    }//iect
   }//itrig
   
     
@@ -411,13 +411,13 @@ int main(int argc, char** argv){
   	ev.ECONT_packet_validity[0][istc] = (ev.ECONT_packet_status[0][istc]==0x0) ? true : false;
   	ev.ECONT_packet_validity[1][istc] = (ev.ECONT_packet_status[1][istc]==0x0) ? true : false;
   	if(ev.ECONT_packet_validity[0][istc] == false){
-	  std::cerr << "Event : "<< ev.eventId << " ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[0][istc] << std::endl;
   	  isGood = false;
+	  std::cerr << "Event : "<< ev.eventId << " LSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[0][istc] << std::endl;
 	  PrintLastEvents(econt_events);
   	}
   	if(ev.ECONT_packet_validity[1][istc] == false and !skipMSB){
-	  std::cerr << "Event : "<< ev.eventId << " ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[1][istc] << std::endl;
   	  isGood = false;
+	  std::cerr << "Event : "<< ev.eventId << " MSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[1][istc] << std::endl;
 	  PrintLastEvents(econt_events);
   	}
 	
@@ -503,15 +503,22 @@ int main(int argc, char** argv){
 	
       	set_packet_locations(packet_locations, packet);
       	set_packet_energies(packet_energies, packet);
+      	//if(boe->l1aType()==0x3){
+      	//std::cout<<" boe->l1aType() : " << boe->l1aType() << std::endl;
+      	//boe->print();
+
       	// if (nEvents < 2) {
+  	//   std::cout<<"\t";
       	//   for(int istc=0;istc<12;istc++){
       	//     std::cout<<packet_energies[istc]<<" ";
       	//   }
       	//   std::cout<<std::endl;
+	//   std::cout<<"\t";
+      	//   for(int istc=0;istc<12;istc++){
+	//     std::cout<<packet_locations[istc]<<" ";
+      	//   }
+      	//   std::cout<<std::endl;
       	// }
-      	//if(boe->l1aType()==0x3){
-      	//std::cout<<" boe->l1aType() : " << boe->l1aType() << std::endl;
-      	//boe->print();
 	
       	for(int istc=0;istc<12;istc++){
 	  
@@ -540,6 +547,11 @@ int main(int argc, char** argv){
   	//   std::cout<<"\t";
       	//   for(int istc=0;istc<12;istc++){
       	//     std::cout<<packet_energies[istc]<<" ";
+      	//   }
+      	//   std::cout<<std::endl;
+	//   std::cout<<"\t";
+      	//   for(int istc=0;istc<12;istc++){
+	//     std::cout<<packet_locations[istc]<<" ";
       	//   }
       	//   std::cout<<std::endl;
       	// }
@@ -621,6 +633,18 @@ int main(int argc, char** argv){
       	ev.loc_unpkd[1][index_ibx][index_stc] = energy3_loc;
       	ev.loc_unpkd[1][index_ibx][index_stc+6] = energy4_loc;
 
+	// if (nEvents < 2){
+	//   std::cout << "Unpackaer output  0x" << std::setw(8) << word << " bx_counter 0x" << std::setw(1) << bx_counter
+	//     // << " bx_counter1 0x" << std::setw(1) << bx_counter1 
+	// 	    << std::dec << std::setfill(' ') 
+	// 	    << " energy1 loc : " << std::setw(2) << energy1_loc << " energy1 :" << std::setw(2) << energy1
+	// 	    << " energy2 loc : " << std::setw(2) << energy2_loc << " energy2 :" << std::setw(2) << energy2
+	//     // << " energy3 loc : " << std::setw(2) << energy3_loc << " energy3 :" << std::setw(2) << energy3
+	//     // << " energy4 loc : " << std::setw(2) << energy4_loc << " energy4 :" << std::setw(2) << energy4
+	// 	    << std::endl ;	    
+	//   cout<<"istc : "<<index_stc<<" from MS4 : "<< (energy1_loc>>2 & 0xF) << ", address : " << (energy1_loc & 0x3) << endl;
+	//   cout<<"istc : "<<index_stc+6<<" from MS4 : "<< (energy2_loc>>2 & 0xF) << ", address : " << (energy2_loc & 0x3) << endl;
+	// }
       	index_stc++;
       }
 
@@ -647,6 +671,27 @@ int main(int argc, char** argv){
 	
       // }
 
+      //Check Locations
+      for(int iect=0;iect<2;iect++){
+      	if(iect==1 and skipMSB) continue;
+      	for(int ibx=0;ibx<maxnbx;ibx++){
+      	  for(int istc=0;istc<12;istc++){
+      	    if((ev.loc_unpkd[iect][ibx][istc]>>2  & 0xF) != istc){
+      	      std::cout << std::dec << std::setfill(' ');
+      	      std::cerr << " Unpacked location index do not match with the STC for (Run, event, iecont, bx, stc, istc_from_unpacked) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< (ev.loc_unpkd[iect][ibx][istc]>>2  & 0xF)  <<") "<< std::endl;
+      	      isGood = false;
+      	    }
+      	    if( (ev.loc_unpkd[iect][ibx][istc] & 0x3) != ev.loc_raw[iect][ibx][istc]){
+      	      std::cout << std::dec << std::setfill(' ');
+      	      std::cerr << " Unpacked location value do not match with the packed one for (Run, event, iecont, bx, stc, loc_unpacked, loc_packed ) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< (ev.loc_unpkd[iect][ibx][istc] & 0x3)  << "," << ev.loc_raw[iect][ibx][istc] << ") "<< std::endl;
+      	      isGood = false;
+      	    }
+	    
+      	  }
+      	}
+      }
+
+      //Check Energy
       for(int iect=0;iect<2;iect++){
       	if(iect==1 and skipMSB) continue;
       	for(int ibx=0;ibx<maxnbx;ibx++){
@@ -659,6 +704,7 @@ int main(int argc, char** argv){
       	  }
       	}
       }
+
       
       if(nEvents<max_event_entries){
   	econt_events.push_back(ev);
@@ -673,17 +719,17 @@ int main(int argc, char** argv){
 
   
   for (int itrig=0; itrig<nTrigType; itrig++) {
-    for (int ietc=0; ietc<2; ietc++) {
-      if(ietc==1 and skipMSB) continue;
+    for (int iect=0; iect<2; iect++) {
+      if(iect==1 and skipMSB) continue;
       for (int i=0;i<12;i++) {
-	for(int ibin=1;ibin<=hloc[itrig][ietc][i]->GetNbinsX();ibin++){
-	  if(hloc[itrig][ietc][i]->GetBinContent(ibin)==0.0){
+	for(int ibin=1;ibin<=hloc[itrig][iect][i]->GetNbinsX();ibin++){
+	  if(hloc[itrig][iect][i]->GetBinContent(ibin)==0.0){
 	    if(itrig==0)
-	      std::cerr << "No Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< ietc<< "."<< std::endl;
+	      std::cerr << "No Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<< "."<< std::endl;
 	    if(itrig==1)
-	      std::cerr << "Phys Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< ietc<<"."<< std::endl;
+	      std::cerr << "Phys Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
 	    if(itrig==2)
-	      std::cerr << "Coincident Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< ietc<<"."<< std::endl;
+	      std::cerr << "Coincident Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
 	    isGood = false;
 	  }
 	}

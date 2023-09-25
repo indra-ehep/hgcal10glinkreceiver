@@ -39,6 +39,11 @@ Event : 352781 Event size do not match between trigger RO header and fourth 0xfe
 
 ```
 
-Then choose the Relay from the above list
+Remeber to set the dat softlink path correctly according to your requirment.
+
+### Acknowledgment
+Main framework :: Paul : https://gitlab.cern.ch/pdauncey/hgcal10glinkreceiver
+Additional guidelines :: Charlotte : https://gitlab.cern.ch/mknight/hgcal10glinkreceiver/-/tree/master 
+
 
 
