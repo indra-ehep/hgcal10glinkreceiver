@@ -317,8 +317,9 @@ int main(int argc, char** argv){
   // to cache where the cafe separators are
   int scintillator_cafe_word_loc;
   int econt_cafe_word_loc;
-  int total_phys_events = 0;
-  int total_coinc_events = 0;
+  uint64_t total_phys_events = 0;
+  uint64_t total_coinc_events = 0;
+  uint64_t total_regular_events = 0;
   
   //Keep a record of status of last 100 events
   int max_event_entries = 100;
@@ -414,7 +415,9 @@ int main(int argc, char** argv){
       	total_phys_events++;
       if(l1atype==0x0003)
       	total_coinc_events++;
-      nTrigType = 3; //0 inclusive, 1: physics, 2: coincident
+      if(l1atype==0x0010)
+      	total_regular_events++;
+      nTrigType = 4; //0 inclusive, 1: physics, 2: coincident, 3: regular
       
       econt_event ev;
       ev.eventId = boe->eventId();
@@ -565,6 +568,8 @@ int main(int argc, char** argv){
 	    hloc[1][0][istc]->Fill(packet_locations[istc]);
 	  if(l1atype==0x0003)
 	    hloc[2][0][istc]->Fill(packet_locations[istc]);
+	  if(l1atype==0x0010)
+	    hloc[3][0][istc]->Fill(packet_locations[istc]);
 	  
       	  energy_raw[0][(bx_index+int(ev.daq_nbx[0]))][istc] = packet_energies[istc];
   	  ev.energy_raw[0][(bx_index+int(ev.daq_nbx[0]))][istc] = packet_energies[istc];
@@ -601,6 +606,8 @@ int main(int argc, char** argv){
 	    hloc[1][1][istc]->Fill(packet_locations[istc]);
 	  if(l1atype==0x0003)
 	    hloc[2][1][istc]->Fill(packet_locations[istc]);
+	  if(l1atype==0x0010)
+	    hloc[3][1][istc]->Fill(packet_locations[istc]);
 	  
       	  energy_raw[1][(bx_index+int(ev.daq_nbx[0]))][istc] = packet_energies[istc];
   	  ev.energy_raw[1][(bx_index+int(ev.daq_nbx[0]))][istc] = packet_energies[istc];
@@ -771,6 +778,8 @@ int main(int argc, char** argv){
 	      std::cerr << "Phys Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
 	    if(itrig==2)
 	      std::cerr << "Coincident Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
+	    if(itrig==3)
+	      std::cerr << "Regular Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
 	    isGood = false;
 	    nofEmptyTCs++;
 	  }
@@ -787,12 +796,13 @@ int main(int argc, char** argv){
   for(int i=0;i<80;i++) cout<<"=";
   cout<<endl;
 
-  cout<<"Relay\t Run\t NofEvents\t NofPhysTrig\t NofCoinTig\t nofRStartErrors\t nofRStopErrors\t nofECONT0StatusErr\t nofECONT1StatusErr\t nofFirstFECAFEErrors\t nofDAQHeaderErr\t nofNbxMisMatches\t nofSTCNumberingErrors\t nofSTCLocErrors\t nofEnergyMisMatches\t nofEmptyTCs\t"<<endl;
+  cout<<"Relay\t Run\t NofEvents\t NofPhysTrig\t NofCoinTrig\t NofRegTrig\t nofRStartErrors\t nofRStopErrors\t nofECONT0StatusErr\t nofECONT1StatusErr\t nofFirstFECAFEErrors\t nofDAQHeaderErr\t nofNbxMisMatches\t nofSTCNumberingErrors\t nofSTCLocErrors\t nofEnergyMisMatches\t nofEmptyTCs\t"<<endl;
   cout << relayNumber << "\t"
        << runNumber << "\t"
        << nEvents << "\t"
        <<total_phys_events << "\t"
        <<total_coinc_events << "\t"
+       <<total_regular_events << "\t"
        <<nofRStartErrors << "\t"
        << nofRStopErrors << "\t"
        << hErrEcont0Status->GetEntries() << "\t"
