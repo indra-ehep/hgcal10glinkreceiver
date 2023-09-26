@@ -98,9 +98,8 @@ int find_cafe_word(const Hgcal10gLinkReceiver::RecordRunning *rEvent, int n, int
 
   if (cafe_word_idx == -1) {
     std::cerr << "Could not find cafe word" << std::endl;
-    exit(0);
-  }
-  else {
+    return cafe_word_idx;
+  }else {
     return cafe_word_idx;
   }
 }
@@ -304,15 +303,16 @@ int main(int argc, char** argv){
     }//iect
   }//itrig
 
-  int nofRStartErrors = 0, nofRStopErrors = 0;
+  uint64_t nofRStartErrors = 0, nofRStopErrors = 0;
   TH2I *hErrEcont0Status = new TH2I("hErrEcont0Status", "Errors related to ECONT0 packet status",12,0,12,8,0,8);
   TH2I *hErrEcont1Status = new TH2I("hErrEcont1Status", "Errors related to ECONT1 packet status",12,0,12,8,0,8);
   TH1I *hDaqEvtMisMatch = new TH1I("hDaqEvtMisMatch", "Event size mismatch between RO and cafe header",4,0,4);
-  int nofNbxMisMatches = 0;
-  int nofSTCNumberingErrors = 0;
-  int nofSTCLocErrors = 0;
-  int nofEnergyMisMatches = 0; 
-  int nofEmptyTCs = 0;
+  uint64_t nofFirstFECAFEErrors = 0;
+  uint64_t nofNbxMisMatches = 0;
+  uint64_t nofSTCNumberingErrors = 0;
+  uint64_t nofSTCLocErrors = 0;
+  uint64_t nofEnergyMisMatches = 0; 
+  uint64_t nofEmptyTCs = 0;
   
   // to cache where the cafe separators are
   int scintillator_cafe_word_loc;
@@ -336,6 +336,7 @@ int main(int argc, char** argv){
   	rStart->print();
   	std::cout << std::endl;
 	nofRStartErrors++;
+	continue;
       }
     }
     
@@ -346,6 +347,7 @@ int main(int argc, char** argv){
   	rStop->print();
   	std::cout << std::endl;
 	nofRStopErrors++;
+	continue;
       }
     }
     //Else we have an event record 
@@ -354,6 +356,10 @@ int main(int argc, char** argv){
       nEvents++;
 
       //if(nEvents>=2) continue;
+      
+      // if (nEvents >= 150 && nEvents <= 153) 
+      //  	event_dump(rEvent);
+
       
       const Hgcal10gLinkReceiver::SlinkBoe *boe = rEvent->slinkBoe();      
       if (nEvents < 2) {
@@ -426,12 +432,14 @@ int main(int argc, char** argv){
 	  hErrEcont0Status->Fill(istc, ev.ECONT_packet_status[0][istc]);
 	  //std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", LSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[0][istc] << std::endl;
 	  //PrintLastEvents(econt_events);
+	  continue;
   	}
   	if(ev.ECONT_packet_validity[1][istc] == false and !skipMSB){
   	  isGood = false;
 	  hErrEcont1Status->Fill(istc, ev.ECONT_packet_status[1][istc]);
 	  //std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", MSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[1][istc] << std::endl;
 	  //PrintLastEvents(econt_events);
+	  continue;
   	}
 	
       }
@@ -450,6 +458,14 @@ int main(int argc, char** argv){
       int first_cafe_word_loc = find_cafe_word(rEvent, 1);
       ev.size_in_cafe[0] = p64[first_cafe_word_loc] & 0xFF;
       
+      if(first_cafe_word_loc != 3){
+  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Corrupted header need to skip event as the first 0xfecafe word is at  "<< first_cafe_word_loc << " instead of ideal location 3." << std::endl;
+  	isGood = false;
+	nofFirstFECAFEErrors++ ;
+	//PrintLastEvents(econt_events);
+	continue;	
+      }
+									
       ev.daq_data[1] = p64[2]>>7 & 0xF;
       ev.daq_nbx[1] = p64[2]>>11 & 0x7;
       uint64_t daq1_event_size = (2*ev.daq_nbx[1] + 1)*ev.daq_data[1];
@@ -473,18 +489,21 @@ int main(int argc, char** argv){
   	isGood = false;
 	hDaqEvtMisMatch->Fill(0);
 	//PrintLastEvents(econt_events);
+	continue;	
       }
       if(daq1_event_size != ev.size_in_cafe[1]){
   	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq1_event_size << " and second 0xfecafe word " << ev.size_in_cafe[1] << std::endl;
   	isGood = false;
 	hDaqEvtMisMatch->Fill(1);
 	//PrintLastEvents(econt_events);
+	continue;	
       }
       if(daq2_event_size != ev.size_in_cafe[2]){
   	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq2_event_size << " and third 0xfecafe word " << ev.size_in_cafe[2] << std::endl;
   	isGood = false;
 	hDaqEvtMisMatch->Fill(2);
 	//PrintLastEvents(econt_events);
+	continue;
       }
       if(daq3_event_size != ev.size_in_cafe[3]){
   	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq3_event_size << " and fourth 0xfecafe word " << ev.size_in_cafe[3] << std::endl;
@@ -497,6 +516,7 @@ int main(int argc, char** argv){
   	isGood = false;
 	nofNbxMisMatches++;
 	//PrintLastEvents(econt_events);
+	continue;
       }
       
       int bx_index = -1.0*int(ev.daq_nbx[0]);
@@ -666,8 +686,6 @@ int main(int argc, char** argv){
       	index_stc++;
       }
 
-      // if (nEvents < 2) 
-      // 	event_dump(rEvent);
 
       // if (nEvents < 3) {
 	
@@ -769,7 +787,7 @@ int main(int argc, char** argv){
   for(int i=0;i<80;i++) cout<<"=";
   cout<<endl;
 
-  cout<<"Relay\t Run\t NofEvents\t NofPhysTrig\t NofCoinTig\t nofRStartErrors\t nofRStopErrors\t nofECONT0StatusErr\t nofECONT1StatusErr\t nofDAQHeaderErr\t nofNbxMisMatches\t nofSTCNumberingErrors\t nofSTCLocErrors\t nofEnergyMisMatches\t nofEmptyTCs\t"<<endl;
+  cout<<"Relay\t Run\t NofEvents\t NofPhysTrig\t NofCoinTig\t nofRStartErrors\t nofRStopErrors\t nofECONT0StatusErr\t nofECONT1StatusErr\t nofFirstFECAFEErrors\t nofDAQHeaderErr\t nofNbxMisMatches\t nofSTCNumberingErrors\t nofSTCLocErrors\t nofEnergyMisMatches\t nofEmptyTCs\t"<<endl;
   cout << relayNumber << "\t"
        << runNumber << "\t"
        << nEvents << "\t"
@@ -779,6 +797,7 @@ int main(int argc, char** argv){
        << nofRStopErrors << "\t"
        << hErrEcont0Status->GetEntries() << "\t"
        << hErrEcont1Status->GetEntries() << "\t"
+       << nofFirstFECAFEErrors << "\t"
        << hDaqEvtMisMatch->GetEntries() << "\t"
        << nofNbxMisMatches << "\t"
        << nofSTCNumberingErrors << "\t"
