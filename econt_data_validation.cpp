@@ -67,8 +67,12 @@ void event_dump_32(const Hgcal10gLinkReceiver::RecordRunning *rEvent, bool secon
 }
 
 bool is_cafe_word(const uint32_t word) {
-  return ((word >> 8) & 0xFFFFFF) == 16698110; //0xFECAFE                                                      // 0xFF FFFF masking to be there to compare with 16698110 (could have used the hex of this)
+  if(((word >> 8) & 0xFFFFFF) == 16698110)
+    return true; //0xFECAFE                                                      // 0xFF FFFF masking to be there to compare with 16698110 (could have used the hex of this)
+  else
+    return false;
 }
+   
 
 // returns location in this event of the n'th 0xfecafe... line
 int find_cafe_word(const Hgcal10gLinkReceiver::RecordRunning *rEvent, int n, int cafe_word_loc = -1) {
@@ -77,7 +81,8 @@ int find_cafe_word(const Hgcal10gLinkReceiver::RecordRunning *rEvent, int n, int
   if (cafe_word_loc > 0) {
     if (is_cafe_word(p64[cafe_word_loc])) {
       return cafe_word_loc;
-    }
+    }else
+      return cafe_word_loc;
   } 
   else {
     ;//std::cout << "oops" << std::endl;
@@ -98,7 +103,7 @@ int find_cafe_word(const Hgcal10gLinkReceiver::RecordRunning *rEvent, int n, int
 
   if (cafe_word_idx == -1) {
     std::cerr << "Could not find cafe word" << std::endl;
-    return cafe_word_idx;
+    return 0;
   }else {
     return cafe_word_idx;
   }
@@ -280,6 +285,7 @@ int main(int argc, char** argv){
   _fileReader.setDirectory(std::string("dat/Relay")+argv[1]);
   _fileReader.openRun(runNumber,linkNumber);
   
+  uint64_t prevEvent = 0;
   uint64_t nEvents = 0;
   uint32_t packet[4];
   uint32_t packet_counter;
@@ -307,6 +313,7 @@ int main(int argc, char** argv){
   TH2I *hErrEcont0Status = new TH2I("hErrEcont0Status", "Errors related to ECONT0 packet status",12,0,12,8,0,8);
   TH2I *hErrEcont1Status = new TH2I("hErrEcont1Status", "Errors related to ECONT1 packet status",12,0,12,8,0,8);
   TH1I *hDaqEvtMisMatch = new TH1I("hDaqEvtMisMatch", "Event size mismatch between RO and cafe header",4,0,4);
+  uint64_t nofEventIdErrs = 0;
   uint64_t nofFirstFECAFEErrors = 0;
   uint64_t nofNbxMisMatches = 0;
   uint64_t nofSTCNumberingErrors = 0;
@@ -319,6 +326,9 @@ int main(int argc, char** argv){
   int econt_cafe_word_loc;
   uint64_t total_phys_events = 0;
   uint64_t total_coinc_events = 0;
+  uint64_t total_calib_events = 0;
+  uint64_t total_random_events = 0;
+  uint64_t total_soft_events = 0;
   uint64_t total_regular_events = 0;
   
   //Keep a record of status of last 100 events
@@ -354,7 +364,9 @@ int main(int argc, char** argv){
     //Else we have an event record 
     else{
       //Increment event counter and reset error state
+      prevEvent = nEvents;
       nEvents++;
+      const uint64_t *p64(((const uint64_t*)rEvent)+1);
 
       //if(nEvents>=2) continue;
       
@@ -364,6 +376,7 @@ int main(int argc, char** argv){
 
       
       const Hgcal10gLinkReceiver::SlinkBoe *boe = rEvent->slinkBoe();      
+      
       if (nEvents < 2) {
   	// const uint64_t *p64(((const uint64_t*)rEvent)+1);
   	// std::cout << std::hex << std::setfill('0');
@@ -400,7 +413,7 @@ int main(int argc, char** argv){
   	// 	cout<<"BC : 0x"<< (p64[1]>>45 & 0xFFF) << endl;
   	// 	std::cout << std::dec << std::setfill(' ');
 
-  	// boe->print();
+  	//boe->print();
   	// const Hgcal10gLinkReceiver::BePacketHeader *beheader = rEvent->bePacketHeader();
   	// beheader->print();
   	// const Hgcal10gLinkReceiver::SlinkEoe *eoe = rEvent->slinkEoe();
@@ -411,11 +424,20 @@ int main(int argc, char** argv){
   	// event_dump_32(rEvent, true);
 
       }
+
       uint16_t l1atype = boe->l1aType();      
+
+
       if(l1atype==0x0001)
       	total_phys_events++;
+      if(l1atype==0x0002)
+      	total_calib_events++;
       if(l1atype==0x0003)
       	total_coinc_events++;
+      if(l1atype==0x0004)
+      	total_random_events++;
+      if(l1atype==0x0008)
+      	total_soft_events++;
       if(l1atype==0x0010)
       	total_regular_events++;
       nTrigType = 4; //0 inclusive, 1: physics, 2: coincident, 3: regular
@@ -423,28 +445,35 @@ int main(int argc, char** argv){
       econt_event ev;
       ev.eventId = boe->eventId();
       ev.l1aType = boe->l1aType();
-      const uint64_t *p64(((const uint64_t*)rEvent)+1);
+      if(TMath::Abs(Long64_t(ev.eventId - prevEvent))>10000){
+	isGood = false;
+	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< TMath::Abs(Long64_t(ev.eventId - prevEvent)) <<" which is more than 2 " << std::endl;
+	nofEventIdErrs++;
+	//continue;
+	break;
+      }
+      
       
       for(int istc = 0 ; istc < 12 ; istc++){
-  	int shift = istc*3;
-  	ev.ECONT_packet_status[0][istc] = (p64[0]>>shift & 0x7);
-  	ev.ECONT_packet_status[1][istc] = (p64[1]>>shift & 0x7);
-  	ev.ECONT_packet_validity[0][istc] = (ev.ECONT_packet_status[0][istc]==0x0) ? true : false;
-  	ev.ECONT_packet_validity[1][istc] = (ev.ECONT_packet_status[1][istc]==0x0) ? true : false;
-  	if(ev.ECONT_packet_validity[0][istc] == false){
-  	  isGood = false;
-	  hErrEcont0Status->Fill(istc, ev.ECONT_packet_status[0][istc]);
-	  //std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", LSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[0][istc] << std::endl;
-	  //PrintLastEvents(econt_events);
-	  continue;
-  	}
-  	if(ev.ECONT_packet_validity[1][istc] == false and !skipMSB){
-  	  isGood = false;
-	  hErrEcont1Status->Fill(istc, ev.ECONT_packet_status[1][istc]);
-	  //std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", MSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[1][istc] << std::endl;
-	  //PrintLastEvents(econt_events);
-	  continue;
-  	}
+      	int shift = istc*3;
+      	ev.ECONT_packet_status[0][istc] = (p64[0]>>shift & 0x7);
+      	ev.ECONT_packet_status[1][istc] = (p64[1]>>shift & 0x7);
+      	ev.ECONT_packet_validity[0][istc] = (ev.ECONT_packet_status[0][istc]==0x0) ? true : false;
+      	ev.ECONT_packet_validity[1][istc] = (ev.ECONT_packet_status[1][istc]==0x0) ? true : false;
+      	if(ev.ECONT_packet_validity[0][istc] == false){
+      	  isGood = false;
+      	  hErrEcont0Status->Fill(istc, ev.ECONT_packet_status[0][istc]);
+      	  //std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", LSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[0][istc] << std::endl;
+      	  //PrintLastEvents(econt_events);
+      	  continue;
+      	}
+      	if(ev.ECONT_packet_validity[1][istc] == false){
+      	  isGood = false;
+      	  hErrEcont1Status->Fill(istc, ev.ECONT_packet_status[1][istc]);
+      	  //std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", MSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[1][istc] << std::endl;
+      	  //PrintLastEvents(econt_events);
+      	  continue;
+      	}
 	
       }
       ev.OC[0] = (p64[0]>>(12*3) & 0x7) ;
@@ -467,7 +496,8 @@ int main(int argc, char** argv){
   	isGood = false;
 	nofFirstFECAFEErrors++ ;
 	//PrintLastEvents(econt_events);
-	continue;	
+	break;	
+	//continue;
       }
 									
       ev.daq_data[1] = p64[2]>>7 & 0xF;
@@ -717,7 +747,7 @@ int main(int argc, char** argv){
 
       //Check Locations
       for(int iect=0;iect<2;iect++){
-      	if(iect==1 and skipMSB) continue;
+      	if(iect==1) continue;
       	for(int ibx=0;ibx<maxnbx;ibx++){
       	  for(int istc=0;istc<12;istc++){
       	    if((ev.loc_unpkd[iect][ibx][istc]>>2  & 0xF) != istc){
@@ -740,7 +770,7 @@ int main(int argc, char** argv){
 
       //Check Energy
       for(int iect=0;iect<2;iect++){
-      	if(iect==1 and skipMSB) continue;
+      	if(iect==1) continue;
       	for(int ibx=0;ibx<maxnbx;ibx++){
       	  for(int istc=0;istc<12;istc++){
       	    if(energy_raw[iect][ibx][istc]!=energy_unpkd[iect][ibx][istc]){
@@ -764,25 +794,27 @@ int main(int argc, char** argv){
       
     }//loop event  
   }
-  delete r;
+  
+  //delete r;
 
   
   for (int itrig=0; itrig<nTrigType; itrig++) {
     for (int iect=0; iect<2; iect++) {
-      if(iect==1 and skipMSB) continue;
+      if(iect==1) continue;
       for (int i=0;i<12;i++) {
 	for(int ibin=1;ibin<=hloc[itrig][iect][i]->GetNbinsX();ibin++){
 	  if(hloc[itrig][iect][i]->GetBinContent(ibin)==0.0){
-	    if(itrig==0)
+	    if(itrig==0){
 	      std::cerr << "No Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<< "."<< std::endl;
-	    if(itrig==1)
-	      std::cerr << "Phys Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
-	    if(itrig==2)
-	      std::cerr << "Coincident Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
-	    if(itrig==3)
-	      std::cerr << "Regular Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
-	    isGood = false;
-	    nofEmptyTCs++;
+	      isGood = false;
+	      nofEmptyTCs++;
+	    }
+	    // if(itrig==1)
+	    //   std::cerr << "Phys Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
+	    // if(itrig==2)
+	    //   std::cerr << "Coincident Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
+	    // if(itrig==3)
+	    //   std::cerr << "Regular Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
 	  }
 	}
       }
@@ -797,17 +829,20 @@ int main(int argc, char** argv){
   for(int i=0;i<80;i++) cout<<"=";
   cout<<endl;
 
-  cout<<"Relay\t Run\t NofEvents\t NofPhysTrig\t NofCoinTrig\t NofRegTrig\t nofRStartErrors\t nofRStopErrors\t nofECONT0StatusErr\t nofECONT1StatusErr\t nofFirstFECAFEErrors\t nofDAQHeaderErr\t nofNbxMisMatches\t nofSTCNumberingErrors\t nofSTCLocErrors\t nofEnergyMisMatches\t nofEmptyTCs\t"<<endl;
+  
+  cout <<"Relay\t Run\t NofEvts\t NofPhysT\t NofCalT\t NofCoinT\t NofRandT\t NofSoftT\t NofRegT\t RStrtE\t RStpE\t EvtIdE\t 1stcafeE\t daqHE\t NbxE\t STCNumE\t STCLocE\t EngE\t EmptyTCs\t"<<endl;
   cout << relayNumber << "\t"
        << runNumber << "\t"
        << nEvents << "\t"
        <<total_phys_events << "\t"
+       <<total_calib_events << "\t"
        <<total_coinc_events << "\t"
+       <<total_random_events << "\t"
+       <<total_soft_events << "\t"
        <<total_regular_events << "\t"
        <<nofRStartErrors << "\t"
        << nofRStopErrors << "\t"
-       << hErrEcont0Status->GetEntries() << "\t"
-       << hErrEcont1Status->GetEntries() << "\t"
+       <<nofEventIdErrs << "\t"
        << nofFirstFECAFEErrors << "\t"
        << hDaqEvtMisMatch->GetEntries() << "\t"
        << nofNbxMisMatches << "\t"
@@ -824,9 +859,12 @@ int main(int argc, char** argv){
   cout<<endl;
   for(int i=0;i<80;i++) cout<<"=";
   cout<<endl;
-
-  //econt_events.clear();
-  //delete hloc;
+  
+  delete hDaqEvtMisMatch;
+  delete hErrEcont1Status;
+  delete hErrEcont0Status;
+  econt_events.clear();
+  delete hloc;
 
   return 0;
 }
