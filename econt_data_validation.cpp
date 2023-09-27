@@ -358,19 +358,20 @@ int main(int argc, char** argv){
 
       //if(nEvents>=2) continue;
       
-      // if (nEvents >= 150 && nEvents <= 153) 
-      //  	event_dump(rEvent);
+      // if (nEvents >= 150 && nEvents <= 153)
+       // if (nEvents < 2) 
+       // 	 event_dump(rEvent);
 
       
       const Hgcal10gLinkReceiver::SlinkBoe *boe = rEvent->slinkBoe();      
       if (nEvents < 2) {
-  	//const uint64_t *p64(((const uint64_t*)rEvent)+1);
+  	// const uint64_t *p64(((const uint64_t*)rEvent)+1);
   	// std::cout << std::hex << std::setfill('0');
   	// std::cout << "Word 0 0x" << std::setw(16) << p64[0] << std::endl;
   	// std::cout << std::dec << std::setfill(' ');
 	
-  	//cout<<"Event : " <<nEvents<<" and boe::eventID : " <<boe->eventId()<<endl;
-  	//cout<<"\n MiniDAQ header for Slink 0 LSB : " << endl;
+  	// cout<<"Event : " <<nEvents<<" and boe::eventID : " <<boe->eventId()<<endl;
+  	// cout<<"\n MiniDAQ header for Slink 0 LSB : " << endl;
   	// for(int istc = 0 ; istc < 12 ; istc++){
   	//   int shift = istc*3;
   	//   cout<<istc<< ", packet status : " << (p64[0]>>shift & 0x7) <<endl;
@@ -399,10 +400,10 @@ int main(int argc, char** argv){
   	// 	cout<<"BC : 0x"<< (p64[1]>>45 & 0xFFF) << endl;
   	// 	std::cout << std::dec << std::setfill(' ');
 
-  	//boe->print();
-  	const Hgcal10gLinkReceiver::BePacketHeader *beheader = rEvent->bePacketHeader();
-  	//beheader->print();
-  	const Hgcal10gLinkReceiver::SlinkEoe *eoe = rEvent->slinkEoe();
+  	// boe->print();
+  	// const Hgcal10gLinkReceiver::BePacketHeader *beheader = rEvent->bePacketHeader();
+  	// beheader->print();
+  	// const Hgcal10gLinkReceiver::SlinkEoe *eoe = rEvent->slinkEoe();
   	//eoe->print();
   	//std::cout << std::endl;
   	//event_dump(rEvent);
