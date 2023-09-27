@@ -817,16 +817,16 @@ int main(int argc, char** argv){
        << nofEmptyTCs << "\t"
        <<endl;
   
-  if(isGood){
-    std::cout << "All fine, no errors found." << std::endl;
-  }
+  // if(isGood){
+  //   std::cout << "All fine, no errors found." << std::endl;
+  // }
 
   cout<<endl;
   for(int i=0;i<80;i++) cout<<"=";
   cout<<endl;
 
-  econt_events.clear();
-  delete hloc;
+  //econt_events.clear();
+  //delete hloc;
 
   return 0;
 }
