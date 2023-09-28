@@ -41,6 +41,44 @@ Event : 352781 Event size do not match between trigger RO header and fourth 0xfe
 
 Remeber to set the dat softlink path correctly according to your requirment.
 
+## Output summary
+
+The output summary of error will contain,
+
+
+```
+================================================================================
+Summary of Relay 1695819718 and Run 1695819718
+
+================================================================================
+Relay	 Run	 NofEvts	 NofPhysT	 NofCalT	 NofCoinT	 NofRandT	 NofSoftT	 NofRegT	 RStrtE	 RStpE	 EvtIdE	 1stcafeE	 daqHE	 NbxE	 STCNumE	 STCLocE	 EngE	 EmptyTCs	
+1695819718	1695819718	458638	0	0	0	458638	0	0	0	0	0	0	0	0	0	0	0	3	
+
+================================================================================
+
+```
+where,
+
+1. Relay : Relay number
+2. Run : Run number
+3. NofEvts : Number of events
+4. NofPhysT : Number of physics triggers (L1a Trigger types)
+5. NofCalT : Number of calibration triggers (L1a Trigger types)
+6. NofCoinT : Number of coincident triggers of Phys and Cal (L1a Trigger types)
+7. NofCalT : Number of random triggers (L1a Trigger types)
+8. NofSoftT : Number of software triggers (L1a Trigger types)
+9. NofRegT : Number of regular triggers (L1a Trigger types)
+10. RStrtE : Number of cases where FsmState::Starting validadity fails
+11. RStpE : Number of cases where FsmState::Stopping validadity fails
+12. EvtIdE : Number of cases where Event Id is corrupted 
+13. 1stcafeE : Number of cases where the location of first 0xfecafe word is wrong (This means event header has expanded)
+14. daqHE : Number of cases where the data volume mentioned in TRG LO header does not match with the last 8-bits of 0xfecafe word
+15. NbxE : Number of cases where the bx mentioned in daq0 info of TRG LO does not match with the one mentioned for daq1
+16. STCNumE : Number of cases where STC number does not match with the one mentioned in the 4 MSB bits of unpacked STC address
+17. STCLocE : Number of cases where STC location mentioned in the 2 LSB bits of unpacked STC address does not match with the one mentioned unpacker input location
+18. EngE : Number of cases where STC energy mentioned in the unpacked data does not match with the one in unpacker input
+19. EmptyTCs : Number of empty TCs for LSB trigger data
+
 ### Acknowledgment
 Main framework :: Paul : https://gitlab.cern.ch/pdauncey/hgcal10glinkreceiver
 

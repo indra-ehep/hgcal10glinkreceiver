@@ -427,7 +427,6 @@ int main(int argc, char** argv){
 
       uint16_t l1atype = boe->l1aType();      
 
-
       if(l1atype==0x0001)
       	total_phys_events++;
       if(l1atype==0x0002)
@@ -519,34 +518,35 @@ int main(int argc, char** argv){
       ev.size_in_cafe[3] = p64[fourth_cafe_word_loc] & 0xFF;
       
       if(daq0_event_size != ev.size_in_cafe[0]){
-  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq0_event_size << " and first 0xfecafe word " << ev.size_in_cafe[0] << std::endl;
+  	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq0_event_size << " and first 0xfecafe word " << ev.size_in_cafe[0] << std::endl;
   	isGood = false;
 	hDaqEvtMisMatch->Fill(0);
 	//PrintLastEvents(econt_events);
 	continue;	
       }
       if(daq1_event_size != ev.size_in_cafe[1]){
-  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq1_event_size << " and second 0xfecafe word " << ev.size_in_cafe[1] << std::endl;
+  	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq1_event_size << " and second 0xfecafe word " << ev.size_in_cafe[1] << std::endl;
   	isGood = false;
 	hDaqEvtMisMatch->Fill(1);
 	//PrintLastEvents(econt_events);
 	continue;	
       }
       if(daq2_event_size != ev.size_in_cafe[2]){
-  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq2_event_size << " and third 0xfecafe word " << ev.size_in_cafe[2] << std::endl;
+  	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq2_event_size << " and third 0xfecafe word " << ev.size_in_cafe[2] << std::endl;
   	isGood = false;
 	hDaqEvtMisMatch->Fill(2);
 	//PrintLastEvents(econt_events);
 	continue;
       }
       if(daq3_event_size != ev.size_in_cafe[3]){
-  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq3_event_size << " and fourth 0xfecafe word " << ev.size_in_cafe[3] << std::endl;
+  	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq3_event_size << " and fourth 0xfecafe word " << ev.size_in_cafe[3] << std::endl;
   	isGood = false;
 	hDaqEvtMisMatch->Fill(3);
 	//PrintLastEvents(econt_events);
+	continue;
       }
       if(ev.daq_nbx[0]!=ev.daq_nbx[1]){
-  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Bx size do not match between packed " << ev.daq_nbx[0] << " and unpacked data " << ev.daq_nbx[1] << std::endl;
+  	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Bx size do not match between packed " << ev.daq_nbx[0] << " and unpacked data " << ev.daq_nbx[1] << std::endl;
   	isGood = false;
 	nofNbxMisMatches++;
 	//PrintLastEvents(econt_events);
@@ -795,7 +795,7 @@ int main(int argc, char** argv){
     }//loop event  
   }
   
-  //delete r;
+  delete r;
 
   
   for (int itrig=0; itrig<nTrigType; itrig++) {
@@ -860,11 +860,11 @@ int main(int argc, char** argv){
   for(int i=0;i<80;i++) cout<<"=";
   cout<<endl;
   
-  delete hDaqEvtMisMatch;
-  delete hErrEcont1Status;
-  delete hErrEcont0Status;
-  econt_events.clear();
-  delete hloc;
+  // delete hDaqEvtMisMatch;
+  // delete hErrEcont1Status;
+  // delete hErrEcont0Status;
+  // econt_events.clear();
+  // delete hloc;
 
   return 0;
 }
