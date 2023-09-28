@@ -77,7 +77,9 @@ where,
 16. STCNumE : Number of cases where STC number does not match with the one mentioned in the 4 MSB bits of unpacked STC address
 17. STCLocE : Number of cases where STC location mentioned in the 2 LSB bits of unpacked STC address does not match with the one mentioned unpacker input location
 18. EngE : Number of cases where STC energy mentioned in the unpacked data does not match with the one in unpacker input
-19. EmptyTCs : Number of empty TCs for LSB trigger data
+19. BxMME : Number of cases with Bx mismatching between unpacker input and output dat
+20. BxCMME : Number of cases with Bx mismatching between central value stored unpacker input/output and those from 8 modulo bxId of Slink trailer
+21. EmptyTCs : Number of empty TCs for LSB trigger data
 
 ### Acknowledgment
 Main framework :: Paul : https://gitlab.cern.ch/pdauncey/hgcal10glinkreceiver

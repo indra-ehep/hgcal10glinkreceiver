@@ -29,15 +29,18 @@ typedef struct{
   bool ECONT_packet_validity[2][12];                 //2 : LSB/MSB, 12 : STC
   uint16_t OC[2],EC[2];                              //2 : LSB/MSB
   uint16_t BC[2];                                    //2 : LSB/MSB
+  uint16_t bxId;                                     //bxId
   
   uint16_t daq_data[4];                              //4 : data blocks separated by 0xfecafe
   uint16_t daq_nbx[4];                               //4 : data blocks separated by 0xfecafe
   uint16_t size_in_cafe[4];                          //4 : data blocks separated by 0xfecafe
   
-  uint64_t energy_raw[2][15][12];                    //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
-  uint64_t loc_raw[2][15][12];                       //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
-  uint64_t energy_unpkd[2][15][12];                  //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
-  uint64_t loc_unpkd[2][15][12];                     //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t energy_raw[2][15][12];                    //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t loc_raw[2][15][12];                       //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t bx_raw[2][15][12];                       //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t energy_unpkd[2][15][12];                  //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t loc_unpkd[2][15][12];                     //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t bx_unpkd[2][15][12];                       //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
   
 } econt_event;
 
@@ -320,6 +323,8 @@ int main(int argc, char** argv){
   uint64_t nofSTCLocErrors = 0;
   uint64_t nofEnergyMisMatches = 0; 
   uint64_t nofEmptyTCs = 0;
+  uint64_t nofBxRawUnpkMM = 0;
+  uint64_t nofBxCentralMM = 0;
   
   // to cache where the cafe separators are
   int scintillator_cafe_word_loc;
@@ -367,64 +372,62 @@ int main(int argc, char** argv){
       prevEvent = nEvents;
       nEvents++;
       const uint64_t *p64(((const uint64_t*)rEvent)+1);
-
+      
       //if(nEvents>=2) continue;
       
       // if (nEvents >= 150 && nEvents <= 153)
-       // if (nEvents < 2) 
-       // 	 event_dump(rEvent);
-
+      // if (nEvents < 2) 
+      // 	event_dump(rEvent);
       
       const Hgcal10gLinkReceiver::SlinkBoe *boe = rEvent->slinkBoe();      
+      const Hgcal10gLinkReceiver::SlinkEoe *eoe = rEvent->slinkEoe();
       
       if (nEvents < 2) {
-  	// const uint64_t *p64(((const uint64_t*)rEvent)+1);
-  	// std::cout << std::hex << std::setfill('0');
-  	// std::cout << "Word 0 0x" << std::setw(16) << p64[0] << std::endl;
-  	// std::cout << std::dec << std::setfill(' ');
+  	// // const uint64_t *p64(((const uint64_t*)rEvent)+1);
+  	// // std::cout << std::hex << std::setfill('0');
+  	// // std::cout << "Word 0 0x" << std::setw(16) << p64[0] << std::endl;
+  	// // std::cout << std::dec << std::setfill(' ');
 	
-  	// cout<<"Event : " <<nEvents<<" and boe::eventID : " <<boe->eventId()<<endl;
-  	// cout<<"\n MiniDAQ header for Slink 0 LSB : " << endl;
-  	// for(int istc = 0 ; istc < 12 ; istc++){
-  	//   int shift = istc*3;
-  	//   cout<<istc<< ", packet status : " << (p64[0]>>shift & 0x7) <<endl;
-  	// }
+  	// // cout<<"Event : " <<nEvents<<" and boe::eventID : " <<boe->eventId()<<endl;
+  	// // cout<<"\n MiniDAQ header for Slink 0 LSB : " << endl;
+  	// // for(int istc = 0 ; istc < 12 ; istc++){
+  	// //   int shift = istc*3;
+  	// //   cout<<istc<< ", packet status : " << (p64[0]>>shift & 0x7) <<endl;
+  	// // }
 	
-  	// std::cout << std::hex << std::setfill('0');
-  	// cout<<"OC : 0x"<< (p64[0]>>(12*3) & 0x7) << endl;
-  	// cout<<"EC : 0x"<< (p64[0]>>39 & 0x3F) << endl;
-  	// cout<<"BC : 0x"<< (p64[0]>>45 & 0xFFF) << endl;
-  	// std::cout << std::dec << std::setfill(' ');
+  	// // std::cout << std::hex << std::setfill('0');
+  	// // cout<<"OC : 0x"<< (p64[0]>>(12*3) & 0x7) << endl;
+  	// // cout<<"EC : 0x"<< (p64[0]>>39 & 0x3F) << endl;
+  	// // cout<<"BC : 0x"<< (p64[0]>>45 & 0xFFF) << endl;
+  	// // std::cout << std::dec << std::setfill(' ');
 
-  	// 	std::cout << std::hex << std::setfill('0');
-  	// 	std::cout << "Word 0 0x" << std::setw(16) << p64[1] << std::endl;
-  	// 	std::cout << std::dec << std::setfill(' ');
+  	// // 	std::cout << std::hex << std::setfill('0');
+  	// // 	std::cout << "Word 0 0x" << std::setw(16) << p64[1] << std::endl;
+  	// // 	std::cout << std::dec << std::setfill(' ');
 	
 
-  	// 	cout<<"MiniDAQ header for Slink 1 MSB : " << endl;
-  	// 	for(int istc = 0 ; istc < 12 ; istc++){
-  	// 	  int shift = istc*3;
-  	// 	  cout<<istc<< ", packet status : " << (p64[1]>>shift & 0x7) <<endl;
-  	// false;
-  	// 	}
-  	// 	std::cout << std::hex << std::setfill('0');
-  	// 	cout<<"OC : 0x"<< (p64[1]>>(12*3) & 0x7) << endl;
-  	// 	cout<<"EC : 0x"<< (p64[1]>>39 & 0x3F) << endl;
-  	// 	cout<<"BC : 0x"<< (p64[1]>>45 & 0xFFF) << endl;
-  	// 	std::cout << std::dec << std::setfill(' ');
+  	// // 	cout<<"MiniDAQ header for Slink 1 MSB : " << endl;
+  	// // 	for(int istc = 0 ; istc < 12 ; istc++){
+  	// // 	  int shift = istc*3;
+  	// // 	  cout<<istc<< ", packet status : " << (p64[1]>>shift & 0x7) <<endl;
+  	// // false;
+  	// // 	}
+  	// // 	std::cout << std::hex << std::setfill('0');
+  	// // 	cout<<"OC : 0x"<< (p64[1]>>(12*3) & 0x7) << endl;
+  	// // 	cout<<"EC : 0x"<< (p64[1]>>39 & 0x3F) << endl;
+  	// // 	cout<<"BC : 0x"<< (p64[1]>>45 & 0xFFF) << endl;
+  	// // 	std::cout << std::dec << std::setfill(' ');
 
-  	//boe->print();
-  	// const Hgcal10gLinkReceiver::BePacketHeader *beheader = rEvent->bePacketHeader();
-  	// beheader->print();
-  	// const Hgcal10gLinkReceiver::SlinkEoe *eoe = rEvent->slinkEoe();
-  	//eoe->print();
-  	//std::cout << std::endl;
-  	//event_dump(rEvent);
-  	// event_dump_32(rEvent, false);
-  	// event_dump_32(rEvent, true);
-
+  	// boe->print();
+  	// // const Hgcal10gLinkReceiver::BePacketHeader *beheader = rEvent->bePacketHeader();
+  	// // beheader->print();
+  	// eoe->print();
+  	// //std::cout << std::endl;
+  	// //event_dump(rEvent);
+  	// // event_dump_32(rEvent, false);
+  	// // event_dump_32(rEvent, true);
       }
-
+      
       uint16_t l1atype = boe->l1aType();      
 
       if(l1atype==0x0001)
@@ -444,6 +447,8 @@ int main(int argc, char** argv){
       econt_event ev;
       ev.eventId = boe->eventId();
       ev.l1aType = boe->l1aType();
+      ev.bxId = eoe->bxId();
+      
       if(TMath::Abs(Long64_t(ev.eventId - prevEvent))>10000){
 	isGood = false;
 	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< TMath::Abs(Long64_t(ev.eventId - prevEvent)) <<" which is more than 2 " << std::endl;
@@ -562,6 +567,7 @@ int main(int argc, char** argv){
   	    energy_raw[iect][ibx][istc] = 0;
   	    ev.energy_raw[iect][ibx][istc] = 0;
   	    ev.loc_raw[iect][ibx][istc] = 0;
+	    ev.bx_raw[iect][ibx][istc] = 0;
   	  }
       for(unsigned i(first_cafe_word_loc+1);i<daq0_event_size+first_cafe_word_loc+1;i=i+4){
 	
@@ -585,11 +591,12 @@ int main(int argc, char** argv){
       	//     std::cout<<packet_energies[istc]<<" ";
       	//   }
       	//   std::cout<<std::endl;
-	//   std::cout<<"\t";
-      	//   for(int istc=0;istc<12;istc++){
-	//     std::cout<<packet_locations[istc]<<" ";
-      	//   }
-      	//   std::cout<<std::endl;
+	//   std::cout<< "ev.daq_nbx[1] : " << ev.daq_nbx[1] <<", bx(LSB) : " << bx_counter <<std::endl;
+	//   // std::cout<<"\t";
+      	//   // for(int istc=0;istc<12;istc++){
+	//   //   std::cout<<packet_locations[istc]<<" ";
+      	//   // }
+      	//   // std::cout<<std::endl;
       	// }
 	
       	for(int istc=0;istc<12;istc++){
@@ -605,6 +612,7 @@ int main(int argc, char** argv){
       	  energy_raw[0][(bx_index+int(ev.daq_nbx[0]))][istc] = packet_energies[istc];
   	  ev.energy_raw[0][(bx_index+int(ev.daq_nbx[0]))][istc] = packet_energies[istc];
   	  ev.loc_raw[0][(bx_index+int(ev.daq_nbx[0]))][istc] = packet_locations[istc];
+	  ev.bx_raw[0][(bx_index+int(ev.daq_nbx[0]))][istc] = bx_counter;
       	}
 	
   	const uint32_t word1 = ((p64[i] >> 32) & 0xFFFFFFFF) ;
@@ -623,11 +631,12 @@ int main(int argc, char** argv){
       	//     std::cout<<packet_energies[istc]<<" ";
       	//   }
       	//   std::cout<<std::endl;
-	//   std::cout<<"\t";
-      	//   for(int istc=0;istc<12;istc++){
-	//     std::cout<<packet_locations[istc]<<" ";
-      	//   }
-      	//   std::cout<<std::endl;
+	//   std::cout<<"bx(MSB) : " << bx_counter1 <<std::endl;
+	//   // std::cout<<"\t";
+      	//   // for(int istc=0;istc<12;istc++){
+	//   //   std::cout<<packet_locations[istc]<<" ";
+      	//   // }
+      	//   // std::cout<<std::endl;
       	// }
 	
       	for(int istc=0;istc<12;istc++){
@@ -643,6 +652,7 @@ int main(int argc, char** argv){
       	  energy_raw[1][(bx_index+int(ev.daq_nbx[0]))][istc] = packet_energies[istc];
   	  ev.energy_raw[1][(bx_index+int(ev.daq_nbx[0]))][istc] = packet_energies[istc];
   	  ev.loc_raw[1][(bx_index+int(ev.daq_nbx[0]))][istc] = packet_locations[istc];
+	  ev.bx_raw[1][(bx_index+int(ev.daq_nbx[0]))][istc] = bx_counter1;
       	}
 	
       	bx_index++;
@@ -656,6 +666,7 @@ int main(int argc, char** argv){
   	    energy_unpkd[iect][ibx][istc] = 0;
   	    ev.energy_unpkd[iect][ibx][istc] = 0;
   	    ev.loc_unpkd[iect][ibx][istc] = 0;
+  	    ev.bx_unpkd[iect][ibx][istc] = 0;
   	  }
       
       int index_stc = 0;
@@ -709,9 +720,14 @@ int main(int argc, char** argv){
       	ev.loc_unpkd[1][index_ibx][index_stc] = energy3_loc;
       	ev.loc_unpkd[1][index_ibx][index_stc+6] = energy4_loc;
 
+  	ev.bx_unpkd[0][index_ibx][index_stc] = bx_counter;
+      	ev.bx_unpkd[0][index_ibx][index_stc+6] = bx_counter;
+      	ev.bx_unpkd[1][index_ibx][index_stc] = bx_counter1;
+      	ev.bx_unpkd[1][index_ibx][index_stc+6] = bx_counter1;
+
 	// if (nEvents < 2){
 	//   std::cout << "Unpackaer output  0x" << std::setw(8) << word << " bx_counter 0x" << std::setw(1) << bx_counter
-	//     // << " bx_counter1 0x" << std::setw(1) << bx_counter1 
+	// 	    << " bx_counter1 0x" << std::setw(1) << bx_counter1 
 	// 	    << std::dec << std::setfill(' ') 
 	// 	    << " energy1 loc : " << std::setw(2) << energy1_loc << " energy1 :" << std::setw(2) << energy1
 	// 	    << " energy2 loc : " << std::setw(2) << energy2_loc << " energy2 :" << std::setw(2) << energy2
@@ -744,6 +760,36 @@ int main(int argc, char** argv){
       // 	std::cout<< std::endl ;
 	
       // }
+
+      //check bx
+      for(int iect=0;iect<2;iect++){
+      	if(iect==1) continue;
+      	for(int ibx=0;ibx<maxnbx;ibx++){
+      	  for(int istc=0;istc<12;istc++){
+      	    if( ev.bx_unpkd[iect][ibx][istc] != ev.bx_raw[iect][ibx][istc]){
+      	      // std::cout << std::dec << std::setfill(' ');
+      	      // std::cerr << " Unpacked location value do not match with the packed one for (Run, event, iecont, bx, stc, bx_unpacked, bx_packed ) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<
+	      //< (ev.bx_unpkd[iect][ibx][istc] & 0x3)  << "," << ev.bx_raw[iect][ibx][istc] << ") "<< std::endl;
+      	      isGood = false;
+	      nofBxRawUnpkMM++;
+      	    }  
+      	  }
+      	}
+	//modulo test
+	if(ev.bxId==3564){
+	  if(ev.bx_raw[iect][ev.daq_nbx[0]][0]!=15 || ev.bx_unpkd[iect][ev.daq_nbx[1]][0]!=15){
+	    //std::cerr << "Bx Module test failed for iect : "<< iect <<" since ev.bxId%8 : " << ev.bxId <<" and ev.bx_raw : "<< ev.bx_raw[iect][ev.daq_nbx[0]][0] << " and ev.bx_unpkd : "<< ev.bx_unpkd[iect][ev.daq_nbx[1]][0] << std::endl ;
+	    isGood = false;
+	    nofBxCentralMM++;
+	  }
+	}else{
+	  if((ev.bxId%8 != ev.bx_raw[iect][ev.daq_nbx[0]][0]) || (ev.bxId%8 != ev.bx_unpkd[iect][ev.daq_nbx[1]][0])){
+	    //std::cerr << "Bx Module test failed for iect : "<< iect <<" since ev.bxId%8 : " << (ev.bxId%8) <<" and ev.bx_raw : "<< ev.bx_raw[iect][ev.daq_nbx[0]][0] << " and ev.bx_unpkd : "<< ev.bx_unpkd[iect][ev.daq_nbx[1]][0] << std::endl ;
+	    isGood = false;
+	    nofBxCentralMM++;
+	  }
+	}
+      }
 
       //Check Locations
       for(int iect=0;iect<2;iect++){
@@ -830,26 +876,28 @@ int main(int argc, char** argv){
   cout<<endl;
 
   
-  cout <<"Relay\t Run\t NofEvts\t NofPhysT\t NofCalT\t NofCoinT\t NofRandT\t NofSoftT\t NofRegT\t RStrtE\t RStpE\t EvtIdE\t 1stcafeE\t daqHE\t NbxE\t STCNumE\t STCLocE\t EngE\t EmptyTCs\t"<<endl;
-  cout << relayNumber << "\t"
-       << runNumber << "\t"
-       << nEvents << "\t"
-       <<total_phys_events << "\t"
-       <<total_calib_events << "\t"
-       <<total_coinc_events << "\t"
-       <<total_random_events << "\t"
-       <<total_soft_events << "\t"
-       <<total_regular_events << "\t"
-       <<nofRStartErrors << "\t"
-       << nofRStopErrors << "\t"
-       <<nofEventIdErrs << "\t"
-       << nofFirstFECAFEErrors << "\t"
-       << hDaqEvtMisMatch->GetEntries() << "\t"
-       << nofNbxMisMatches << "\t"
-       << nofSTCNumberingErrors << "\t"
-       << nofSTCLocErrors << "\t"
-       << nofEnergyMisMatches << "\t"
-       << nofEmptyTCs << "\t"
+  cout <<"Relay| Run| NofEvts| NofPhysT| NofCalT| NofCoinT| NofRandT| NofSoftT| NofRegT| RStrtE| RStpE| EvtIdE| 1stcafeE| daqHE| NbxE| STCNumE| STCLocE| EngE| BxMME| BxCMME| EmptyTCs|"<<endl;
+  cout << relayNumber << "|"
+       << runNumber << "|"
+       << nEvents << "|"
+       << total_phys_events << "|"
+       << total_calib_events << "|"
+       << total_coinc_events << "|"
+       << total_random_events << "|"
+       << total_soft_events << "|"
+       << total_regular_events << "|"
+       << nofRStartErrors << "|"
+       << nofRStopErrors << "|"
+       << nofEventIdErrs << "|"
+       << nofFirstFECAFEErrors << "|"
+       << hDaqEvtMisMatch->GetEntries() << "|"
+       << nofNbxMisMatches << "|"
+       << nofSTCNumberingErrors << "|"
+       << nofSTCLocErrors << "|"
+       << nofEnergyMisMatches << "|"
+       << nofBxRawUnpkMM << "|"
+       << nofBxCentralMM << "|"
+       << nofEmptyTCs << "|"
        <<endl;
   
   // if(isGood){
