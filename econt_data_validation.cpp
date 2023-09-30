@@ -325,6 +325,13 @@ int main(int argc, char** argv){
   uint64_t nofEmptyTCs = 0;
   uint64_t nofBxRawUnpkMM = 0;
   uint64_t nofBxCentralMM = 0;
+
+  uint64_t nofSTCNumberingErrors1 = 0;
+  uint64_t nofSTCLocErrors1 = 0;
+  uint64_t nofEnergyMisMatches1 = 0; 
+  uint64_t nofEmptyTCs1 = 0;
+  uint64_t nofBxRawUnpkMM1 = 0;
+  uint64_t nofBxCentralMM1 = 0;
   
   // to cache where the cafe separators are
   int scintillator_cafe_word_loc;
@@ -449,6 +456,10 @@ int main(int argc, char** argv){
       ev.l1aType = boe->l1aType();
       ev.bxId = eoe->bxId();
       
+      if(ev.bxId==3564 and (nEvents < 30)){
+	std::cerr<<"Found bx 3564"<<std::endl;
+      }
+
       if(TMath::Abs(Long64_t(ev.eventId - prevEvent))>10000){
 	isGood = false;
 	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< TMath::Abs(Long64_t(ev.eventId - prevEvent)) <<" which is more than 2 " << std::endl;
@@ -763,7 +774,6 @@ int main(int argc, char** argv){
 
       //check bx
       for(int iect=0;iect<2;iect++){
-      	if(iect==1) continue;
       	for(int ibx=0;ibx<maxnbx;ibx++){
       	  for(int istc=0;istc<12;istc++){
       	    if( ev.bx_unpkd[iect][ibx][istc] != ev.bx_raw[iect][ibx][istc]){
@@ -771,7 +781,10 @@ int main(int argc, char** argv){
       	      // std::cerr << " Unpacked location value do not match with the packed one for (Run, event, iecont, bx, stc, bx_unpacked, bx_packed ) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<
 	      //< (ev.bx_unpkd[iect][ibx][istc] & 0x3)  << "," << ev.bx_raw[iect][ibx][istc] << ") "<< std::endl;
       	      isGood = false;
-	      nofBxRawUnpkMM++;
+	      if(iect==0) 
+		nofBxRawUnpkMM++;
+	      else
+		nofBxRawUnpkMM1++;
       	    }  
       	  }
       	}
@@ -780,43 +793,52 @@ int main(int argc, char** argv){
 	  if(ev.bx_raw[iect][ev.daq_nbx[0]][0]!=15 || ev.bx_unpkd[iect][ev.daq_nbx[1]][0]!=15){
 	    //std::cerr << "Bx Module test failed for iect : "<< iect <<" since ev.bxId%8 : " << ev.bxId <<" and ev.bx_raw : "<< ev.bx_raw[iect][ev.daq_nbx[0]][0] << " and ev.bx_unpkd : "<< ev.bx_unpkd[iect][ev.daq_nbx[1]][0] << std::endl ;
 	    isGood = false;
-	    nofBxCentralMM++;
+	    if(iect==0) 
+	      nofBxCentralMM++;
+	    else
+	      nofBxCentralMM1++;
 	  }
 	}else{
 	  if((ev.bxId%8 != ev.bx_raw[iect][ev.daq_nbx[0]][0]) || (ev.bxId%8 != ev.bx_unpkd[iect][ev.daq_nbx[1]][0])){
 	    //std::cerr << "Bx Module test failed for iect : "<< iect <<" since ev.bxId%8 : " << (ev.bxId%8) <<" and ev.bx_raw : "<< ev.bx_raw[iect][ev.daq_nbx[0]][0] << " and ev.bx_unpkd : "<< ev.bx_unpkd[iect][ev.daq_nbx[1]][0] << std::endl ;
 	    isGood = false;
-	    nofBxCentralMM++;
+	    if(iect==0) 
+	      nofBxCentralMM++;
+	    else
+	      nofBxCentralMM1++;
 	  }
 	}
       }
 
       //Check Locations
       for(int iect=0;iect<2;iect++){
-      	if(iect==1) continue;
       	for(int ibx=0;ibx<maxnbx;ibx++){
       	  for(int istc=0;istc<12;istc++){
       	    if((ev.loc_unpkd[iect][ibx][istc]>>2  & 0xF) != istc){
       	      // std::cout << std::dec << std::setfill(' ');
       	      // std::cerr << " Unpacked location index do not match with the STC for (Run, event, iecont, bx, stc, istc_from_unpacked) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< (ev.loc_unpkd[iect][ibx][istc]>>2  & 0xF)  <<") "<< std::endl;
       	      isGood = false;
-	      nofSTCNumberingErrors++;
+	      if(iect==0) 
+		nofSTCNumberingErrors++;
+	      else
+		nofSTCNumberingErrors1++;
       	    }
       	    if( (ev.loc_unpkd[iect][ibx][istc] & 0x3) != ev.loc_raw[iect][ibx][istc]){
       	      // std::cout << std::dec << std::setfill(' ');
       	      // std::cerr << " Unpacked location value do not match with the packed one for (Run, event, iecont, bx, stc, loc_unpacked, loc_packed ) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<
 	      //< (ev.loc_unpkd[iect][ibx][istc] & 0x3)  << "," << ev.loc_raw[iect][ibx][istc] << ") "<< std::endl;
       	      isGood = false;
-	      nofSTCLocErrors++;
-      	    }
-	    
+	      if(iect==0) 
+		nofSTCLocErrors++;
+	      else
+		nofSTCLocErrors1++;
+      	    }    
       	  }
       	}
       }
 
       //Check Energy
       for(int iect=0;iect<2;iect++){
-      	if(iect==1) continue;
       	for(int ibx=0;ibx<maxnbx;ibx++){
       	  for(int istc=0;istc<12;istc++){
       	    if(energy_raw[iect][ibx][istc]!=energy_unpkd[iect][ibx][istc]){
@@ -824,7 +846,10 @@ int main(int argc, char** argv){
       	      // std::cerr << " Packed and unpacked energies does not match for (Run, event,iecont,bx.stc,raw_energy,unpacked_energy) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< energy_raw[iec
 	      //																										      t][ibx][istc] <<","<< energy_unpkd[iect][ibx][istc] <<") "<< std::endl;
       	      isGood = false;
-	      nofEnergyMisMatches++;
+	      if(iect==0) 
+		nofEnergyMisMatches++;
+	      else
+		nofEnergyMisMatches1++;
       	    }
       	  }
       	}
@@ -846,14 +871,16 @@ int main(int argc, char** argv){
   
   for (int itrig=0; itrig<nTrigType; itrig++) {
     for (int iect=0; iect<2; iect++) {
-      if(iect==1) continue;
       for (int i=0;i<12;i++) {
 	for(int ibin=1;ibin<=hloc[itrig][iect][i]->GetNbinsX();ibin++){
 	  if(hloc[itrig][iect][i]->GetBinContent(ibin)==0.0){
 	    if(itrig==0){
 	      std::cerr << "No Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<< "."<< std::endl;
 	      isGood = false;
-	      nofEmptyTCs++;
+	      if(iect==0) 
+		nofEmptyTCs++;
+	      else
+		nofEmptyTCs1++;
 	    }
 	    // if(itrig==1)
 	    //   std::cerr << "Phys Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
@@ -876,7 +903,7 @@ int main(int argc, char** argv){
   cout<<endl;
 
   
-  cout <<"Relay| Run| NofEvts| NofPhysT| NofCalT| NofCoinT| NofRandT| NofSoftT| NofRegT| RStrtE| RStpE| EvtIdE| 1stcafeE| daqHE| NbxE| STCNumE| STCLocE| EngE| BxMME| BxCMME| EmptyTCs|"<<endl;
+  cout <<"Relay| Run| NofEvts| NofPhysT| NofCalT| NofCoinT| NofRandT| NofSoftT| NofRegT| RStrtE| RStpE| EvtIdE| 1stcafeE| daqHE| NbxE| STCNumE| STCLocE| EngE| BxMME| BxCMME| EmptyTCs| STCNumE1| STCLocE1| EngE1| BxMME1| BxCMME1| EmptyTCs1|"<<endl;
   cout << relayNumber << "|"
        << runNumber << "|"
        << nEvents << "|"
@@ -898,6 +925,12 @@ int main(int argc, char** argv){
        << nofBxRawUnpkMM << "|"
        << nofBxCentralMM << "|"
        << nofEmptyTCs << "|"
+       << nofSTCNumberingErrors1 << "|"
+       << nofSTCLocErrors1 << "|"
+       << nofEnergyMisMatches1 << "|"
+       << nofBxRawUnpkMM1 << "|"
+       << nofBxCentralMM1 << "|"
+       << nofEmptyTCs1 << "|"
        <<endl;
   
   // if(isGood){
