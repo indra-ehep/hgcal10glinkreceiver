@@ -460,7 +460,7 @@ int main(int argc, char** argv){
 	std::cerr<<"Found bx 3564"<<std::endl;
       }
 
-      if(TMath::Abs(Long64_t(ev.eventId - prevEvent))>10000){
+      if(TMath::Abs(Long64_t(ev.eventId - prevEvent))>100){
 	isGood = false;
 	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< TMath::Abs(Long64_t(ev.eventId - prevEvent)) <<" which is more than 2 " << std::endl;
 	nofEventIdErrs++;
