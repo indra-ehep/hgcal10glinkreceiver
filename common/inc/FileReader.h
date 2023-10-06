@@ -69,7 +69,7 @@ namespace Hgcal10gLinkReceiver {
       if(h->state()==FsmState::Continuing) {
 	RecordContinuing rc;
 	rc.deepCopy(h);
-	rc.print();
+	//rc.print();
 	
 	std::cout << "FileReader::read() closing file "
 		  << _fileName.c_str() << std::endl;
@@ -89,7 +89,7 @@ namespace Hgcal10gLinkReceiver {
 
 	_inputFile.read((char*)(h+1),8*h->payloadLength());
 	
-	h->print();
+	//h->print();
 	assert(h->state()==FsmState::Continuing);
 	assert(((RecordContinuing*)h)->runNumber()     ==rc.runNumber());
 	assert(((RecordContinuing*)h)->fileNumber()    ==rc.fileNumber()+1);

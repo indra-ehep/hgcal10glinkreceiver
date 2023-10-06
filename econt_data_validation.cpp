@@ -3,8 +3,9 @@
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TProfile.h"
+#include "TSystem.h"
 
-#include "TFileHandler.h"
+#include "TFileHandlerLocal.h"
 #include "FileReader.h"
 
 #include <deque>
@@ -24,6 +25,7 @@ using namespace std;
 typedef struct{
 
   uint64_t eventId;
+  uint32_t sequenceId;
   uint16_t l1aType;
   uint16_t ECONT_packet_status[2][12];                //2 : LSB/MSB, 12 : STC
   bool ECONT_packet_validity[2][12];                 //2 : LSB/MSB, 12 : STC
@@ -31,9 +33,9 @@ typedef struct{
   uint16_t BC[2];                                    //2 : LSB/MSB
   uint16_t bxId;                                     //bxId
   
-  uint16_t daq_data[4];                              //4 : data blocks separated by 0xfecafe
-  uint16_t daq_nbx[4];                               //4 : data blocks separated by 0xfecafe
-  uint16_t size_in_cafe[4];                          //4 : data blocks separated by 0xfecafe
+  uint16_t daq_data[5];                              //5 : data blocks separated by 0xfecafe
+  uint16_t daq_nbx[5];                               //5 : data blocks separated by 0xfecafe
+  uint16_t size_in_cafe[5];                          //5 : data blocks separated by 0xfecafe
   
   uint32_t energy_raw[2][15][12];                    //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
   uint32_t loc_raw[2][15][12];                       //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
@@ -44,6 +46,52 @@ typedef struct{
   
 } econt_event;
 
+int read_Payload_Version(unsigned refRelay)
+{
+  const char* inDir = "/eos/cms/store/group/dpg_hgcal/tb_hgcal/2023/BeamTestSep/HgcalBeamtestSep2023";
+  
+  char* dir = gSystem->ExpandPathName(inDir);
+  void* dirp = gSystem->OpenDirectory(dir);
+  
+  const char* entry;
+  Int_t n = 0;
+  TString str;
+
+  int prevRelay = 0;
+  string configname;
+  while((entry = (char*)gSystem->GetDirEntry(dirp))) {
+    str = entry;
+    if(str.EndsWith(".yaml") and str.Contains("Serenity")){
+      string str1 = str.Data();
+      string s_pat = "Constants";
+      TString str2 = str1.substr( s_pat.size(), str1.find_first_of("_")-s_pat.size());
+      //cout<< "str : " << str << ", relay : " << str2.Atoi() << " prevRelay : " << prevRelay << endl;
+      int relay = str2.Atoi();
+      if(relay>=int(refRelay) and int(refRelay)>=prevRelay) {
+	//cout<<"Found config : " << relay << endl;
+	configname = gSystem->ConcatFileName(dir, entry);
+	break;
+	//return;
+      }
+      prevRelay = relay;
+    }
+  }
+  cout<<"Config name : "<<configname<<endl;
+  ifstream fin(configname);
+  string s;
+  string s_pat = "PayloadVersion: ";
+  int version = 0;
+  while(getline(fin,s)){
+    str = s;
+    if(str.Contains(s_pat)){
+      TString str2 = s.substr( s_pat.size(), s.size()-s_pat.size());
+      //cout << "Version : " << str2.Atoi() << endl;
+      version  = str2.Atoi();
+    }
+  }
+  
+  return version;
+}
 // print all (64-bit) words in event
 void event_dump(const Hgcal10gLinkReceiver::RecordRunning *rEvent){
   const uint64_t *p64(((const uint64_t*)rEvent)+1);
@@ -105,7 +153,7 @@ int find_cafe_word(const Hgcal10gLinkReceiver::RecordRunning *rEvent, int n, int
   }
 
   if (cafe_word_idx == -1) {
-    std::cerr << "Could not find cafe word" << std::endl;
+    //std::cerr << "Could not find cafe word" << std::endl;
     return 0;
   }else {
     return cafe_word_idx;
@@ -274,7 +322,11 @@ int main(int argc, char** argv){
   issRelay >> relayNumber;
   std::istringstream issRun(argv[2]);
   issRun >> runNumber;
-  
+
+  int payload_version = 0;
+  payload_version = read_Payload_Version(relayNumber);
+  //cout << "payload_version : " << payload_version << endl;
+
   //Create the file reader
   Hgcal10gLinkReceiver::FileReader _fileReader;
 
@@ -289,6 +341,7 @@ int main(int argc, char** argv){
   _fileReader.openRun(runNumber,linkNumber);
   
   uint64_t prevEvent = 0;
+  uint32_t prevSequence = 0;
   uint64_t nEvents = 0;
   uint32_t packet[4];
   uint32_t packet_counter;
@@ -315,9 +368,10 @@ int main(int argc, char** argv){
   uint64_t nofRStartErrors = 0, nofRStopErrors = 0;
   TH2I *hErrEcont0Status = new TH2I("hErrEcont0Status", "Errors related to ECONT0 packet status",12,0,12,8,0,8);
   TH2I *hErrEcont1Status = new TH2I("hErrEcont1Status", "Errors related to ECONT1 packet status",12,0,12,8,0,8);
-  TH1I *hDaqEvtMisMatch = new TH1I("hDaqEvtMisMatch", "Event size mismatch between RO and cafe header",4,0,4);
+  TH1I *hDaqEvtMisMatch = new TH1I("hDaqEvtMisMatch", "Event size mismatch between RO and cafe header",5,0,5);
   uint64_t nofEventIdErrs = 0;
   uint64_t nofFirstFECAFEErrors = 0;
+  uint64_t nofExcessFECAFEErrors = 0;
   uint64_t nofNbxMisMatches = 0;
   uint64_t nofSTCNumberingErrors = 0;
   uint64_t nofSTCLocErrors = 0;
@@ -375,16 +429,12 @@ int main(int argc, char** argv){
     }
     //Else we have an event record 
     else{
-      //Increment event counter and reset error state
-      prevEvent = nEvents;
-      nEvents++;
-      const uint64_t *p64(((const uint64_t*)rEvent)+1);
       
       //if(nEvents>=2) continue;
       
       // if (nEvents >= 150 && nEvents <= 153)
-      // if (nEvents < 2) 
-      // 	event_dump(rEvent);
+      if (nEvents < 2) 
+      	event_dump(rEvent);
       
       const Hgcal10gLinkReceiver::SlinkBoe *boe = rEvent->slinkBoe();      
       const Hgcal10gLinkReceiver::SlinkEoe *eoe = rEvent->slinkEoe();
@@ -425,17 +475,25 @@ int main(int argc, char** argv){
   	// // 	cout<<"BC : 0x"<< (p64[1]>>45 & 0xFFF) << endl;
   	// // 	std::cout << std::dec << std::setfill(' ');
 
-  	// boe->print();
+	rEvent->RecordHeader::print();
+	boe->print();
   	// // const Hgcal10gLinkReceiver::BePacketHeader *beheader = rEvent->bePacketHeader();
   	// // beheader->print();
-  	// eoe->print();
+  	eoe->print();
   	// //std::cout << std::endl;
   	// //event_dump(rEvent);
   	// // event_dump_32(rEvent, false);
   	// // event_dump_32(rEvent, true);
       }
+      if(boe->boeHeader()!=boe->BoePattern) continue;
+      if(eoe->eoeHeader()!=eoe->EoePattern) continue;
       
       uint16_t l1atype = boe->l1aType();      
+      if(l1atype==0) continue;
+
+      //Increment event counter and reset error state
+      nEvents++;
+      const uint64_t *p64(((const uint64_t*)rEvent)+1);
 
       if(l1atype==0x0001)
       	total_phys_events++;
@@ -455,19 +513,28 @@ int main(int argc, char** argv){
       ev.eventId = boe->eventId();
       ev.l1aType = boe->l1aType();
       ev.bxId = eoe->bxId();
-      
+      ev.sequenceId = rEvent->RecordHeader::sequenceCounter(); 
+
       if(ev.bxId==3564 and (nEvents < 30)){
 	std::cerr<<"Found bx 3564"<<std::endl;
       }
 
-      if(TMath::Abs(Long64_t(ev.eventId - prevEvent))>100){
+      if((TMath::Abs(Long64_t(ev.eventId - prevEvent)) != TMath::Abs(Long64_t(ev.sequenceId - prevSequence))) and TMath::Abs(Long64_t(ev.eventId - prevEvent))>2){
+      //if( TMath::Abs(Long64_t(ev.eventId - prevEvent)) >100){
 	isGood = false;
-	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< TMath::Abs(Long64_t(ev.eventId - prevEvent)) <<" which is more than 2 " << std::endl;
+	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< TMath::Abs(Long64_t(ev.eventId - prevEvent)) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << TMath::Abs(Long64_t(ev.sequenceId - prevSequence)) << "), EventID_Diff is more than 2 " << std::endl;
+	//event_dump(rEvent);
+	rEvent->RecordHeader::print();
+	boe->print();
+	eoe->print();
 	nofEventIdErrs++;
-	//continue;
-	break;
+	prevEvent = ev.eventId;
+	prevSequence = ev.sequenceId;
+	continue;
+	//break;
       }
-      
+      prevEvent = ev.eventId;
+      prevSequence = ev.sequenceId;
       
       for(int istc = 0 ; istc < 12 ; istc++){
       	int shift = istc*3;
@@ -504,16 +571,7 @@ int main(int argc, char** argv){
       ev.daq_nbx[0] = p64[2]>>4 & 0x7;
       uint64_t daq0_event_size = (2*ev.daq_nbx[0] + 1)*ev.daq_data[0];
       int first_cafe_word_loc = find_cafe_word(rEvent, 1);
-      ev.size_in_cafe[0] = p64[first_cafe_word_loc] & 0xFF;
-      
-      if(first_cafe_word_loc != 3){
-  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Corrupted header need to skip event as the first 0xfecafe word is at  "<< first_cafe_word_loc << " instead of ideal location 3." << std::endl;
-  	isGood = false;
-	nofFirstFECAFEErrors++ ;
-	//PrintLastEvents(econt_events);
-	break;	
-	//continue;
-      }
+      ev.size_in_cafe[0] = p64[first_cafe_word_loc] & 0xFF;      
 									
       ev.daq_data[1] = p64[2]>>7 & 0xF;
       ev.daq_nbx[1] = p64[2]>>11 & 0x7;
@@ -532,7 +590,32 @@ int main(int argc, char** argv){
       uint64_t daq3_event_size = (2*ev.daq_nbx[3] + 1)*ev.daq_data[3];
       int fourth_cafe_word_loc = find_cafe_word(rEvent, 4);
       ev.size_in_cafe[3] = p64[fourth_cafe_word_loc] & 0xFF;
+
+      ev.daq_data[4] = p64[2]>>28 & 0xF;
+      ev.daq_nbx[4] = p64[2]>>32 & 0x7;
+      uint64_t daq4_event_size = (2*ev.daq_nbx[4] + 1)*ev.daq_data[4];
+      int fifth_cafe_word_loc = find_cafe_word(rEvent, 5);
+      ev.size_in_cafe[4] = p64[fifth_cafe_word_loc] & 0xFF;
       
+      int sixth_cafe_word_loc = find_cafe_word(rEvent, 6);
+      if(sixth_cafe_word_loc!=0){
+	nofExcessFECAFEErrors++ ;
+	continue;
+      }
+
+      if(first_cafe_word_loc != 3){
+  	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Corrupted header need to skip event as the first 0xfecafe word is at  "<< first_cafe_word_loc << " instead of ideal location 3." << std::endl;
+  	isGood = false;
+	//event_dump(rEvent);
+	// rEvent->RecordHeader::print();
+	// boe->print();
+	// eoe->print();
+	nofFirstFECAFEErrors++ ;
+	//PrintLastEvents(econt_events);
+	//break;	
+	continue;
+      }
+
       if(daq0_event_size != ev.size_in_cafe[0]){
   	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq0_event_size << " and first 0xfecafe word " << ev.size_in_cafe[0] << std::endl;
   	isGood = false;
@@ -561,6 +644,14 @@ int main(int argc, char** argv){
 	//PrintLastEvents(econt_events);
 	continue;
       }
+      if(daq4_event_size != ev.size_in_cafe[4]){
+  	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq4_event_size << " and fifth 0xfecafe word " << ev.size_in_cafe[4] << std::endl;
+  	isGood = false;
+	hDaqEvtMisMatch->Fill(4);
+	//PrintLastEvents(econt_events);
+	continue;
+      }
+
       if(ev.daq_nbx[0]!=ev.daq_nbx[1]){
   	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Bx size do not match between packed " << ev.daq_nbx[0] << " and unpacked data " << ev.daq_nbx[1] << std::endl;
   	isGood = false;
@@ -903,7 +994,7 @@ int main(int argc, char** argv){
   cout<<endl;
 
   
-  cout <<"Relay| Run| NofEvts| NofPhysT| NofCalT| NofCoinT| NofRandT| NofSoftT| NofRegT| RStrtE| RStpE| EvtIdE| 1stcafeE| daqHE| NbxE| STCNumE| STCLocE| EngE| BxMME| BxCMME| EmptyTCs| STCNumE1| STCLocE1| EngE1| BxMME1| BxCMME1| EmptyTCs1|"<<endl;
+  cout <<"Relay| Run| NofEvts| NofPhysT| NofCalT| NofCoinT| NofRandT| NofSoftT| NofRegT| RStrtE| RStpE| EvtIdE| xscafeE| 1stcafeE| daqHE| NbxE| STCNumE| STCLocE| EngE| BxMME| BxCMME| EmptyTCs| STCNumE1| STCLocE1| EngE1| BxMME1| BxCMME1| EmptyTCs1| PV|"<<endl;
   cout << relayNumber << "|"
        << runNumber << "|"
        << nEvents << "|"
@@ -916,6 +1007,7 @@ int main(int argc, char** argv){
        << nofRStartErrors << "|"
        << nofRStopErrors << "|"
        << nofEventIdErrs << "|"
+       << nofExcessFECAFEErrors << "|" 
        << nofFirstFECAFEErrors << "|"
        << hDaqEvtMisMatch->GetEntries() << "|"
        << nofNbxMisMatches << "|"
@@ -931,6 +1023,9 @@ int main(int argc, char** argv){
        << nofBxRawUnpkMM1 << "|"
        << nofBxCentralMM1 << "|"
        << nofEmptyTCs1 << "|"
+       << std::hex << std::setfill('0')
+       << " 0x" << std::setw(4) << payload_version << "|"
+       << std::dec << std::setfill(' ')
        <<endl;
   
   // if(isGood){
