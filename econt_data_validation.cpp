@@ -6,7 +6,7 @@
 #include "TSystem.h"
 
 #include "TFileHandlerLocal.h"
-#include "FileReader.h"
+#include "common/inc/FileReader.h"
 
 #include <deque>
 
@@ -46,6 +46,27 @@ typedef struct{
   
 } econt_event;
 
+
+uint64_t Abs32(uint32_t a, uint32_t b)
+{
+  if(a>b)
+    return (a-b);
+  else if(b>a)
+    return (b-a);
+  else
+    return 0;
+}
+
+uint64_t Abs64(uint64_t a, uint64_t b)
+{
+  if(a>b)
+    return (a-b);
+  else if(b>a)
+    return (b-a);
+  else
+    return 0;
+}
+
 int read_Payload_Version(unsigned refRelay)
 {
   const char* inDir = "/eos/cms/store/group/dpg_hgcal/tb_hgcal/2023/BeamTestSep/HgcalBeamtestSep2023";
@@ -56,9 +77,10 @@ int read_Payload_Version(unsigned refRelay)
   const char* entry;
   Int_t n = 0;
   TString str;
-
+  
   int prevRelay = 0;
   string configname;
+  string prevConfigname = "";
   while((entry = (char*)gSystem->GetDirEntry(dirp))) {
     str = entry;
     if(str.EndsWith(".yaml") and str.Contains("Serenity")){
@@ -67,17 +89,20 @@ int read_Payload_Version(unsigned refRelay)
       TString str2 = str1.substr( s_pat.size(), str1.find_first_of("_")-s_pat.size());
       //cout<< "str : " << str << ", relay : " << str2.Atoi() << " prevRelay : " << prevRelay << endl;
       int relay = str2.Atoi();
-      if(relay>=int(refRelay) and int(refRelay)>=prevRelay) {
+      configname = gSystem->ConcatFileName(dir, entry);
+      if(relay>int(refRelay) and int(refRelay)>=prevRelay) {
 	//cout<<"Found config : " << relay << endl;
-	configname = gSystem->ConcatFileName(dir, entry);
 	break;
 	//return;
       }
       prevRelay = relay;
+      prevConfigname = configname;
     }
   }
+  cout<<"Prev config name : "<<prevConfigname<<endl;
   cout<<"Config name : "<<configname<<endl;
-  ifstream fin(configname);
+
+  ifstream fin(prevConfigname);
   string s;
   string s_pat = "PayloadVersion: ";
   int version = 0;
@@ -92,6 +117,7 @@ int read_Payload_Version(unsigned refRelay)
   
   return version;
 }
+
 // print all (64-bit) words in event
 void event_dump(const Hgcal10gLinkReceiver::RecordRunning *rEvent){
   const uint64_t *p64(((const uint64_t*)rEvent)+1);
@@ -267,7 +293,7 @@ void set_packet_energies(uint64_t packet_energies[12], uint32_t* packet) {
 
   // need two 64 bit words since all of the energies are 12*7 = 84 bits long
   // word 1 starts with the beginning of the energies
-  uint64_t word1 = (packet64[0] << 28+32) + (packet64[1] << 28) + (packet64[2] >> 4);
+  uint64_t word1 = (packet64[0] << (28+32)) + (packet64[1] << 28) + (packet64[2] >> 4);
   // word 2 are the last 64 bits of the packet (which is 128 bits long)
   uint64_t word2 = (packet64[2] << 32) + packet64[3];
 
@@ -304,6 +330,7 @@ void PrintLastEvents(deque<econt_event> econt_events)
   
 }
 int main(int argc, char** argv){
+//int econt_data_validation(unsigned relayNumber=1695242799, unsigned runNumber=1695242799){
   
   if(argc < 3){
     std::cerr << argv[0] << ": no relay and/or run numbers specified" << std::endl;
@@ -312,17 +339,17 @@ int main(int argc, char** argv){
 
   //Command line arg assignment
   //Assign relay and run numbers
-  unsigned relayNumber(0);
-  unsigned runNumber(0);
   unsigned linkNumber(0);
   bool skipMSB(true);
   
   // ./econt_data_validation.exe $Relay $rname
+  unsigned relayNumber(0);
+  unsigned runNumber(0);
   std::istringstream issRelay(argv[1]);
   issRelay >> relayNumber;
   std::istringstream issRun(argv[2]);
   issRun >> runNumber;
-
+  
   int payload_version = 0;
   payload_version = read_Payload_Version(relayNumber);
   //cout << "payload_version : " << payload_version << endl;
@@ -338,10 +365,11 @@ int main(int argc, char** argv){
   const Hgcal10gLinkReceiver::RecordStopping *rStop ((Hgcal10gLinkReceiver::RecordStopping*)r);
   const Hgcal10gLinkReceiver::RecordRunning  *rEvent((Hgcal10gLinkReceiver::RecordRunning*) r);
   _fileReader.setDirectory(std::string("dat/Relay")+argv[1]);
+  //_fileReader.setDirectory(std::string("dat/Relay")+Form("%u",relayNumber));
   _fileReader.openRun(runNumber,linkNumber);
   
   uint64_t prevEvent = 0;
-  uint32_t prevSequence = 0;
+  uint32_t  prevSequence = 0;
   uint64_t nEvents = 0;
   uint32_t packet[4];
   uint32_t packet_counter;
@@ -349,22 +377,25 @@ int main(int argc, char** argv){
   uint64_t packet_energies[12];
   
   // make histograms 10 trigger types, two ECONTs, and 12 STC 
-  TH1I**** hloc = 0x0; // locations of most energetic TC in STC
-  hloc = new TH1I***[10];                       // 10 trigger types
-  int nTrigType = 0;
-  for (int itrig=0; itrig<10; itrig++) {
-    hloc[itrig] = new TH1I**[2];                // 2 ECONTs
-    for (int iect=0; iect<2; iect++) {
-      hloc[itrig][iect] = new TH1I*[12];        // 12 STCs
-      for (int istc=0;istc<12;istc++) {
-	hloc[itrig][iect][istc] = new TH1I(Form("hloc_%d_%d_%d",itrig,iect,istc),Form("Trig %d, iECONT %d, STC : %d",itrig,iect,istc),4,0,4);
-	hloc[itrig][iect][istc]->SetMinimum(0.0);
-	hloc[itrig][iect][istc]->GetXaxis()->SetTitle("TC");
-	hloc[itrig][iect][istc]->GetYaxis()->SetTitle("Entries");
-      }//istc  
-    }//iect
-  }//itrig
+  TH1I** hloc = 0x0; // locations of most energetic TC in STC
+  hloc = new TH1I*[12];        // 12 STCs
+  for (int istc=0;istc<12;istc++) {
+    hloc[istc] = new TH1I(Form("hloc_%d",istc),Form("ECONT0 STC : %d",istc),6,0,6);
+    hloc[istc]->SetMinimum(0.0);
+    hloc[istc]->GetXaxis()->SetTitle("TC");
+    hloc[istc]->GetYaxis()->SetTitle("Entries");
+  }//istc  
 
+  TH1I** hloc1 = 0x0; // locations of most energetic TC in STC
+  hloc1 = new TH1I*[12];        // 12 STCs
+  for (int istc=0;istc<12;istc++) {
+    hloc1[istc] = new TH1I(Form("hloc1_%d",istc),Form("ECONT1 STC : %d",istc),6,0,6);
+    hloc1[istc]->SetMinimum(0.0);
+    hloc1[istc]->GetXaxis()->SetTitle("TC");
+    hloc1[istc]->GetYaxis()->SetTitle("Entries");
+  }//istc  
+  int nTrigType = 0;
+  
   uint64_t nofRStartErrors = 0, nofRStopErrors = 0;
   TH2I *hErrEcont0Status = new TH2I("hErrEcont0Status", "Errors related to ECONT0 packet status",12,0,12,8,0,8);
   TH2I *hErrEcont1Status = new TH2I("hErrEcont1Status", "Errors related to ECONT1 packet status",12,0,12,8,0,8);
@@ -398,7 +429,7 @@ int main(int argc, char** argv){
   uint64_t total_regular_events = 0;
   
   //Keep a record of status of last 100 events
-  int max_event_entries = 100;
+  uint64_t  max_event_entries = 100;
   deque<econt_event> econt_events;
   
   bool isGood = true;
@@ -433,7 +464,7 @@ int main(int argc, char** argv){
       //if(nEvents>=2) continue;
       
       // if (nEvents >= 150 && nEvents <= 153)
-      if (nEvents < 2) 
+      if (nEvents < 1) 
       	event_dump(rEvent);
       
       const Hgcal10gLinkReceiver::SlinkBoe *boe = rEvent->slinkBoe();      
@@ -519,51 +550,56 @@ int main(int argc, char** argv){
 	std::cerr<<"Found bx 3564"<<std::endl;
       }
 
-      if((TMath::Abs(Long64_t(ev.eventId - prevEvent)) != TMath::Abs(Long64_t(ev.sequenceId - prevSequence))) and TMath::Abs(Long64_t(ev.eventId - prevEvent))>2){
+      if(nEvents%1000000==0)
+	std::cerr << "Before:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+      if((Abs64(ev.eventId,prevEvent) != Abs32(ev.sequenceId, prevSequence)) and Abs64(ev.eventId,prevEvent)>2){
       //if( TMath::Abs(Long64_t(ev.eventId - prevEvent)) >100){
 	isGood = false;
-	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< TMath::Abs(Long64_t(ev.eventId - prevEvent)) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << TMath::Abs(Long64_t(ev.sequenceId - prevSequence)) << "), EventID_Diff is more than 2 " << std::endl;
-	//event_dump(rEvent);
+	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+	event_dump(rEvent);
 	rEvent->RecordHeader::print();
 	boe->print();
 	eoe->print();
 	nofEventIdErrs++;
-	prevEvent = ev.eventId;
-	prevSequence = ev.sequenceId;
+	prevEvent = boe->eventId();
+	prevSequence = rEvent->RecordHeader::sequenceCounter(); 
 	continue;
 	//break;
       }
+      //std::cerr << "After:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
       prevEvent = ev.eventId;
       prevSequence = ev.sequenceId;
       
-      for(int istc = 0 ; istc < 12 ; istc++){
-      	int shift = istc*3;
-      	ev.ECONT_packet_status[0][istc] = (p64[0]>>shift & 0x7);
-      	ev.ECONT_packet_status[1][istc] = (p64[1]>>shift & 0x7);
-      	ev.ECONT_packet_validity[0][istc] = (ev.ECONT_packet_status[0][istc]==0x0) ? true : false;
-      	ev.ECONT_packet_validity[1][istc] = (ev.ECONT_packet_status[1][istc]==0x0) ? true : false;
-      	if(ev.ECONT_packet_validity[0][istc] == false){
-      	  isGood = false;
-      	  hErrEcont0Status->Fill(istc, ev.ECONT_packet_status[0][istc]);
-      	  //std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", LSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[0][istc] << std::endl;
-      	  //PrintLastEvents(econt_events);
-      	  continue;
-      	}
-      	if(ev.ECONT_packet_validity[1][istc] == false){
-      	  isGood = false;
-      	  hErrEcont1Status->Fill(istc, ev.ECONT_packet_status[1][istc]);
-      	  //std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", MSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[1][istc] << std::endl;
-      	  //PrintLastEvents(econt_events);
-      	  continue;
-      	}
+      // for(int istc = 0 ; istc < 12 ; istc++){
+      // 	int shift = istc*3;
+      // 	ev.ECONT_packet_status[0][istc] = (p64[0]>>shift & 0x7);
+      // 	ev.ECONT_packet_status[1][istc] = (p64[1]>>shift & 0x7);
+      // 	ev.ECONT_packet_validity[0][istc] = (ev.ECONT_packet_status[0][istc]==0x0) ? true : false;
+      // 	ev.ECONT_packet_validity[1][istc] = (ev.ECONT_packet_status[1][istc]==0x0) ? true : false;
+      // 	if(ev.ECONT_packet_validity[0][istc] == false){
+      // 	  isGood = false;
+      // 	  hErrEcont0Status->Fill(istc, ev.ECONT_packet_status[0][istc]);
+      // 	  //std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", LSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[0][istc] << std::endl;
+      // 	  //PrintLastEvents(econt_events);
+      // 	  continue;
+      // 	}
+      // 	if(ev.ECONT_packet_validity[1][istc] == false){
+      // 	  isGood = false;
+      // 	  hErrEcont1Status->Fill(istc, ev.ECONT_packet_status[1][istc]);
+      // 	  //std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", MSB ECONT packet validity failed for STC  "<< istc << " with status value " << ev.ECONT_packet_status[1][istc] << std::endl;
+      // 	  //PrintLastEvents(econt_events);
+      // 	  continue;
+      // 	}
 	
-      }
-      ev.OC[0] = (p64[0]>>(12*3) & 0x7) ;
-      ev.OC[1] = (p64[1]>>(12*3) & 0x7) ;
-      ev.EC[0] = (p64[0]>>39 & 0x3F) ;
-      ev.EC[1] = (p64[1]>>39 & 0x3F) ;
-      ev.BC[0] = (p64[0]>>45 & 0xFFF) ;
-      ev.BC[1] = (p64[1]>>45 & 0xFFF) ;
+      // }
+      // ev.OC[0] = (p64[0]>>(12*3) & 0x7) ;
+      // ev.OC[1] = (p64[1]>>(12*3) & 0x7) ;
+      // ev.EC[0] = (p64[0]>>39 & 0x3F) ;
+      // ev.EC[1] = (p64[1]>>39 & 0x3F) ;
+      // ev.BC[0] = (p64[0]>>45 & 0xFFF) ;
+      // ev.BC[1] = (p64[1]>>45 & 0xFFF) ;
+
+      //std::cerr << "After0.1:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
 
       //std::cout << std::endl;
       //const uint64_t *p64(((const uint64_t*)rEvent)+1);
@@ -597,14 +633,16 @@ int main(int argc, char** argv){
       int fifth_cafe_word_loc = find_cafe_word(rEvent, 5);
       ev.size_in_cafe[4] = p64[fifth_cafe_word_loc] & 0xFF;
       
+      //std::cerr << "After1:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
       int sixth_cafe_word_loc = find_cafe_word(rEvent, 6);
       if(sixth_cafe_word_loc!=0){
 	nofExcessFECAFEErrors++ ;
 	continue;
       }
+      //std::cerr << "After2:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
 
       if(first_cafe_word_loc != 3){
-  	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Corrupted header need to skip event as the first 0xfecafe word is at  "<< first_cafe_word_loc << " instead of ideal location 3." << std::endl;
+  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Corrupted header need to skip event as the first 0xfecafe word is at  "<< first_cafe_word_loc << " instead of ideal location 3." << std::endl;
   	isGood = false;
 	//event_dump(rEvent);
 	// rEvent->RecordHeader::print();
@@ -617,41 +655,42 @@ int main(int argc, char** argv){
       }
 
       if(daq0_event_size != ev.size_in_cafe[0]){
-  	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq0_event_size << " and first 0xfecafe word " << ev.size_in_cafe[0] << std::endl;
+  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq0_event_size << " and first 0xfecafe word " << ev.size_in_cafe[0] << std::endl;
   	isGood = false;
 	hDaqEvtMisMatch->Fill(0);
 	//PrintLastEvents(econt_events);
 	continue;	
       }
       if(daq1_event_size != ev.size_in_cafe[1]){
-  	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq1_event_size << " and second 0xfecafe word " << ev.size_in_cafe[1] << std::endl;
+  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq1_event_size << " and second 0xfecafe word " << ev.size_in_cafe[1] << std::endl;
   	isGood = false;
 	hDaqEvtMisMatch->Fill(1);
 	//PrintLastEvents(econt_events);
 	continue;	
       }
       if(daq2_event_size != ev.size_in_cafe[2]){
-  	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq2_event_size << " and third 0xfecafe word " << ev.size_in_cafe[2] << std::endl;
+  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq2_event_size << " and third 0xfecafe word " << ev.size_in_cafe[2] << std::endl;
   	isGood = false;
 	hDaqEvtMisMatch->Fill(2);
 	//PrintLastEvents(econt_events);
 	continue;
       }
       if(daq3_event_size != ev.size_in_cafe[3]){
-  	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq3_event_size << " and fourth 0xfecafe word " << ev.size_in_cafe[3] << std::endl;
+  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq3_event_size << " and fourth 0xfecafe word " << ev.size_in_cafe[3] << std::endl;
   	isGood = false;
 	hDaqEvtMisMatch->Fill(3);
 	//PrintLastEvents(econt_events);
 	continue;
       }
       if(daq4_event_size != ev.size_in_cafe[4]){
-  	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq4_event_size << " and fifth 0xfecafe word " << ev.size_in_cafe[4] << std::endl;
+  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Event size do not match between trigger RO header "<< daq4_event_size << " and fifth 0xfecafe word " << ev.size_in_cafe[4] << std::endl;
   	isGood = false;
 	hDaqEvtMisMatch->Fill(4);
 	//PrintLastEvents(econt_events);
 	continue;
       }
 
+      //std::cerr << "After3:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
       if(ev.daq_nbx[0]!=ev.daq_nbx[1]){
   	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Bx size do not match between packed " << ev.daq_nbx[0] << " and unpacked data " << ev.daq_nbx[1] << std::endl;
   	isGood = false;
@@ -660,6 +699,8 @@ int main(int argc, char** argv){
 	continue;
       }
       
+      //std::cerr << "After4:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+
       int bx_index = -1.0*int(ev.daq_nbx[0]);
       const int maxnbx = (2*ev.daq_nbx[0] + 1);
       uint64_t energy_raw[2][maxnbx][12];
@@ -702,14 +743,13 @@ int main(int argc, char** argv){
       	// }
 	
       	for(int istc=0;istc<12;istc++){
-	  
-      	  hloc[0][0][istc]->Fill(packet_locations[istc]);
-	  if(l1atype==0x0001)
-	    hloc[1][0][istc]->Fill(packet_locations[istc]);
-	  if(l1atype==0x0003)
-	    hloc[2][0][istc]->Fill(packet_locations[istc]);
-	  if(l1atype==0x0010)
-	    hloc[3][0][istc]->Fill(packet_locations[istc]);
+	  // cout<<"istc : " << istc 
+	  //     << ", packet_locations[istc] " << packet_locations[istc] 
+	  //     <<endl;
+	  // cout<< ", hist : " << hloc[istc] 
+	  //     << ", hist entries : " << hloc[istc]->GetEntries() 
+	  //     << endl;
+	  hloc[istc]->Fill(packet_locations[istc]);
 	  
       	  energy_raw[0][(bx_index+int(ev.daq_nbx[0]))][istc] = packet_energies[istc];
   	  ev.energy_raw[0][(bx_index+int(ev.daq_nbx[0]))][istc] = packet_energies[istc];
@@ -727,6 +767,7 @@ int main(int argc, char** argv){
 	
       	set_packet_locations(packet_locations, packet);
       	set_packet_energies(packet_energies, packet);
+
       	// if (nEvents < 2) {
   	//   std::cout<<"\t";
       	//   for(int istc=0;istc<12;istc++){
@@ -743,13 +784,8 @@ int main(int argc, char** argv){
 	
       	for(int istc=0;istc<12;istc++){
 	  
-      	  hloc[0][1][istc]->Fill(packet_locations[istc]);
-	  if(l1atype==0x0001)
-	    hloc[1][1][istc]->Fill(packet_locations[istc]);
-	  if(l1atype==0x0003)
-	    hloc[2][1][istc]->Fill(packet_locations[istc]);
-	  if(l1atype==0x0010)
-	    hloc[3][1][istc]->Fill(packet_locations[istc]);
+      	  //hloc[0][1][istc]->Fill(packet_locations[istc]);
+	  hloc1[istc]->Fill(packet_locations[istc]);
 	  
       	  energy_raw[1][(bx_index+int(ev.daq_nbx[0]))][istc] = packet_energies[istc];
   	  ev.energy_raw[1][(bx_index+int(ev.daq_nbx[0]))][istc] = packet_energies[istc];
@@ -759,6 +795,7 @@ int main(int argc, char** argv){
 	
       	bx_index++;
       }
+      //std::cerr << "After5:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
       
       // std::cout << std::endl;
       uint32_t energy_unpkd[2][maxnbx][12];
@@ -842,7 +879,7 @@ int main(int argc, char** argv){
       	index_stc++;
       }
 
-
+      //std::cerr << "After6:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
       // if (nEvents < 3) {
 	
       // 	std::cout << std::hex << std::setfill('0');
@@ -901,11 +938,13 @@ int main(int argc, char** argv){
 	}
       }
 
+      //std::cerr << "After7:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+
       //Check Locations
       for(int iect=0;iect<2;iect++){
       	for(int ibx=0;ibx<maxnbx;ibx++){
       	  for(int istc=0;istc<12;istc++){
-      	    if((ev.loc_unpkd[iect][ibx][istc]>>2  & 0xF) != istc){
+      	    if((ev.loc_unpkd[iect][ibx][istc]>>2  & 0xF) != unsigned(istc)){
       	      // std::cout << std::dec << std::setfill(' ');
       	      // std::cerr << " Unpacked location index do not match with the STC for (Run, event, iecont, bx, stc, istc_from_unpacked) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< (ev.loc_unpkd[iect][ibx][istc]>>2  & 0xF)  <<") "<< std::endl;
       	      isGood = false;
@@ -928,6 +967,8 @@ int main(int argc, char** argv){
       	}
       }
 
+      //std::cerr << "After7:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+
       //Check Energy
       for(int iect=0;iect<2;iect++){
       	for(int ibx=0;ibx<maxnbx;ibx++){
@@ -946,45 +987,45 @@ int main(int argc, char** argv){
       	}
       }
 
+      //std::cerr << "After8:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
       
       if(nEvents<max_event_entries){
+	//std::cerr << "After8.1:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
   	econt_events.push_back(ev);
+	//std::cerr << "After8.2:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
       }else{
-  	econt_events.pop_front();
+	//std::cerr << "After8.3:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+	econt_events.pop_front();
+	//std::cerr << "After8.4:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
   	econt_events.push_back(ev);
+
       }
       
+      //std::cerr << "After9:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
     }//loop event  
   }
   
   delete r;
-
   
-  for (int itrig=0; itrig<nTrigType; itrig++) {
-    for (int iect=0; iect<2; iect++) {
-      for (int i=0;i<12;i++) {
-	for(int ibin=1;ibin<=hloc[itrig][iect][i]->GetNbinsX();ibin++){
-	  if(hloc[itrig][iect][i]->GetBinContent(ibin)==0.0){
-	    if(itrig==0){
-	      std::cerr << "No Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<< "."<< std::endl;
-	      isGood = false;
-	      if(iect==0) 
-		nofEmptyTCs++;
-	      else
-		nofEmptyTCs1++;
-	    }
-	    // if(itrig==1)
-	    //   std::cerr << "Phys Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
-	    // if(itrig==2)
-	    //   std::cerr << "Coincident Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
-	    // if(itrig==3)
-	    //   std::cerr << "Regular Trig: Empty TC " << ibin <<" for STC "<< i <<" for ECONT"<< iect<<"."<< std::endl;
-	  }
-	}
+  for (int istc=0;istc<12;istc++) {
+    for(int ibin=1;ibin<=hloc[istc]->GetNbinsX();ibin++){
+      if(hloc[istc]->GetBinContent(ibin)==0.0){
+	//std::cerr << "No Trig: Empty TC " << ibin <<" for STC "<< istc <<" for ECONT0."<< std::endl;
+	isGood = false;
+	nofEmptyTCs++;
       }
     }
   }
-
+  for (int istc=0;istc<12;istc++) {
+    for(int ibin=1;ibin<=hloc1[istc]->GetNbinsX();ibin++){
+      if(hloc1[istc]->GetBinContent(ibin)==0.0){
+	//std::cerr << "No Trig: Empty TC " << ibin <<" for STC "<< istc <<" for ECONT 1."<< std::endl;
+	isGood = false;
+	nofEmptyTCs1++;
+      }
+    }
+  }
+  
   cout<<endl;
   for(int i=0;i<80;i++) cout<<"=";
   cout<<endl;
@@ -1039,8 +1080,9 @@ int main(int argc, char** argv){
   // delete hDaqEvtMisMatch;
   // delete hErrEcont1Status;
   // delete hErrEcont0Status;
-  // econt_events.clear();
-  // delete hloc;
+  econt_events.clear();
+  delete hloc;
+  delete hloc1;
 
   return 0;
 }
