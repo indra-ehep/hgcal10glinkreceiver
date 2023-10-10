@@ -62,24 +62,27 @@ where,
 1. Relay : Relay number
 2. Run : Run number
 3. NofEvts : Number of events
-4. NofPhysT : Number of physics triggers (L1a Trigger types)
-5. NofCalT : Number of calibration triggers (L1a Trigger types)
-6. NofCoinT : Number of coincident triggers of Phys and Cal (L1a Trigger types)
-7. NofCalT : Number of random triggers (L1a Trigger types)
-8. NofSoftT : Number of software triggers (L1a Trigger types)
-9. NofRegT : Number of regular triggers (L1a Trigger types)
-10. RStrtE : Number of cases where FsmState::Starting validadity fails
+4. PhysT : Number of physics triggers (L1a Trigger types)
+5. CalT : Number of calibration triggers (L1a Trigger types)
+6. CoinT : Number of coincident triggers of Phys and Cal (L1a Trigger types)
+7. CalT : Number of random triggers (L1a Trigger types)
+8. SoftT : Number of software triggers (L1a Trigger types)
+9. RegT : Number of regular triggers (L1a Trigger types)
+10. RStrE : Number of cases where FsmState::Starting validadity fails
 11. RStpE : Number of cases where FsmState::Stopping validadity fails
 12. EvtIdE : Number of cases where Event Id is corrupted 
-13. 1stcafeE : Number of cases where the location of first 0xfecafe word is wrong (This means event header has expanded)
-14. daqHE : Number of cases where the data volume mentioned in TRG LO header does not match with the last 8-bits of 0xfecafe word
-15. NbxE : Number of cases where the bx mentioned in daq0 info of TRG LO does not match with the one mentioned for daq1
-16. STCNumE : Number of cases where STC number does not match with the one mentioned in the 4 MSB bits of unpacked STC address
-17. STCLocE : Number of cases where STC location mentioned in the 2 LSB bits of unpacked STC address does not match with the one mentioned unpacker input location
-18. EngE : Number of cases where STC energy mentioned in the unpacked data does not match with the one in unpacker input
-19. BxMME : Number of cases with Bx mismatching between unpacker input and output dat
-20. BxCMME : Number of cases with Bx mismatching between central value stored unpacker input/output and those from 8 modulo bxId of Slink trailer
-21. EmptyTCs : Number of empty TCs for LSB trigger data
+13. xecafeE : Number of events where payload has six or more 0xfecafe
+14. 1stcafeE : Number of cases where the location of first 0xfecafe word is wrong (This means either the event header has been expanded or the first is missed)
+15. daqHE : Number of cases where the data volume mentioned in TRG LO header does not match with the last 8-bits of 0xfecafe word
+16. NbxE : Number of cases where the bx mentioned in daq0 info of TRG LO does not match with the one mentioned for daq1
+17. STCNE : Number of cases where STC number does not match with the one mentioned in the 4 MSB bits of unpacked STC address for LSB module
+18. STCLE : Number of cases where STC location mentioned in the 2 LSB bits of unpacked STC address does not match with the one mentioned unpacker input location for LSB module
+19. EngE : Number of cases where STC energy mentioned in the unpacked data does not match with the one in unpacker input for LSB module
+20. BxE : Number of cases with Bx mismatching between unpacker input and output dat for LSB module
+21. BxCE : Number of cases with Bx mismatching between central value stored unpacker input/output and those from 8 modulo bxId of Slink trailer for LSB module
+22. ETCs : Number of empty TCs for LSB trigger data 
+23-28 : Repetition of 17 to 22 for MSB module
+29. PV : Serenity software version 
 
 ### Acknowledgment
 Main framework :: Paul : https://gitlab.cern.ch/pdauncey/hgcal10glinkreceiver
