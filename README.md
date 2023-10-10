@@ -81,7 +81,7 @@ where,
 20. BxE : Number of cases with Bx mismatching between unpacker input and output dat for LSB module
 21. BxCE : Number of cases with Bx mismatching between central value stored unpacker input/output and those from 8 modulo bxId of Slink trailer for LSB module
 22. ETCs : Number of empty TCs for LSB trigger data 
-23-28 : Repetition of 17 to 22 for MSB module
+23.-28. : Repetition of 17 to 22 for MSB module
 29. PV : Serenity software version 
 
 ### Acknowledgment
