@@ -329,26 +329,27 @@ void PrintLastEvents(deque<econt_event> econt_events)
 
   
 }
-int main(int argc, char** argv){
-//int econt_data_validation(unsigned relayNumber=1695242799, unsigned runNumber=1695242799){
+
+//int main(int argc, char** argv){
+int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNumber=1695242799){
   
-  if(argc < 3){
-    std::cerr << argv[0] << ": no relay and/or run numbers specified" << std::endl;
-    return 1;
-  }
+  // if(argc < 3){
+  //   std::cerr << argv[0] << ": no relay and/or run numbers specified" << std::endl;
+  //   return 1;
+  // }
 
   //Command line arg assignment
   //Assign relay and run numbers
   unsigned linkNumber(0);
   bool skipMSB(true);
   
-  // ./econt_data_validation.exe $Relay $rname
-  unsigned relayNumber(0);
-  unsigned runNumber(0);
-  std::istringstream issRelay(argv[1]);
-  issRelay >> relayNumber;
-  std::istringstream issRun(argv[2]);
-  issRun >> runNumber;
+  // // ./econt_data_validation.exe $Relay $rname
+  // unsigned relayNumber(0);
+  // unsigned runNumber(0);
+  // std::istringstream issRelay(argv[1]);
+  // issRelay >> relayNumber;
+  // std::istringstream issRun(argv[2]);
+  // issRun >> runNumber;
   
   int runNumber1 = int(runNumber);
 
@@ -366,8 +367,8 @@ int main(int argc, char** argv){
   const Hgcal10gLinkReceiver::RecordStarting *rStart((Hgcal10gLinkReceiver::RecordStarting*)r);
   const Hgcal10gLinkReceiver::RecordStopping *rStop ((Hgcal10gLinkReceiver::RecordStopping*)r);
   const Hgcal10gLinkReceiver::RecordRunning  *rEvent((Hgcal10gLinkReceiver::RecordRunning*) r);
-  _fileReader.setDirectory(std::string("dat/Relay")+argv[1]);
-  //_fileReader.setDirectory(std::string("dat/Relay")+Form("%u",relayNumber));
+  //_fileReader.setDirectory(std::string("dat/Relay")+argv[1]);
+  _fileReader.setDirectory(std::string("dat/Relay")+Form("%u",relayNumber));
   _fileReader.openRun(runNumber,linkNumber);
   
   uint64_t prevEvent = 0;
@@ -466,8 +467,8 @@ int main(int argc, char** argv){
       //if(nEvents>=2) continue;
       
       // if (nEvents >= 150 && nEvents <= 153)
-      if (nEvents < 1) 
-      	event_dump(rEvent);
+      // if (nEvents < 2) 
+      // 	event_dump(rEvent);
       
       const Hgcal10gLinkReceiver::SlinkBoe *boe = rEvent->slinkBoe();      
       const Hgcal10gLinkReceiver::SlinkEoe *eoe = rEvent->slinkEoe();
@@ -552,8 +553,10 @@ int main(int argc, char** argv){
 	std::cerr<<"Found bx 3564"<<std::endl;
       }
 
-      if(nEvents%1000000==0)
+      //if(nEvents%1000000==0)
+      if(nEvents%1000==0)
 	std::cerr << "Before:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+
       if((Abs64(ev.eventId,prevEvent) != Abs32(ev.sequenceId, prevSequence)) and Abs64(ev.eventId,prevEvent)>2){
       //if( TMath::Abs(Long64_t(ev.eventId - prevEvent)) >100){
 	isGood = false;
@@ -703,6 +706,8 @@ int main(int argc, char** argv){
       
       //std::cerr << "After4:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
 
+      
+
       int bx_index = -1.0*int(ev.daq_nbx[0]);
       const int maxnbx = (2*ev.daq_nbx[0] + 1);
       uint64_t energy_raw[2][maxnbx][12];
@@ -714,6 +719,9 @@ int main(int argc, char** argv){
   	    ev.loc_raw[iect][ibx][istc] = 0;
 	    ev.bx_raw[iect][ibx][istc] = 0;
   	  }
+      if (nEvents < 2)
+       	event_dump(rEvent);
+
       for(unsigned i(first_cafe_word_loc+1);i<daq0_event_size+first_cafe_word_loc+1;i=i+4){
 	
       	const uint32_t word = (p64[i] & 0xFFFFFFFF) ;
@@ -730,19 +738,24 @@ int main(int argc, char** argv){
       	//std::cout<<" boe->l1aType() : " << boe->l1aType() << std::endl;
       	//boe->print();
 
-      	// if (nEvents < 2) {
-  	//   std::cout<<"\t";
-      	//   for(int istc=0;istc<12;istc++){
-      	//     std::cout<<packet_energies[istc]<<" ";
-      	//   }
-      	//   std::cout<<std::endl;
-	//   std::cout<< "ev.daq_nbx[1] : " << ev.daq_nbx[1] <<", bx(LSB) : " << bx_counter <<std::endl;
-	//   // std::cout<<"\t";
-      	//   // for(int istc=0;istc<12;istc++){
-	//   //   std::cout<<packet_locations[istc]<<" ";
-      	//   // }
-      	//   // std::cout<<std::endl;
-      	// }
+      	if (nEvents < 2) {
+	  std::cout<< "\nword index  : " <<i<< ", ev.daq_nbx[0] : " << ev.daq_nbx[0] << ", ev.daq_nbx[1] : " << ev.daq_nbx[1] 
+		   << ", bx_index : " << (bx_index+int(ev.daq_nbx[0])) 
+		   << std::hex << std::setfill('0')
+		   <<", \nbx(LSB) : 0x" << std::setw(1) << bx_counter 
+		   << std::dec << std::setfill(' ') 
+		   <<std::endl;
+  	  std::cout<<"E(LSB) : \t";
+      	  for(int istc=0;istc<12;istc++){
+      	    std::cout<<packet_energies[istc]<<" ";
+      	  }
+      	  std::cout<<std::endl;
+	  std::cout<<"L(LSB) : \t";
+      	  for(int istc=0;istc<12;istc++){
+	    std::cout<<packet_locations[istc]<<" ";
+      	  }
+      	  std::cout<<std::endl;
+      	}
 	
       	for(int istc=0;istc<12;istc++){
 	  // cout<<"istc : " << istc 
@@ -770,19 +783,22 @@ int main(int argc, char** argv){
       	set_packet_locations(packet_locations, packet);
       	set_packet_energies(packet_energies, packet);
 
-      	// if (nEvents < 2) {
-  	//   std::cout<<"\t";
-      	//   for(int istc=0;istc<12;istc++){
-      	//     std::cout<<packet_energies[istc]<<" ";
-      	//   }
-      	//   std::cout<<std::endl;
-	//   std::cout<<"bx(MSB) : " << bx_counter1 <<std::endl;
-	//   // std::cout<<"\t";
-      	//   // for(int istc=0;istc<12;istc++){
-	//   //   std::cout<<packet_locations[istc]<<" ";
-      	//   // }
-      	//   // std::cout<<std::endl;
-      	// }
+      	if (nEvents < 2) {
+	  std::cout<< std::hex << std::setfill('0')
+		   <<"bx(MSB) : 0x" << std::setw(1) << bx_counter1 
+		   << std::dec << std::setfill(' ') 
+		   <<std::endl;
+  	  std::cout<<"E(MSB) : \t";
+      	  for(int istc=0;istc<12;istc++){
+      	    std::cout<<packet_energies[istc]<<" ";
+      	  }
+      	  std::cout<<std::endl;
+	  std::cout<<"L(MSB) : \t";
+      	  for(int istc=0;istc<12;istc++){
+	    std::cout<<packet_locations[istc]<<" ";
+      	  }
+      	  std::cout<<std::endl;
+      	}
 	
       	for(int istc=0;istc<12;istc++){
 	  
@@ -799,6 +815,7 @@ int main(int argc, char** argv){
       }
       //std::cerr << "After5:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
       
+
       // std::cout << std::endl;
       uint32_t energy_unpkd[2][maxnbx][12];
       for(int iect=0;iect<2;iect++)
@@ -813,6 +830,11 @@ int main(int argc, char** argv){
       int index_stc = 0;
       int index_ibx = 0;
       uint32_t prev_bx_counter = 0xFF;
+
+      // if (nEvents < 2){
+      // 	event_dump(rEvent);
+      // 	cout << "second_cafe_word_loc : " << second_cafe_word_loc <<endl;
+      // }
 
       for(unsigned i(second_cafe_word_loc+1);i<daq1_event_size+second_cafe_word_loc+1;i++){
 	  
@@ -839,13 +861,16 @@ int main(int argc, char** argv){
       	//   // << " energy3 loc : " << std::setw(2) << energy3_loc << " energy3 :" << std::setw(2) << energy3
       	//   // << " energy4 loc : " << std::setw(2) << energy4_loc << " energy4 :" << std::setw(2) << energy4
       	// 	  << std::endl ;	    
+
 	
-      	if(bx_counter != prev_bx_counter){
-      	  prev_bx_counter = bx_counter;
-      	  if(index_stc!=0)
-      	    index_ibx++;
-      	  index_stc = 0;
-      	}
+
+      	// if(bx_counter != prev_bx_counter){
+      	//   prev_bx_counter = bx_counter;
+      	//   if(index_stc!=0)
+      	//     index_ibx++;
+	//   index_stc = 0;
+      	// }
+
       	energy_unpkd[0][index_ibx][index_stc] = energy1;
       	energy_unpkd[0][index_ibx][index_stc+6] = energy2;
       	energy_unpkd[1][index_ibx][index_stc] = energy3;
@@ -854,31 +879,51 @@ int main(int argc, char** argv){
       	ev.energy_unpkd[0][index_ibx][index_stc] = energy1;
       	ev.energy_unpkd[0][index_ibx][index_stc+6] = energy2;
       	ev.energy_unpkd[1][index_ibx][index_stc] = energy3;
-      	ev.energy_unpkd[1][index_ibx][index_stc+6] = energy4;
+      	ev.energy_unpkd[1][index_ibx][index_stc+6] = energy4;	
 
   	ev.loc_unpkd[0][index_ibx][index_stc] = energy1_loc;
       	ev.loc_unpkd[0][index_ibx][index_stc+6] = energy2_loc;
       	ev.loc_unpkd[1][index_ibx][index_stc] = energy3_loc;
       	ev.loc_unpkd[1][index_ibx][index_stc+6] = energy4_loc;
+	
+	
+	if (nEvents < 2){
+	  std::cout <<"\nnEvents : " << nEvents << ", i : " << i
+		    << std::hex << std::setfill('0')
+		    << ", Unpackaer MSBLSB  0x" << std::setw(16) << p64[i]
+		    << std::dec << std::setfill(' ') 
+		    << endl;
 
-  	ev.bx_unpkd[0][index_ibx][index_stc] = bx_counter;
-      	ev.bx_unpkd[0][index_ibx][index_stc+6] = bx_counter;
+	  std::cout<< std::hex << std::setfill('0')
+	           //<< ", Unpackaer LSB  0x" << std::setw(8) << word 
+		   << " bx_counter_LSB 0x" << std::setw(1) << bx_counter
+		   << std::dec << std::setfill(' ') 
+		    << ", index_ibx : " << index_ibx
+		    << ", index_stc : " << index_stc
+		    <<endl;
+	  std::cout << "E1(LSB) :" << energy1 << ", L1 : " << (energy1_loc & 0x3) << ", STC_index : " << (energy1_loc>>2 & 0xF) << endl;
+	  std::cout << "E2(LSB) :" << energy2 << ", L2 : " << (energy2_loc & 0x3) << ", STC_index : " << (energy2_loc>>2 & 0xF) << endl;
+	  std::cout<< std::hex << std::setfill('0')
+	           //<< ", Unpackaer MSB  0x" << std::setw(8) << word1
+		   << " bx_counter_MSB 0x" << std::setw(1) << bx_counter1
+		   << std::dec << std::setfill(' ') 
+		    << ", index_ibx : " << index_ibx
+		    << ", index_stc : " << index_stc
+		    <<endl;
+	  std::cout << "E1(MSB) :" << energy3 << ", L1 : " << (energy3_loc & 0x3) << ", STC_index : " << (energy3_loc>>2 & 0xF) << endl;
+	  std::cout << "E2(MSB) :" << energy4 << ", L2 : " << (energy4_loc & 0x3) << ", STC_index : " << (energy4_loc>>2 & 0xF) << endl;
+	}
+	ev.bx_unpkd[0][index_ibx][index_stc] = bx_counter;
+	ev.bx_unpkd[0][index_ibx][index_stc+6] = bx_counter;
       	ev.bx_unpkd[1][index_ibx][index_stc] = bx_counter1;
-      	ev.bx_unpkd[1][index_ibx][index_stc+6] = bx_counter1;
-
-	// if (nEvents < 2){
-	//   std::cout << "Unpackaer output  0x" << std::setw(8) << word << " bx_counter 0x" << std::setw(1) << bx_counter
-	// 	    << " bx_counter1 0x" << std::setw(1) << bx_counter1 
-	// 	    << std::dec << std::setfill(' ') 
-	// 	    << " energy1 loc : " << std::setw(2) << energy1_loc << " energy1 :" << std::setw(2) << energy1
-	// 	    << " energy2 loc : " << std::setw(2) << energy2_loc << " energy2 :" << std::setw(2) << energy2
-	//     // << " energy3 loc : " << std::setw(2) << energy3_loc << " energy3 :" << std::setw(2) << energy3
-	//     // << " energy4 loc : " << std::setw(2) << energy4_loc << " energy4 :" << std::setw(2) << energy4
-	// 	    << std::endl ;	    
-	//   cout<<"istc : "<<index_stc<<" from MS4 : "<< (energy1_loc>>2 & 0xF) << ", address : " << (energy1_loc & 0x3) << endl;
-	//   cout<<"istc : "<<index_stc+6<<" from MS4 : "<< (energy2_loc>>2 & 0xF) << ", address : " << (energy2_loc & 0x3) << endl;
-	// }
-      	index_stc++;
+      	ev.bx_unpkd[1][index_ibx][index_stc+6] = bx_counter1;	
+	
+	if(index_stc==5)
+	  index_stc = 0;
+	else
+	  index_stc++;
+	if(index_stc==0)
+	  index_ibx++;
       }
 
       //std::cerr << "After6:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
@@ -991,18 +1036,20 @@ int main(int argc, char** argv){
 
       //std::cerr << "After8:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
       
-      if(nEvents<max_event_entries){
-	//std::cerr << "After8.1:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
-  	econt_events.push_back(ev);
-	//std::cerr << "After8.2:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
-      }else{
-	//std::cerr << "After8.3:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
-	econt_events.pop_front();
-	//std::cerr << "After8.4:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
-  	econt_events.push_back(ev);
-
-      }
+      // if(nEvents<max_event_entries){
+      // 	//std::cerr << "After8.1:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+      // 	econt_events.push_back(ev);
+      // 	//std::cerr << "After8.2:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+      // }else{
+      // 	//std::cerr << "After8.3:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+      // 	econt_events.pop_front();
+      // 	//std::cerr << "After8.4:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+      // 	econt_events.push_back(ev);
+      // }
       
+      //if(nEvents>16583000)
+      // if(nEvents>100)
+      // 	break;
       //std::cerr << "After9:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
     }//loop event  
   }
