@@ -330,26 +330,26 @@ void PrintLastEvents(deque<econt_event> econt_events)
   
 }
 
-//int main(int argc, char** argv){
-int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNumber=1695242799){
+int main(int argc, char** argv){
+  //int econt_data_validation_debug(unsigned relayNumber=1695822887, unsigned runNumber=1695822887){
   
-  // if(argc < 3){
-  //   std::cerr << argv[0] << ": no relay and/or run numbers specified" << std::endl;
-  //   return 1;
-  // }
+  if(argc < 3){
+    std::cerr << argv[0] << ": no relay and/or run numbers specified" << std::endl;
+    return 1;
+  }
 
   //Command line arg assignment
   //Assign relay and run numbers
   unsigned linkNumber(0);
   bool skipMSB(true);
   
-  // // ./econt_data_validation.exe $Relay $rname
-  // unsigned relayNumber(0);
-  // unsigned runNumber(0);
-  // std::istringstream issRelay(argv[1]);
-  // issRelay >> relayNumber;
-  // std::istringstream issRun(argv[2]);
-  // issRun >> runNumber;
+  // ./econt_data_validation.exe $Relay $rname
+  unsigned relayNumber(0);
+  unsigned runNumber(0);
+  std::istringstream issRelay(argv[1]);
+  issRelay >> relayNumber;
+  std::istringstream issRun(argv[2]);
+  issRun >> runNumber;
   
   int runNumber1 = int(runNumber);
 
@@ -367,8 +367,8 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
   const Hgcal10gLinkReceiver::RecordStarting *rStart((Hgcal10gLinkReceiver::RecordStarting*)r);
   const Hgcal10gLinkReceiver::RecordStopping *rStop ((Hgcal10gLinkReceiver::RecordStopping*)r);
   const Hgcal10gLinkReceiver::RecordRunning  *rEvent((Hgcal10gLinkReceiver::RecordRunning*) r);
-  //_fileReader.setDirectory(std::string("dat/Relay")+argv[1]);
-  _fileReader.setDirectory(std::string("dat/Relay")+Form("%u",relayNumber));
+  _fileReader.setDirectory(std::string("dat/Relay")+argv[1]);
+  //_fileReader.setDirectory(std::string("dat/Relay")+Form("%u",relayNumber));
   _fileReader.openRun(runNumber,linkNumber);
   
   uint64_t prevEvent = 0;
@@ -436,8 +436,30 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
   deque<econt_event> econt_events;
   
   bool isGood = true;
+
+  bool isSTCNE = false;
+  bool isSTCLE = false;
+  bool isEngE = false;
+  bool isBxE = false;
+  bool isBxCE = false;
+  bool isSTCNE1 = false;
+  bool isSTCLE1 = false;
+  bool isEngE1 = false;
+  bool isBxE1 = false;
+  bool isBxCE1 = false;
+
+  uint64_t nofEvcSTCNE = 0;
+  uint64_t nofEvcSTCLE = 0;
+  uint64_t nofEvcEngE = 0;
+  uint64_t nofEvcBxE = 0;
+  uint64_t nofEvcBxCE = 0;
+  uint64_t nofEvcSTCNE1 = 0;
+  uint64_t nofEvcSTCLE1 = 0;
+  uint64_t nofEvcEngE1 = 0;
+  uint64_t nofEvcBxE1 = 0;
+  uint64_t nofEvcBxCE1 = 0;
+
   //Use the fileReader to read the records
-  
   while(_fileReader.read(r)) {
     //Check the state of the record and print the record accordingly
     if( r->state()==Hgcal10gLinkReceiver::FsmState::Starting){
@@ -525,6 +547,18 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
       uint16_t l1atype = boe->l1aType();      
       if(l1atype==0) continue;
 
+      //Reset bool for event counters
+      isSTCNE = false;
+      isSTCLE = false;
+      isEngE = false;
+      isBxE = false;
+      isBxCE = false;
+      isSTCNE1 = false;
+      isSTCLE1 = false;
+      isEngE1 = false;
+      isBxE1 = false;
+      isBxCE1 = false;
+
       //Increment event counter and reset error state
       nEvents++;
       const uint64_t *p64(((const uint64_t*)rEvent)+1);
@@ -553,10 +587,10 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
 	std::cerr<<"Found bx 3564"<<std::endl;
       }
 
-      //if(nEvents%1000000==0)
-      if(nEvents%1000==0)
+      if(nEvents%1000000==0)
+	//if(nEvents%1000==0)
 	std::cerr << "Before:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
-
+      
       if((Abs64(ev.eventId,prevEvent) != Abs32(ev.sequenceId, prevSequence)) and Abs64(ev.eventId,prevEvent)>2){
       //if( TMath::Abs(Long64_t(ev.eventId - prevEvent)) >100){
 	isGood = false;
@@ -571,7 +605,7 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
 	continue;
 	//break;
       }
-      //std::cerr << "After:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+
       prevEvent = ev.eventId;
       prevSequence = ev.sequenceId;
       
@@ -604,7 +638,7 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
       // ev.BC[0] = (p64[0]>>45 & 0xFFF) ;
       // ev.BC[1] = (p64[1]>>45 & 0xFFF) ;
 
-      //std::cerr << "After0.1:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+
 
       //std::cout << std::endl;
       //const uint64_t *p64(((const uint64_t*)rEvent)+1);
@@ -638,13 +672,13 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
       int fifth_cafe_word_loc = find_cafe_word(rEvent, 5);
       ev.size_in_cafe[4] = p64[fifth_cafe_word_loc] & 0xFF;
       
-      //std::cerr << "After1:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+
       int sixth_cafe_word_loc = find_cafe_word(rEvent, 6);
       if(sixth_cafe_word_loc!=0){
 	nofExcessFECAFEErrors++ ;
 	continue;
       }
-      //std::cerr << "After2:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+
 
       if(first_cafe_word_loc != 3){
   	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Corrupted header need to skip event as the first 0xfecafe word is at  "<< first_cafe_word_loc << " instead of ideal location 3." << std::endl;
@@ -695,7 +729,7 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
 	continue;
       }
 
-      //std::cerr << "After3:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+
       if(ev.daq_nbx[0]!=ev.daq_nbx[1]){
   	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Bx size do not match between packed " << ev.daq_nbx[0] << " and unpacked data " << ev.daq_nbx[1] << std::endl;
   	isGood = false;
@@ -704,10 +738,7 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
 	continue;
       }
       
-      //std::cerr << "After4:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
-
       
-
       int bx_index = -1.0*int(ev.daq_nbx[0]);
       const int maxnbx = (2*ev.daq_nbx[0] + 1);
       uint64_t energy_raw[2][maxnbx][12];
@@ -813,7 +844,6 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
 	
       	bx_index++;
       }
-      //std::cerr << "After5:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
       
 
       // std::cout << std::endl;
@@ -853,17 +883,6 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
       	const uint32_t energy4_loc = (word1 >> (13+7)) & 0x3F;
       	const uint32_t bx_counter1 = ( word1 >> 26 ) & 0xF;
 	
-      	// std::cout << "Unpackaer output  0x" << std::setw(8) << word << " bx_counter 0x" << std::setw(1) << bx_counter
-      	//   // << " bx_counter1 0x" << std::setw(1) << bx_counter1 
-      	// 	  << std::dec << std::setfill(' ') 
-      	// 	  << " energy1 loc : " << std::setw(2) << energy1_loc << " energy1 :" << std::setw(2) << energy1
-      	// 	  << " energy2 loc : " << std::setw(2) << energy2_loc << " energy2 :" << std::setw(2) << energy2
-      	//   // << " energy3 loc : " << std::setw(2) << energy3_loc << " energy3 :" << std::setw(2) << energy3
-      	//   // << " energy4 loc : " << std::setw(2) << energy4_loc << " energy4 :" << std::setw(2) << energy4
-      	// 	  << std::endl ;	    
-
-	
-
       	// if(bx_counter != prev_bx_counter){
       	//   prev_bx_counter = bx_counter;
       	//   if(index_stc!=0)
@@ -956,10 +975,13 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
       	      // std::cerr << " Unpacked location value do not match with the packed one for (Run, event, iecont, bx, stc, bx_unpacked, bx_packed ) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<
 	      //< (ev.bx_unpkd[iect][ibx][istc] & 0x3)  << "," << ev.bx_raw[iect][ibx][istc] << ") "<< std::endl;
       	      isGood = false;
-	      if(iect==0) 
+	      if(iect==0){ 
 		nofBxRawUnpkMM++;
-	      else
+		isBxE = true;
+	      }else{
 		nofBxRawUnpkMM1++;
+		isBxE1 = true;
+	      }
       	    }  
       	  }
       	}
@@ -968,25 +990,30 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
 	  if(ev.bx_raw[iect][ev.daq_nbx[0]][0]!=15 || ev.bx_unpkd[iect][ev.daq_nbx[1]][0]!=15){
 	    //std::cerr << "Bx Module test failed for iect : "<< iect <<" since ev.bxId%8 : " << ev.bxId <<" and ev.bx_raw : "<< ev.bx_raw[iect][ev.daq_nbx[0]][0] << " and ev.bx_unpkd : "<< ev.bx_unpkd[iect][ev.daq_nbx[1]][0] << std::endl ;
 	    isGood = false;
-	    if(iect==0) 
+	    if(iect==0){ 
 	      nofBxCentralMM++;
-	    else
+	      isBxCE = true;
+	    }else{
 	      nofBxCentralMM1++;
+	      isBxCE1 = true;
+	    }
 	  }
 	}else{
 	  if((ev.bxId%8 != ev.bx_raw[iect][ev.daq_nbx[0]][0]) || (ev.bxId%8 != ev.bx_unpkd[iect][ev.daq_nbx[1]][0])){
 	    //std::cerr << "Bx Module test failed for iect : "<< iect <<" since ev.bxId%8 : " << (ev.bxId%8) <<" and ev.bx_raw : "<< ev.bx_raw[iect][ev.daq_nbx[0]][0] << " and ev.bx_unpkd : "<< ev.bx_unpkd[iect][ev.daq_nbx[1]][0] << std::endl ;
 	    isGood = false;
-	    if(iect==0) 
+	    if(iect==0) {
 	      nofBxCentralMM++;
-	    else
+	      isBxCE = true;
+	    }else{
 	      nofBxCentralMM1++;
+	       isBxCE1 = true;
+	    }
 	  }
 	}
       }
 
-      //std::cerr << "After7:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
-
+      
       //Check Locations
       for(int iect=0;iect<2;iect++){
       	for(int ibx=0;ibx<maxnbx;ibx++){
@@ -995,20 +1022,26 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
       	      // std::cout << std::dec << std::setfill(' ');
       	      // std::cerr << " Unpacked location index do not match with the STC for (Run, event, iecont, bx, stc, istc_from_unpacked) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< (ev.loc_unpkd[iect][ibx][istc]>>2  & 0xF)  <<") "<< std::endl;
       	      isGood = false;
-	      if(iect==0) 
+	      if(iect==0){ 
 		nofSTCNumberingErrors++;
-	      else
+		isSTCNE = true;
+	      }else{
 		nofSTCNumberingErrors1++;
+		isSTCNE1 = true;
+	      }
       	    }
       	    if( (ev.loc_unpkd[iect][ibx][istc] & 0x3) != ev.loc_raw[iect][ibx][istc]){
       	      // std::cout << std::dec << std::setfill(' ');
       	      // std::cerr << " Unpacked location value do not match with the packed one for (Run, event, iecont, bx, stc, loc_unpacked, loc_packed ) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<
 	      //< (ev.loc_unpkd[iect][ibx][istc] & 0x3)  << "," << ev.loc_raw[iect][ibx][istc] << ") "<< std::endl;
       	      isGood = false;
-	      if(iect==0) 
+	      if(iect==0){ 
 		nofSTCLocErrors++;
-	      else
+		isSTCLE = true;
+	      }else{
 		nofSTCLocErrors1++;
+		isSTCLE1 = true;
+	      }
       	    }    
       	  }
       	}
@@ -1025,32 +1058,42 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
       	      // std::cerr << " Packed and unpacked energies does not match for (Run, event,iecont,bx.stc,raw_energy,unpacked_energy) : (" << runNumber << "," << ev.eventId <<"," << iect << "," << ibx <<","<< istc <<","<< energy_raw[iec
 	      //																										      t][ibx][istc] <<","<< energy_unpkd[iect][ibx][istc] <<") "<< std::endl;
       	      isGood = false;
-	      if(iect==0) 
+	      if(iect==0){ 
 		nofEnergyMisMatches++;
-	      else
+		isEngE = true;
+	      }else{
 		nofEnergyMisMatches1++;
+		isEngE1 = true;
+	      }
       	    }
       	  }
       	}
       }
-
-      //std::cerr << "After8:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
       
-      // if(nEvents<max_event_entries){
-      // 	//std::cerr << "After8.1:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
-      // 	econt_events.push_back(ev);
-      // 	//std::cerr << "After8.2:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
-      // }else{
-      // 	//std::cerr << "After8.3:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
-      // 	econt_events.pop_front();
-      // 	//std::cerr << "After8.4:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
-      // 	econt_events.push_back(ev);
-      // }
+      
+      if(nEvents<max_event_entries){
+      	econt_events.push_back(ev);
+      }else{
+      	econt_events.pop_front();
+      	econt_events.push_back(ev);
+      }
       
       //if(nEvents>16583000)
       // if(nEvents>100)
       // 	break;
-      //std::cerr << "After9:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
+      
+
+      if(isSTCNE) nofEvcSTCNE++;
+      if(isSTCLE) nofEvcSTCLE++;
+      if(isEngE) nofEvcEngE++;
+      if(isBxE) nofEvcBxE++;
+      if(isBxCE) nofEvcBxCE++;
+      if(isSTCNE1) nofEvcSTCNE1++;
+      if(isSTCLE1) nofEvcSTCLE1++;
+      if(isEngE1) nofEvcEngE1++;
+      if(isBxE1) nofEvcBxE1++;
+      if(isBxCE1) nofEvcBxCE1++;
+
     }//loop event  
   }
   
@@ -1114,6 +1157,40 @@ int econt_data_validation_debug(unsigned relayNumber=1695242799, unsigned runNum
        << nofEnergyMisMatches1 << "|"
        << nofBxRawUnpkMM1 << "|"
        << nofBxCentralMM1 << "|"
+       << nofEmptyTCs1 << "|"
+       << std::hex << std::setfill('0')
+       << "0x" << std::setw(4) << payload_version << "|"
+       << std::dec << std::setfill(' ')
+       <<endl;
+
+  cout <<"Relay| Run| NofEvts| NofPhysT| NofCalT| NofCoinT| NofRandT| NofSoftT| NofRegT| RStrtE| RStpE| EvtIdE| xscafeE| 1stcafeE| daqHE| NbxE| STCNumE| STCLocE| EngE| BxMME| BxCMME| EmptyTCs| STCNumE1| STCLocE1| EngE1| BxMME1| BxCMME1| EmptyTCs1| PV|"<<endl;
+  cout << relayNumber << "|"
+       << runNumber << "|"
+       << nEvents << "|"
+       << total_phys_events << "|"
+       << total_calib_events << "|"
+       << total_coinc_events << "|"
+       << total_random_events << "|"
+       << total_soft_events << "|"
+       << total_regular_events << "|"
+       << nofRStartErrors << "|"
+       << nofRStopErrors << "|"
+       << nofEventIdErrs << "|"
+       << nofExcessFECAFEErrors << "|" 
+       << nofFirstFECAFEErrors << "|"
+       << hDaqEvtMisMatch->GetEntries() << "|"
+       << nofNbxMisMatches << "|"
+       << nofEvcSTCNE << "|"
+       << nofEvcSTCLE << "|"
+       << nofEvcEngE << "|"
+       << nofEvcBxE << "|"
+       << nofEvcBxCE << "|"
+       << nofEmptyTCs << "|"
+       << nofEvcSTCNE1 << "|"
+       << nofEvcSTCLE1 << "|"
+       << nofEvcEngE1 << "|"
+       << nofEvcBxE1 << "|"
+       << nofEvcBxCE1 << "|"
        << nofEmptyTCs1 << "|"
        << std::hex << std::setfill('0')
        << "0x" << std::setw(4) << payload_version << "|"
