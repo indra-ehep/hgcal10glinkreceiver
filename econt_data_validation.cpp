@@ -420,6 +420,8 @@ int main(int argc, char** argv){
   uint64_t nofEmptyTCs1 = 0;
   uint64_t nofBxRawUnpkMM1 = 0;
   uint64_t nofBxCentralMM1 = 0;
+  uint64_t nofSciCE = 0;
+  uint64_t nofSciCE1 = 0;
   
   // to cache where the cafe separators are
   int scintillator_cafe_word_loc;
@@ -436,7 +438,7 @@ int main(int argc, char** argv){
   deque<econt_event> econt_events;
   
   bool isGood = true;
-
+  
   bool isSTCNE = false;
   bool isSTCLE = false;
   bool isEngE = false;
@@ -447,7 +449,10 @@ int main(int argc, char** argv){
   bool isEngE1 = false;
   bool isBxE1 = false;
   bool isBxCE1 = false;
-
+  
+  uint64_t nofBoEE = 0;
+  uint64_t nofEoEE = 0;
+  uint64_t nofL1aE = 0;
   uint64_t nofEvcSTCNE = 0;
   uint64_t nofEvcSTCLE = 0;
   uint64_t nofEvcEngE = 0;
@@ -486,9 +491,9 @@ int main(int argc, char** argv){
     //Else we have an event record 
     else{
       
-      //if(nEvents>=2) continue;
+      // if(nEvents>=2) continue;
       
-      // if (nEvents >= 150 && nEvents <= 153)
+      // // if (nEvents >= 150 && nEvents <= 153)
       // if (nEvents < 2) 
       // 	event_dump(rEvent);
       
@@ -541,11 +546,25 @@ int main(int argc, char** argv){
   	// // event_dump_32(rEvent, false);
   	// // event_dump_32(rEvent, true);
       }
-      if(boe->boeHeader()!=boe->BoePattern) continue;
-      if(eoe->eoeHeader()!=eoe->EoePattern) continue;
+
+      //Increment event counter and reset error state
+      nEvents++;
+      
+      if(boe->boeHeader()!=boe->BoePattern) {
+	nofBoEE++;
+	continue;
+      }
+
+      if(eoe->eoeHeader()!=eoe->EoePattern) {
+	nofEoEE++;
+	continue;
+      }
       
       uint16_t l1atype = boe->l1aType();      
-      if(l1atype==0) continue;
+      if(l1atype==0) {
+	nofL1aE++;
+	continue;
+      }
 
       //Reset bool for event counters
       isSTCNE = false;
@@ -559,8 +578,6 @@ int main(int argc, char** argv){
       isBxE1 = false;
       isBxCE1 = false;
 
-      //Increment event counter and reset error state
-      nEvents++;
       const uint64_t *p64(((const uint64_t*)rEvent)+1);
 
       if(l1atype==0x0001)
@@ -591,7 +608,7 @@ int main(int argc, char** argv){
 	//if(nEvents%1000==0)
 	std::cerr << "Before:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
       
-      if((Abs64(ev.eventId,prevEvent) != Abs32(ev.sequenceId, prevSequence)) and Abs64(ev.eventId,prevEvent)>2){
+      if((Abs64(ev.eventId,prevEvent) != Abs32(ev.sequenceId, prevSequence)) and Abs64(ev.eventId,prevEvent)>=2){
       //if( TMath::Abs(Long64_t(ev.eventId - prevEvent)) >100){
 	isGood = false;
 	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
@@ -679,9 +696,9 @@ int main(int argc, char** argv){
 	continue;
       }
 
-
+      
       if(first_cafe_word_loc != 3){
-  	std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Corrupted header need to skip event as the first 0xfecafe word is at  "<< first_cafe_word_loc << " instead of ideal location 3." << std::endl;
+  	//std::cerr << "Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", Corrupted header need to skip event as the first 0xfecafe word is at  "<< first_cafe_word_loc << " instead of ideal location 3." << std::endl;
   	isGood = false;
 	//event_dump(rEvent);
 	// rEvent->RecordHeader::print();
@@ -944,6 +961,47 @@ int main(int argc, char** argv){
 	if(index_stc==0)
 	  index_ibx++;
       }
+      
+      
+      int sci_ibx = 0;
+      uint32_t firstCounter = 0;
+      uint32_t firstCounter1 = 0;
+      for(unsigned i(third_cafe_word_loc+5);i<daq2_event_size+third_cafe_word_loc+1;i=i+5){
+	
+      	const uint32_t word = (p64[i] & 0xFFFFFFFF) ;
+      	const uint32_t word1 = ((p64[i] >> 32) & 0xFFFFFFFF) ;
+	
+	if (nEvents < 2){
+	std::cout << "Sci : word : 0x" 
+		  << std::hex << std::setfill('0')
+		  << word << "\t"
+		  << std::dec << std::setfill(' ') 
+		  << word 
+		  << std::endl;
+
+	std::cout << "Sci : word1 : 0x" 
+		  << std::hex << std::setfill('0')
+		  << word1 << "\t"
+		  << std::dec << std::setfill(' ') 
+		  << word1 
+		  << std::endl;
+	}
+	if(sci_ibx==0){
+	  firstCounter = word ;
+	  firstCounter1 = word1 ;
+	}else{
+	  uint32_t diffSciC = word - firstCounter ; 
+	  uint32_t diffSciC1 = word1 - firstCounter1 ; 
+	  if (nEvents < 2){
+	    std::cout << "Sci : word : " << word << ", first Counter : " << firstCounter << ", diffSciC : " << diffSciC << ", sci_ibx : " << sci_ibx << std::endl;
+	    std::cout << "Sci : word1 : " << word1 << ", first Counter1 : " << firstCounter1 << ", diffSciC1 : " << diffSciC1 << ", sci_ibx : " << sci_ibx << std::endl;
+	  }
+	  if(word!=0 and diffSciC!=sci_ibx) nofSciCE++;
+	  if(word1!=0 and diffSciC1!=sci_ibx) nofSciCE1++;
+	}
+	
+	sci_ibx++;
+      }
 
       //std::cerr << "After6:Event : "<< ev.eventId << ", l1aType : " << ev.l1aType << ", and prevEvent  "<< prevEvent << ", nEvents : " << nEvents << " differs by "<< Abs64(ev.eventId,prevEvent) <<" (sequence differs by [ "<< ev.sequenceId << " - "<< prevSequence << " ] = " << Abs32(ev.sequenceId, prevSequence) << "), EventID_Diff is more than 2 " << std::endl;
       // if (nEvents < 3) {
@@ -1163,7 +1221,7 @@ int main(int argc, char** argv){
   //      << std::dec << std::setfill(' ')
   //      <<endl;
 
-  cout <<"Relay| Run| NofEvts| NofPhysT| NofCalT| NofCoinT| NofRandT| NofSoftT| NofRegT| RStrtE| RStpE| EvtIdE| xscafeE| 1stcafeE| daqHE| NbxE| STCNumE| STCLocE| EngE| BxMME| BxCMME| EmptyTCs| STCNumE1| STCLocE1| EngE1| BxMME1| BxCMME1| EmptyTCs1| PV|"<<endl;
+  cout <<"Relay| Run| NofEvts| NofPhysT| NofCalT| NofCoinT| NofRandT| NofSoftT| NofRegT| RStrtE| RStpE| BoeE| EoeE| L1aE| EvtIdE| xscafeE| 1stcafeE| daqHE| NbxE| STCNumE| STCLocE| EngE| BxMME| BxCMME| nofSciCE| EmptyTCs| STCNumE1| STCLocE1| EngE1| BxMME1| BxCMME1| nofSciCE1| EmptyTCs1| PV|"<<endl;
   cout << relayNumber << "|"
        << runNumber << "|"
        << nEvents << "|"
@@ -1175,6 +1233,9 @@ int main(int argc, char** argv){
        << total_regular_events << "|"
        << nofRStartErrors << "|"
        << nofRStopErrors << "|"
+       << nofBoEE << "|"
+       << nofEoEE << "|"
+       << nofL1aE << "|"
        << nofEventIdErrs << "|"
        << nofExcessFECAFEErrors << "|" 
        << nofFirstFECAFEErrors << "|"
@@ -1185,18 +1246,21 @@ int main(int argc, char** argv){
        << nofEvcEngE << "|"
        << nofEvcBxE << "|"
        << nofEvcBxCE << "|"
+       << nofSciCE << "|"
        << nofEmptyTCs << "|"
        << nofEvcSTCNE1 << "|"
        << nofEvcSTCLE1 << "|"
        << nofEvcEngE1 << "|"
        << nofEvcBxE1 << "|"
        << nofEvcBxCE1 << "|"
+       << nofSciCE1 << "|"
        << nofEmptyTCs1 << "|"
        << std::hex << std::setfill('0')
        << "0x" << std::setw(4) << payload_version << "|"
        << std::dec << std::setfill(' ')
        <<endl;
-  
+
+
   // if(isGood){
   //   std::cout << "All fine, no errors found." << std::endl;
   // }
