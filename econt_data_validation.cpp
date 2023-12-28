@@ -769,7 +769,7 @@ int main(int argc, char** argv){
   	  }
       if (nEvents < 2)
        	event_dump(rEvent);
-
+      
       for(unsigned i(first_cafe_word_loc+1);i<daq0_event_size+first_cafe_word_loc+1;i=i+4){
 	
       	const uint32_t word = (p64[i] & 0xFFFFFFFF) ;
