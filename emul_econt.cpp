@@ -23,6 +23,8 @@
 
 using namespace std;
 
+const uint64_t maxEvent = 1000;
+
 typedef struct{
 
   uint64_t eventId;
@@ -577,7 +579,7 @@ int read_roc_data(vector<rocdata>& rocarray, unsigned relayNumber, unsigned runN
       if(!hasfound_emptry_word) continue;
       if(is_ff_sep_notfound) continue;
       //if(nEvents>=500000) continue;
-      if(nEvents>1000) continue;
+      if(nEvents>maxEvent) continue;
       int ichip = 0;
       const uint64_t *p64(((const uint64_t*)rEvent)+1);
       for(int iloc=0;iloc<6;iloc++){
@@ -795,7 +797,7 @@ int read_econt_data_stc4(vector<econtdata>& econtarray, unsigned relayNumber, un
       if(daq0_event_size != edata.size_in_cafe[0]) continue;	
       if(daq1_event_size != edata.size_in_cafe[1]) continue;	
       
-      if(nEvents>1000) continue;
+      if(nEvents>maxEvent) continue;
       
       int bx_index = -1.0*int(edata.daq_nbx[0]);
       const int maxnbx = (2*edata.daq_nbx[0] + 1);
@@ -1020,7 +1022,7 @@ int read_econt_data_bc(vector<econtdata>& econtarray, unsigned relayNumber, unsi
       	boe->print();
       	eoe->print();
       }
-      if(nEvents>1000) continue;
+      if(nEvents>maxEvent) continue;
 
       int bx_index = -1.0*int(edata.daq_nbx[0]);
       const int maxnbx = (2*edata.daq_nbx[0] + 1);
@@ -1396,8 +1398,11 @@ int main(int argc, char** argv){
   std::istringstream issRun(argv[2]);
   issRun >> runNumber;
 
+  //===============================================================================================================================
+  //Read Link0, Link1 and Link2 files
+  //===============================================================================================================================
   vector<econtdata> econtarray;
-  //read_econt_data_stc4(econtarray,relayNumber,runNumber);
+  read_econt_data_stc4(econtarray,relayNumber,runNumber);
   //read_econt_data_bc(econtarray,relayNumber,runNumber);
   cout<<"Link0 size : " << econtarray.size() <<endl;
   
@@ -1408,10 +1413,19 @@ int main(int argc, char** argv){
   vector<rocdata> rocarray2;
   read_roc_data(rocarray2,relayNumber,runNumber,2);
   cout<<"Link1 size : " << rocarray2.size() <<endl;
-
+  //===============================================================================================================================
+  //Reading complete for Link0, Link1 and Link2 files
+  //===============================================================================================================================
+ 
+  //===============================================================================================================================
+  //Read channel mapping
+  //===============================================================================================================================
   map<int,tuple<int,int,int,int>> tctorocch;
   ReadChannelMapping(tctorocch);
-  
+
+  //===============================================================================================================================
+  //Print the information as read from Link0, Link1 and Link2.
+  //===============================================================================================================================
   TH1I *hTOTFlag = new TH1I("hTOTFlag","hTOTFlag",40,-1,39);
   // for(const auto& roc : rocarray1){
   //   if(roc.eventId==2)
@@ -1428,17 +1442,150 @@ int main(int argc, char** argv){
     }
   }
   
-  TH1F *histPed = new TH1F("histPed","histPed",300,0,300);
   for(const auto& roc : rocarray2){
     if(roc.eventId<2)
       printf("\troc Event : : %05d, Chip : %02d, Half : %02d, Channel : %02d, ADC : %5d, TOA : %5d, TOT : %5d, TOTflag : %2d, BXCounter : %d, EventCounter : %d, OrbitCounter : %d\n",
   	     roc.event, roc.chip, roc.half, roc.channel, roc.adc, roc.toa, roc.tot, roc.totflag, roc.bxcounter, roc.eventcounter, roc.orbitcounter);
     if(roc.totflag==3)
       hTOTFlag->Fill(roc.channel);
-    if(roc.chip==0 and roc.half==0 and roc.channel==0) histPed->Fill(roc.tot);
   }
-  //histPed->Reset("ICESM");
+  //===============================================================================================================================
+  //Print the information as read from Link0, Link1 and Link2.
+  //===============================================================================================================================
+
+  //===============================================================================================================================
+  //Read pedestal file processing Run 1695716961
+  //===============================================================================================================================
+  stringstream ss;
+  string s;
+  int chip, half, channel ;
+  unsigned ped_adc_i, noise_adc_i, ped_tot_i, noise_tot_i;
+
+  unsigned ped_adc[2][3][2][38], noise_adc[2][3][2][38];
+  unsigned ped_tot[2][3][2][38], noise_tot[2][3][2][38];
+  ifstream fin_lsb("log/ped_link1.txt");
+  while(getline(fin_lsb,s)){
+    ss << s.data() << endl;
+    ss >> chip >> half >> channel >> ped_adc_i >> noise_adc_i >> ped_tot_i >> noise_tot_i ;
+    ped_adc[0][chip][half][channel] = ped_adc_i;
+    noise_adc[0][chip][half][channel] = noise_adc_i;
+    ped_tot[0][chip][half][channel] = ped_tot_i;
+    noise_tot[0][chip][half][channel] = noise_tot_i;
+  }
+  fin_lsb.close();
   
+  ifstream fin_msb("log/ped_link2.txt");
+  while(getline(fin_msb,s)){
+    ss << s.data() << endl;
+    ss >> chip >> half >> channel >> ped_adc_i >> noise_adc_i >> ped_tot_i >> noise_tot_i ;
+    ped_adc[1][chip][half][channel] = ped_adc_i;
+    noise_adc[1][chip][half][channel] = noise_adc_i;
+    ped_tot[1][chip][half][channel] = ped_tot_i;
+    noise_tot[1][chip][half][channel] = noise_tot_i;
+  }
+  fin_msb.close();
+  //===============================================================================================================================
+  //Reading complete for pedestal input
+  //===============================================================================================================================
+
+  ///// ./emul_econt.exe 1695733045 1695733046
+  //===============================================================================================================================
+  //STC4
+  //===============================================================================================================================
+  TH1F *hCompressDiff = new TH1F("hCompressDiff","Difference in (Emulator - ECONT) compression in percent", 200, -99, 101);
+  TH1F *hCompressDiffECONT = new TH1F("hCompressDiffECONT","Difference in (Emulator - ECONT) compression", 200, -99, 101);
+  int choffset = get<0>(tctorocch[8]) ; //since there are 16 TC per chip
+  int isMSB = 1; //0/1:LSB/MSB corresponds to link1/Link2
+  for(const auto& econt : econtarray){
+    
+    //if(econt.eventId>=10) continue;
+    
+    //First loop to get the bx with maximum modulesum
+    uint16_t modsum[15];
+    for(unsigned ibx(0);ibx<15;ibx++) modsum[ibx] = econt.modsum[isMSB][ibx];
+    const int N = sizeof(modsum) / sizeof(uint16_t);
+    int bx_max = distance(modsum, max_element(modsum, modsum + N));
+    
+    //The bx with mod sum is not the 8 modulo bx, skip it
+    bool condn = (econt.bxId==3564) ? (econt.bx_raw[isMSB][bx_max]==15) : (econt.bxId%8 == econt.bx_raw[isMSB][bx_max]) ;
+    if(!condn) continue;
+
+    if(econt.eventId<=5){
+      cout << "Event : "<<econt.eventId<<", bx_index_with_maximum_modsum : "<< bx_max << ", modsum : "<<econt.modsum[isMSB][bx_max]<< endl;
+      cout<<"E : \t"; for(int istc=0;istc<12;istc++) cout<<econt.energy_raw[isMSB][bx_max][istc]<<" "; cout<<endl;
+      cout<<"L : \t"; for(int istc=0;istc<12;istc++) cout<<setw(2)<<std::setfill('0')<<econt.loc_raw[isMSB][bx_max][istc]<<" "; cout<<endl;  
+    }
+    
+    for(unsigned istc = 0 ; istc < 12 ; istc++){
+      //if(istc>2) continue;
+      int noftctot = 0;
+      uint32_t stcsum = 0;
+      for(unsigned itc = 4*istc ; itc < 4*istc + 4 ; itc++ ){
+  	//if(itc>3) continue;
+  	//if(econt.eventId<=5) cout << "Event : "<<econt.eventId<<", istc : "<< istc << ", itc : "<<itc<< endl;
+  	uint32_t compressed = 0;
+  	uint32_t compressedup = 0;
+  	uint32_t decompressed = 0;
+	
+  	uint32_t totadc = 0;
+  	uint32_t totadcup = 0;
+  	int noftot3 = 0;
+  	bool istot1 = false;
+  	bool istot2 = false;
+  	bool issattot = false;
+  	for(const auto& roc : rocarray2){
+  	  if(roc.eventId!=econt.eventId or roc.bxcounter!=econt.bxId) continue;
+  	  if(roc.channel>=36) continue;
+  	  int ch = (roc.half==1)?(roc.channel+choffset):roc.channel;
+  	  ch += 72*roc.chip ; 
+  	  uint32_t adc = uint32_t(roc.adc) & 0x3FF;
+  	  //adc = (adc>(ped_adc[isMSB][roc.chip][roc.half][roc.channel]+noise_adc[isMSB][roc.chip][roc.half][roc.channel])) ? adc : 0 ;
+  	  uint32_t tot = uint32_t(roc.tot) ; 
+  	  //tot = (tot>(ped_tot[isMSB][roc.chip][roc.half][roc.channel]+noise_tot[isMSB][roc.chip][roc.half][roc.channel])) ? tot : 0 ;
+  	  uint32_t totup = tot + 7;
+  	  uint32_t totlin = tot*25;
+  	  uint32_t totlinup = totup*25;
+  	  if(ch==get<0>(tctorocch[itc]) or ch==get<1>(tctorocch[itc]) or ch==get<2>(tctorocch[itc]) or ch==get<3>(tctorocch[itc])){
+  	    totadc += (roc.totflag==3) ? totlin : adc ;
+  	    totadcup += (roc.totflag==3) ? totlinup : adc ;
+  	    if(roc.totflag==3) noftot3++;
+  	    if(roc.totflag==3) noftctot++;
+  	    if(roc.totflag==1) istot1 = true;
+  	    if(roc.totflag==2) istot2 = true;
+  	    if(tot>=512) issattot = true;
+  	    if(econt.eventId<=5) cout<<"\t\tievent : " << roc.eventId <<", chip : " << roc.chip << ", half : "<<roc.half<< ", channel : " << roc.channel<<", ch : "<<ch<<", roc.adc : "<<roc.adc<<", adc : "<<adc<<", totflag : "<<roc.totflag <<", roc.tot : "<<roc.tot<<", tot : "<<tot<<", ped : "<<ped_adc[isMSB][roc.chip][roc.half][roc.channel] << ", noise : " << noise_adc[isMSB][roc.chip][roc.half][roc.channel] << ", ped_tot : " << ped_tot[isMSB][roc.chip][roc.half][roc.channel] << ", noise_tot : " << noise_tot[isMSB][roc.chip][roc.half][roc.channel]<<", totadc : "<<totadc<<endl;
+  	  }//if matching channel
+  	}//roc for loop
+    
+  	if(!istot1 and !istot2) {
+  	  compressed = compress_roc(totadc, 1);
+  	  compressedup = compress_roc(totadcup, 1);
+  	  decompressed = decompress_econt(compressed, 1);	  
+  	}
+  	if(econt.eventId<=5) cout <<"\t  itc : "<<(itc)<<", totadc : "<<totadc<<", compressed : "<< compressed<< ", decompressed [econt-t input] : "<< decompressed<< endl;
+
+  	stcsum += decompressed  ;
+      }//trig for loop
+      uint32_t compressed_econt = compress_econt(stcsum, 1);
+      if(econt.eventId<=5)
+  	cout <<"istc : "<<istc<<", stcsum : "<<stcsum<<", compressed_econt : "<<compressed_econt<<", econt_raw_energy : "<<econt.energy_raw[isMSB][bx_max][istc] << endl;
+
+      float diff = float(compressed_econt) - float(econt.energy_raw[isMSB][bx_max][istc]);
+      float reldiff = 100*(float(compressed_econt) - float(econt.energy_raw[isMSB][bx_max][istc]))/float(econt.energy_raw[isMSB][bx_max][istc]);
+      //if(noftctot<10) {hCompressDiffECONT->Fill(diff); hCompressDiff->Fill(reldiff);}
+      hCompressDiffECONT->Fill(diff);
+      hCompressDiff->Fill(reldiff);
+
+    }//stc loop
+  }//econt loop
+  //===============================================================================================================================
+  //STC4
+  //===============================================================================================================================
+
+  // ////./emul_econt.exe 1695829026 1695829027
+  // //===============================================================================================================================
+  // //BC9
+  // //===============================================================================================================================
   // TH1F *hCompressDiff = new TH1F("hCompressDiff","Difference in (Emulator - ROC) compression", 200, -99, 101);
   // TH1F *hCompressDiffECONT = new TH1F("hCompressDiffECONT","Difference in (Emulator - ECONT) compression", 200, -99, 101);
   // int choffset = get<0>(tctorocch[8]) ; //since there are 16 TC per chip
@@ -1452,92 +1599,11 @@ int main(int argc, char** argv){
   //   for(unsigned ibx(0);ibx<15;ibx++) modsum[ibx] = econt.modsum[isMSB][ibx];
   //   const int N = sizeof(modsum) / sizeof(uint16_t);
   //   int bx_max = distance(modsum, max_element(modsum, modsum + N));
-    
+
   //   //The bx with mod sum is not the 8 modulo bx, skip it
   //   bool condn = (econt.bxId==3564) ? (econt.bx_raw[isMSB][bx_max]==15) : (econt.bxId%8 == econt.bx_raw[isMSB][bx_max]) ;
   //   if(!condn) continue;
-
-  //   if(econt.eventId<=5){
-  //     cout << "Event : "<<econt.eventId<<", bx_index_with_maximum_modsum : "<< bx_max << ", modsum : "<<econt.modsum[isMSB][bx_max]<< endl;
-  //     cout<<"E : \t"; for(int istc=0;istc<12;istc++) cout<<econt.energy_raw[isMSB][bx_max][istc]<<" "; cout<<endl;
-  //     cout<<"L : \t"; for(int istc=0;istc<12;istc++) cout<<setw(2)<<std::setfill('0')<<econt.loc_raw[isMSB][bx_max][istc]<<" "; cout<<endl;  
-  //   }
     
-  //   for(unsigned istc = 0 ; istc < 12 ; istc++){
-  //     //if(istc>2) continue;
-  //     uint32_t stcsum = 0;
-  //     for(unsigned itc = 4*istc ; itc < 4*istc + 4 ; itc++ ){
-  // 	//if(itc>3) continue;
-  // 	//if(econt.eventId<=5) cout << "Event : "<<econt.eventId<<", istc : "<< istc << ", itc : "<<itc<< endl;
-  // 	uint32_t compressed = 0;
-  // 	uint32_t compressedup = 0;
-  // 	uint32_t decompressed = 0;
-	
-  // 	uint32_t totadc = 0;
-  // 	uint32_t totadcup = 0;
-  // 	int noftot3 = 0;
-  // 	bool istot1 = false;
-  // 	bool istot2 = false;
-  // 	bool issattot = false;
-  // 	for(const auto& roc : rocarray2){
-  // 	  if(roc.eventId!=econt.eventId or roc.bxcounter!=econt.bxId) continue;
-  // 	  if(roc.channel>=36) continue;
-  // 	  int ch = (roc.half==1)?(roc.channel+choffset):roc.channel;
-  // 	  ch += 72*roc.chip ; 
-  // 	  uint32_t adc = uint32_t(roc.adc) & 0x3FF;
-  // 	  uint32_t tot = uint32_t(roc.tot) ; //shift by 2 bits to recover 12-bit information
-  // 	  uint32_t totup = tot + 7;
-  // 	  uint32_t totlin = tot*25;
-  // 	  uint32_t totlinup = totup*25;
-  // 	  if(ch==get<0>(tctorocch[itc]) or ch==get<1>(tctorocch[itc]) or ch==get<2>(tctorocch[itc]) or ch==get<3>(tctorocch[itc])){
-  // 	    totadc += (roc.totflag==3) ? totlin : adc ;
-  // 	    totadcup += (roc.totflag==3) ? totlinup : adc ;
-  // 	    if(roc.totflag==3) noftot3++;
-  // 	    if(roc.totflag==1) istot1 = true;
-  // 	    if(roc.totflag==2) istot2 = true;
-  // 	    if(tot>=512) issattot = true;
-  // 	    //if(econt.eventId<=5) cout<<"\t\tievent : " << roc.eventId <<", chip : " << roc.chip << ", half : "<<roc.half<< ", channel : " << roc.channel<<", ch : "<<ch<<", adc : "<<adc<<", totflag : "<<roc.totflag <<", tot : "<<tot<<", totadc : "<<totadc<<endl;
-  // 	  }//if matching channel
-  // 	}//roc for loop
-    
-  // 	if(!istot1 and !istot2) {
-  // 	  compressed = compress_roc(totadc, 1);
-  // 	  compressedup = compress_roc(totadcup, 1);
-  // 	  decompressed = decompress_econt(compressed, 1);	  
-  // 	}
-  // 	//if(econt.eventId<=5) cout <<"\t  itc : "<<(itc)<<", totadc : "<<totadc<<", compressed : "<< compressed<< ", decompressed [econt-t input] : "<< decompressed<< endl;
-
-  // 	stcsum += decompressed  ;
-  //     }//trig for loop
-  //     uint32_t compressed_econt = compress_econt(stcsum, 1);
-  //     if(econt.eventId<=5)
-  // 	cout <<"istc : "<<istc<<", stcsum : "<<stcsum<<", compressed_econt : "<<compressed_econt<<", econt_raw_energy : "<<econt.energy_raw[isMSB][bx_max][istc] << endl;
-
-  //     float diff = float(compressed_econt) - float(econt.energy_raw[isMSB][bx_max][istc]);
-  //     hCompressDiffECONT->Fill(diff);
-  //   }//stc loop
-  // }//econt loop
-  
-  
-  // TH1F *hCompressDiff = new TH1F("hCompressDiff","Difference in (Emulator - ROC) compression", 200, -99, 101);
-  // TH1F *hCompressDiffECONT = new TH1F("hCompressDiffECONT","Difference in (Emulator - ECONT) compression", 200, -99, 101);
-  // int choffset = get<0>(tctorocch[8]) ; //since there are 16 TC per chip
-  // int isMSB = 1; //0/1:LSB/MSB corresponds to link1/Link2
-  // for(const auto& econt : econtarray){
-    
-  //   //if(econt.eventId>=10) continue;
-    
-  //   //First loop to get the bx with maximum modulesum
-  //   uint16_t modsum[15];
-  //   for(unsigned ibx(0);ibx<15;ibx++) modsum[ibx] = econt.modsum[isMSB][ibx];
-  //   const int N = sizeof(modsum) / sizeof(uint16_t);
-  //   int bx_max = distance(modsum, max_element(modsum, modsum + N));
-
-  //   //The bx with mod sum is not the 8 modulo bx, skip it
-    // bool condn = (econt.bxId==3564) ? (econt.bx_raw[isMSB][bx_max]==15) : (econt.bxId%8 == econt.bx_raw[isMSB][bx_max])
-    // if(!condn) continue;
-  // //   if(econt.bxId%8 != econt.bx_raw[isMSB][bx_max]) continue;
-
   //   if(econt.eventId<=10){
   //     cout << "Event : "<<econt.eventId<<", bx_index_with_maximum_modsum : "<< bx_max << endl;
   //     cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<econt.energy_raw[isMSB][bx_max][itc]<<" "; cout<<endl;
@@ -1570,7 +1636,9 @@ int main(int argc, char** argv){
   //   	int ch = (roc.half==1)?(roc.channel+choffset):roc.channel;
   //   	ch += 72*roc.chip ; 
   //   	uint32_t adc = uint32_t(roc.adc) & 0x3FF;
-  //   	uint32_t tot = uint32_t(roc.tot) ; //shift by 2 bits to recover 12-bit information
+  // 	//adc = (adc>(ped_adc[isMSB][roc.chip][roc.half][roc.channel]+noise_adc[isMSB][roc.chip][roc.half][roc.channel])) ? adc : 0 ;
+  //   	uint32_t tot = uint32_t(roc.tot) ;
+  // 	//tot = (tot>(ped_tot[isMSB][roc.chip][roc.half][roc.channel]+noise_tot[isMSB][roc.chip][roc.half][roc.channel])) ? tot : 0 ;
   //   	uint32_t totup = tot + 7;
   //   	uint32_t totlin = tot*25;
   //   	uint32_t totlinup = totup*25;
@@ -1612,24 +1680,23 @@ int main(int argc, char** argv){
   //   }//trigger cell for loop
     
   // }//econt loop
-  
   // //hCompressDiff->SetMinimum(1.e-1);
   // hCompressDiff->GetXaxis()->SetTitle("Difference in compressed value : Emulator - ROC");
   // hCompressDiff->SetLineColor(kBlue);
   // hCompressDiffECONT->GetXaxis()->SetTitle("Difference in compressed value : Emulator - ECONT");
   // hCompressDiffECONT->SetLineColor(kRed);
-    
-  // TFile *fout = new TFile("log/out.root","recreate");
-  // hTOTFlag->Write();
-  // hCompressDiff->Write();
-  // hCompressDiffECONT->Write();
-  // fout->Close();
-  // delete fout;
+  // //===============================================================================================================================
+  // //BC9
+  // //===============================================================================================================================
   
+    
   TFile *fout = new TFile("log/out.root","recreate");
-  histPed->Write();
+  hTOTFlag->Write();
+  hCompressDiff->Write();
+  hCompressDiffECONT->Write();
   fout->Close();
   delete fout;
+  
   
   return 0;
 }

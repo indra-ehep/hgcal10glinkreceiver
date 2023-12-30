@@ -1,1 +1,1 @@
-rm *.exe
+rm *.exe *.d *.pcm *.so

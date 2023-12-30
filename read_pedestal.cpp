@@ -6,6 +6,7 @@
 #include "TH2D.h"
 #include "TProfile.h"
 #include "TSystem.h"
+#include "TCanvas.h"
 
 #include "TFileHandlerLocal.h"
 #include "common/inc/FileReader.h"
@@ -23,6 +24,8 @@
 //                     2. ./emul_econt.exe $Relay $rname
 
 using namespace std;
+
+const uint64_t maxEvent = 1e8;
 
 typedef struct{
 
@@ -578,7 +581,7 @@ int read_roc_data(vector<rocdata>& rocarray, unsigned relayNumber, unsigned runN
       if(!hasfound_emptry_word) continue;
       if(is_ff_sep_notfound) continue;
       //if(nEvents>=500000) continue;
-      if(nEvents>1000) continue;
+      if(nEvents>maxEvent) continue;
       int ichip = 0;
       const uint64_t *p64(((const uint64_t*)rEvent)+1);
       for(int iloc=0;iloc<6;iloc++){
@@ -796,7 +799,7 @@ int read_econt_data_stc4(vector<econtdata>& econtarray, unsigned relayNumber, un
       if(daq0_event_size != edata.size_in_cafe[0]) continue;	
       if(daq1_event_size != edata.size_in_cafe[1]) continue;	
       
-      if(nEvents>1000) continue;
+      if(nEvents>maxEvent) continue;
       
       int bx_index = -1.0*int(edata.daq_nbx[0]);
       const int maxnbx = (2*edata.daq_nbx[0] + 1);
@@ -1021,7 +1024,7 @@ int read_econt_data_bc(vector<econtdata>& econtarray, unsigned relayNumber, unsi
       	boe->print();
       	eoe->print();
       }
-      if(nEvents>1000) continue;
+      if(nEvents>maxEvent) continue;
 
       int bx_index = -1.0*int(edata.daq_nbx[0]);
       const int maxnbx = (2*edata.daq_nbx[0] + 1);
@@ -1217,25 +1220,25 @@ int read_econt_data_bc(vector<econtdata>& econtarray, unsigned relayNumber, unsi
 
 
 
-int main(int argc, char** argv){
+//int main(int argc, char** argv){
+int read_pedestal(unsigned relayNumber=1695716961, unsigned runNumber=1695716961){
   
-  if(argc < 3){
-    std::cerr << argv[0] << ": no relay and/or run numbers specified" << std::endl;
-    return 1;
-  }
-  
+  // if(argc < 3){
+  //   std::cerr << argv[0] << ": no relay and/or run numbers specified" << std::endl;
+  //   return 1;
+  // }
+  // // ./emul_econt.exe $Relay $rname
+  // unsigned relayNumber(0);
+  // unsigned runNumber(0);
+  // std::istringstream issRelay(argv[1]);
+  // issRelay >> relayNumber;
+  // std::istringstream issRun(argv[2]);
+  // issRun >> runNumber;
+
   //Assign relay and run numbers
   unsigned linkNumber(0);
   bool skipMSB(true);
   
-  // ./emul_econt.exe $Relay $rname
-  unsigned relayNumber(0);
-  unsigned runNumber(0);
-  std::istringstream issRelay(argv[1]);
-  issRelay >> relayNumber;
-  std::istringstream issRun(argv[2]);
-  issRun >> runNumber;
-
   vector<econtdata> econtarray;
   //read_econt_data_stc4(econtarray,relayNumber,runNumber);
   //read_econt_data_bc(econtarray,relayNumber,runNumber);
@@ -1260,22 +1263,28 @@ int main(int argc, char** argv){
   
   for(const auto& econt : econtarray){
     if(econt.event<2){
-      printf("\tecont Event : : %05d, bxId : %u, bxId_8_modulo : %u, Energy_STC[0][7][0] : %07d, Energy_STC[1][7][0] : %07d, Loc[0][7][0] : %2d\n",
+      printf("\tecont Event : : %05ldd, bxId : %u, bxId_8_modulo : %u, Energy_STC[0][7][0] : %07d, Energy_STC[1][7][0] : %07d, Loc[0][7][0] : %2d\n",
 	     econt.event, econt.bxId, econt.bxId%8, econt.energy_raw[0][7][0], econt.energy_raw[1][7][0], econt.loc_raw[0][7][0]);
     }
   }
   
-
   for(const auto& roc : rocarray2){
     if(roc.eventId<2)
-      printf("\troc Event : : %05d, Chip : %02d, Half : %02d, Channel : %02d, ADC : %5d, TOA : %5d, TOT : %5d, TOTflag : %2d, BXCounter : %d, EventCounter : %d, OrbitCounter : %d\n",
+      printf("\troc Event : : %05ldd, Chip : %02d, Half : %02d, Channel : %02d, ADC : %5d, TOA : %5d, TOT : %5d, TOTflag : %2d, BXCounter : %d, EventCounter : %d, OrbitCounter : %d\n",
   	     roc.event, roc.chip, roc.half, roc.channel, roc.adc, roc.toa, roc.tot, roc.totflag, roc.bxcounter, roc.eventcounter, roc.orbitcounter);
 
   }
-
-
+  
+  
   TH1F *hADCPed = new TH1F("hADCPed","hADCPed",300,0,300);
   TH1F *hTOTPed = new TH1F("hTOTPed","hTOTPed",300,0,300);
+
+  TH1F *hADCPed_Ref = new TH1F("hADCPed_Ref","hADCPed_Ref",300,0,300);
+  TH1F *hTOTPed_Ref = new TH1F("hTOTPed_Ref","hTOTPed_Ref",300,0,300);
+  TH1F *hADCPed_Ref_high = new TH1F("hADCPed_Ref_high","hADCPed_Ref_high",300,0,300);
+  TH1F *hTOTPed_Ref_high = new TH1F("hTOTPed_Ref_high","hTOTPed_Ref_high",300,0,300);
+  TH1F *hADCPed_Ref_low = new TH1F("hADCPed_Ref_low","hADCPed_Ref_low",300,0,300);
+  TH1F *hTOTPed_Ref_low = new TH1F("hTOTPed_Ref_low","hTOTPed_Ref_low",300,0,300);
 
   int ped_adc_lsb[3][2][38], noise_adc_lsb[3][2][38];
   int ped_tot_lsb[3][2][38], noise_tot_lsb[3][2][38];
@@ -1290,8 +1299,13 @@ int main(int argc, char** argv){
 	hADCPed->Reset("ICESM");
 	hTOTPed->Reset("ICESM");
 	for(const auto& roc : rocarray1){
-	  if(roc.chip==ichip and roc.half==ihalf and roc.channel==ichannel and roc.totflag==0) hADCPed->Fill(roc.adc);
-	  if(roc.chip==ichip and roc.half==ihalf and roc.channel==ichannel and roc.totflag==0) hTOTPed->Fill(roc.tot);
+	  if(roc.chip==ichip and roc.half==ihalf and roc.channel==ichannel){
+	    hADCPed->Fill(roc.adc);
+	    hTOTPed->Fill(roc.tot);
+	    if(roc.chip==0 and roc.half==0 and roc.channel==0) { hADCPed_Ref->Fill(roc.adc); hTOTPed_Ref->Fill(roc.tot); }
+	    if(roc.chip==0 and roc.half==0 and roc.channel==10) { hADCPed_Ref_high->Fill(roc.adc); hTOTPed_Ref_high->Fill(roc.tot); }
+	    if(roc.chip==0 and roc.half==1 and roc.channel==11) { hADCPed_Ref_low->Fill(roc.adc); hTOTPed_Ref_low->Fill(roc.tot); }
+	  }
 	}
 	ped_adc_lsb[ichip][ihalf][ichannel] = TMath::Nint(hADCPed->GetMean());
 	noise_adc_lsb[ichip][ihalf][ichannel] = TMath::Nint(hADCPed->GetRMS());
@@ -1302,7 +1316,8 @@ int main(int argc, char** argv){
       }
 
   fout_lsb.close();
-
+  rocarray1.clear();
+  
   int ped_adc_msb[3][2][38], noise_adc_msb[3][2][38];
   int ped_tot_msb[3][2][38], noise_tot_msb[3][2][38];
   ofstream fout_msb("log/ped_link2.txt");
@@ -1316,8 +1331,7 @@ int main(int argc, char** argv){
 	hADCPed->Reset("ICESM");
 	hTOTPed->Reset("ICESM");
 	for(const auto& roc : rocarray2){
-	  if(roc.chip==ichip and roc.half==ihalf and roc.channel==ichannel and roc.totflag==0) hADCPed->Fill(roc.adc);
-	  if(roc.chip==ichip and roc.half==ihalf and roc.channel==ichannel and roc.totflag==0) hTOTPed->Fill(roc.tot);
+	  if(roc.chip==ichip and roc.half==ihalf and roc.channel==ichannel) {hADCPed->Fill(roc.adc); hTOTPed->Fill(roc.tot);}
 	}
 	ped_adc_msb[ichip][ihalf][ichannel] = TMath::Nint(hADCPed->GetMean());
 	noise_adc_msb[ichip][ihalf][ichannel] = TMath::Nint(hADCPed->GetRMS());
@@ -1325,10 +1339,157 @@ int main(int argc, char** argv){
 	noise_tot_msb[ichip][ihalf][ichannel] = TMath::Nint(hTOTPed->GetRMS());
 	fout_msb << ichip << "\t" << ihalf << "\t" << ichannel << "\t" << TMath::Nint(hADCPed->GetMean())  << "\t" << TMath::Nint(hADCPed->GetRMS())
 	     << "\t" << TMath::Nint(hTOTPed->GetMean()) << "\t" << TMath::Nint(hTOTPed->GetRMS())<< endl;
+	cout << ichip << "\t" << ihalf << "\t" << ichannel << "\t" << TMath::Nint(hADCPed->GetMean())  << "\t" << TMath::Nint(hADCPed->GetRMS())
+	     << "\t" << TMath::Nint(hTOTPed->GetMean()) << "\t" << TMath::Nint(hTOTPed->GetRMS())<< "\t" << hTOTPed->GetEntries() << endl;
       }
 
   fout_msb.close();
+  rocarray2.clear();
 
+  TH1F *hPedADC_LSB[3][2], *hNoiseADC_LSB[3][2], *hPedTOT_LSB[3][2], *hNoiseTOT_LSB[3][2];
+  for(int ichip=0;ichip<3;ichip++){
+    for(int ihalf=0;ihalf<2;ihalf++){
+      hPedADC_LSB[ichip][ihalf] = new TH1F(Form("hPedADC_LSB_%d_%d",ichip,ihalf),Form("hPedADC_LSB_%d_%d",ichip,ihalf),40,-1,39);
+      hNoiseADC_LSB[ichip][ihalf] = new TH1F(Form("hNoiseADC_LSB_%d_%d",ichip,ihalf),Form("hNoiseADC_LSB_%d_%d",ichip,ihalf),40,-1,39);
+      hPedTOT_LSB[ichip][ihalf] = new TH1F(Form("hPedTOT_LSB_%d_%d",ichip,ihalf),Form("hPedTOT_LSB_%d_%d",ichip,ihalf),40,-1,39);
+      hNoiseTOT_LSB[ichip][ihalf] = new TH1F(Form("hNoiseTOT_LSB_%d_%d",ichip,ihalf),Form("hNoiseTOT_LSB_%d_%d",ichip,ihalf),40,-1,39);
+      for(int ichannel=0;ichannel<37;ichannel++) {
+	hPedADC_LSB[ichip][ihalf]->SetBinContent(hPedADC_LSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), ped_adc_lsb[ichip][ihalf][ichannel]);
+	hNoiseADC_LSB[ichip][ihalf]->SetBinContent(hNoiseADC_LSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), noise_adc_lsb[ichip][ihalf][ichannel]);
+	hPedTOT_LSB[ichip][ihalf]->SetBinContent(hPedTOT_LSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), ped_tot_lsb[ichip][ihalf][ichannel]);
+	hNoiseTOT_LSB[ichip][ihalf]->SetBinContent(hNoiseTOT_LSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), noise_tot_lsb[ichip][ihalf][ichannel]);
+      }
+    }
+  }
+  
+  TH1F *hPedADC_MSB[3][2], *hNoiseADC_MSB[3][2], *hPedTOT_MSB[3][2], *hNoiseTOT_MSB[3][2];
+  for(int ichip=0;ichip<3;ichip++){
+    for(int ihalf=0;ihalf<2;ihalf++){
+      hPedADC_MSB[ichip][ihalf] = new TH1F(Form("hPedADC_MSB_%d_%d",ichip,ihalf),Form("hPedADC_MSB_%d_%d",ichip,ihalf),40,-1,39);
+      hNoiseADC_MSB[ichip][ihalf] = new TH1F(Form("hNoiseADC_MSB_%d_%d",ichip,ihalf),Form("hNoiseADC_MSB_%d_%d",ichip,ihalf),40,-1,39);
+      hPedTOT_MSB[ichip][ihalf] = new TH1F(Form("hPedTOT_MSB_%d_%d",ichip,ihalf),Form("hPedTOT_MSB_%d_%d",ichip,ihalf),40,-1,39);
+      hNoiseTOT_MSB[ichip][ihalf] = new TH1F(Form("hNoiseTOT_MSB_%d_%d",ichip,ihalf),Form("hNoiseTOT_MSB_%d_%d",ichip,ihalf),40,-1,39);
+      for(int ichannel=0;ichannel<37;ichannel++) {
+	hPedADC_MSB[ichip][ihalf]->SetBinContent(hPedADC_MSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), ped_adc_msb[ichip][ihalf][ichannel]);
+	hNoiseADC_MSB[ichip][ihalf]->SetBinContent(hNoiseADC_MSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), noise_adc_msb[ichip][ihalf][ichannel]);
+	hPedTOT_MSB[ichip][ihalf]->SetBinContent(hPedTOT_MSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), ped_tot_msb[ichip][ihalf][ichannel]);
+	hNoiseTOT_MSB[ichip][ihalf]->SetBinContent(hNoiseTOT_MSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), noise_tot_msb[ichip][ihalf][ichannel]);
+      }
+    }
+  }
+
+  TCanvas *c1_ped_adc_lsb = new TCanvas("c1_ped_adc_lsb","c1_ped_adc_lsb",1200,800);
+  c1_ped_adc_lsb->Divide(3,2);
+  for(int ichip=0;ichip<3;ichip++){
+    for(int ihalf=0;ihalf<2;ihalf++){
+      int icanvas = 2*ichip + ihalf + 1;
+      c1_ped_adc_lsb->cd(icanvas);
+      hPedADC_LSB[ichip][ihalf]->Draw();
+    }
+  }
+  
+  TCanvas *c2_noise_adc_lsb = new TCanvas("c2_noise_adc_lsb","c2_noise_adc_lsb",1200,800);
+  c2_noise_adc_lsb->Divide(3,2);
+  for(int ichip=0;ichip<3;ichip++){
+    for(int ihalf=0;ihalf<2;ihalf++){
+      int icanvas = 2*ichip + ihalf + 1;
+      c2_noise_adc_lsb->cd(icanvas);
+      hNoiseADC_LSB[ichip][ihalf]->Draw();
+    }
+  }
+  
+  TCanvas *c3_ped_tot_lsb = new TCanvas("c3_ped_tot_lsb","c3_ped_tot_lsb",1200,800);
+  c3_ped_tot_lsb->Divide(3,2);
+  for(int ichip=0;ichip<3;ichip++){
+    for(int ihalf=0;ihalf<2;ihalf++){
+      int icanvas = 2*ichip + ihalf + 1;
+      c3_ped_tot_lsb->cd(icanvas);
+      hPedTOT_LSB[ichip][ihalf]->Draw();
+    }
+  }
+  
+  TCanvas *c4_noise_tot_lsb = new TCanvas("c4_noise_tot_lsb","c4_noise_tot_lsb",1200,800);
+  c4_noise_tot_lsb->Divide(3,2);
+  for(int ichip=0;ichip<3;ichip++){
+    for(int ihalf=0;ihalf<2;ihalf++){
+      int icanvas = 2*ichip + ihalf + 1;
+      c4_noise_tot_lsb->cd(icanvas);
+      hNoiseADC_LSB[ichip][ihalf]->Draw();
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  TCanvas *c1_ped_adc_msb = new TCanvas("c1_ped_adc_msb","c1_ped_adc_msb",1200,800);
+  c1_ped_adc_msb->Divide(3,2);
+  for(int ichip=0;ichip<3;ichip++){
+    for(int ihalf=0;ihalf<2;ihalf++){
+      int icanvas = 2*ichip + ihalf + 1;
+      c1_ped_adc_msb->cd(icanvas);
+      hPedADC_MSB[ichip][ihalf]->Draw();
+    }
+  }
+  
+  TCanvas *c2_noise_adc_msb = new TCanvas("c2_noise_adc_msb","c2_noise_adc_msb",1200,800);
+  c2_noise_adc_msb->Divide(3,2);
+  for(int ichip=0;ichip<3;ichip++){
+    for(int ihalf=0;ihalf<2;ihalf++){
+      int icanvas = 2*ichip + ihalf + 1;
+      c2_noise_adc_msb->cd(icanvas);
+      hNoiseADC_MSB[ichip][ihalf]->Draw();
+    }
+  }
+  
+  TCanvas *c3_ped_tot_msb = new TCanvas("c3_ped_tot_msb","c3_ped_tot_msb",1200,800);
+  c3_ped_tot_msb->Divide(3,2);
+  for(int ichip=0;ichip<3;ichip++){
+    for(int ihalf=0;ihalf<2;ihalf++){
+      int icanvas = 2*ichip + ihalf + 1;
+      c3_ped_tot_msb->cd(icanvas);
+      hPedTOT_MSB[ichip][ihalf]->Draw();
+    }
+  }
+  
+  TCanvas *c4_noise_tot_msb = new TCanvas("c4_noise_tot_msb","c4_noise_tot_msb",1200,800);
+  c4_noise_tot_msb->Divide(3,2);
+  for(int ichip=0;ichip<3;ichip++){
+    for(int ihalf=0;ihalf<2;ihalf++){
+      int icanvas = 2*ichip + ihalf + 1;
+      c4_noise_tot_msb->cd(icanvas);
+      hNoiseADC_MSB[ichip][ihalf]->Draw();
+    }
+  }
+
+  TFile *fcanva_out = new TFile("log/Pedestal.root","recreate");
+  hADCPed_Ref->Write();
+  hTOTPed_Ref->Write();
+  hADCPed_Ref_high->Write();
+  hTOTPed_Ref_high->Write();
+  hADCPed_Ref_low->Write();
+  hTOTPed_Ref_low->Write();
+  c1_ped_adc_lsb->Write();
+  c2_noise_adc_lsb->Write();
+  c3_ped_tot_lsb->Write();
+  c4_noise_tot_lsb->Write();
+  for(int ichip=0;ichip<3;ichip++){
+    for(int ihalf=0;ihalf<2;ihalf++){
+      hPedADC_LSB[ichip][ihalf]->Write();
+      hNoiseADC_LSB[ichip][ihalf]->Write();
+      hPedTOT_LSB[ichip][ihalf]->Write();
+      hNoiseTOT_LSB[ichip][ihalf]->Write();
+    }
+  }
+  c1_ped_adc_msb->Write();
+  c2_noise_adc_msb->Write();
+  c3_ped_tot_msb->Write();
+  c4_noise_tot_msb->Write();
+  for(int ichip=0;ichip<3;ichip++){
+    for(int ihalf=0;ihalf<2;ihalf++){
+      hPedADC_MSB[ichip][ihalf]->Write();
+      hNoiseADC_MSB[ichip][ihalf]->Write();
+      hPedTOT_MSB[ichip][ihalf]->Write();
+      hNoiseTOT_MSB[ichip][ihalf]->Write();
+    }
+  }
   
   return 0;
 }
