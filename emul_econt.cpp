@@ -24,7 +24,7 @@
 
 using namespace std;
 
-const uint64_t maxEvent = 1e4; //6e5
+const uint64_t maxEvent = 1e6; //6e5
 
 typedef struct{
 
@@ -651,6 +651,8 @@ int read_roc_data(vector<rocdata>& rocarray, unsigned relayNumber, unsigned runN
 	    totL = (wordL>>10) & 0x3FF;
 	    toaL = wordL & 0x3FF;
 	  }
+	  if(totL>>0x9==1)  totL = (totL & 0x1ff) << 0x3 ; //10-bit to 12-bit conversion
+
       	  const uint16_t trigflagM = (wordM>>30) & 0x3;
 	  if(trigflagM<=1){ //0 or 1
 	    adcmM = (wordM>>20) & 0x3FF;
@@ -665,7 +667,7 @@ int read_roc_data(vector<rocdata>& rocarray, unsigned relayNumber, unsigned runN
 	    totM = (wordM>>10) & 0x3FF;
 	    toaM = wordM & 0x3FF;
 	  }
-	  
+	  if(totM>>0x9==1)  totM = (totM & 0x1ff) << 0x3 ; //10-bit to 12-bit conversion
 
 	  if (nEvents < 4){ 
 	    if(isMSB[iloc]==0){
@@ -1493,7 +1495,8 @@ void ReadChannelMapping(map<int,tuple<int,int,int,int>>& tctorocch)
   float trace;
   int t;
   //Dens   Wtype     ROC HalfROC     Seq  ROCpin  SiCell  TrLink  TrCell      iu      iv   trace       t
-  ifstream inwafermap("/home/indra/Downloads/WaferCellMapTraces.txt");
+  //ifstream inwafermap("/home/indra/Downloads/WaferCellMapTraces.txt");
+  ifstream inwafermap("/home/hep/idas/codes/WaferCellMapTraces.txt");
   //ifstream inwafermap("/afs/cern.ch/user/i/idas/Downloads/WaferCellMapTraces.txt");
   stringstream ss;
   string s;
@@ -1542,6 +1545,64 @@ void ReadChannelMapping(map<int,tuple<int,int,int,int>>& tctorocch)
   }
 
   
+}
+
+int read_Ped_from_yaml(unsigned refRelay, unsigned refRun, unsigned link)
+{
+  string infile = "";
+  if(link==1)
+    infile = Form("dat/Relay%u/Run%u_Module00c43fff.yaml",refRelay,refRun);
+  else if(link==2)
+    infile = Form("dat/Relay%u/Run%u_Module00c87fff.yaml",refRelay,refRun);
+  
+  cout<<"Module config file : "<<infile<<endl;
+  // const char* inDir = "/eos/cms/store/group/dpg_hgcal/tb_hgcal/2023/BeamTestSep/HgcalBeamtestSep2023";
+  
+  // char* dir = gSystem->ExpandPathName(inDir);
+  // void* dirp = gSystem->OpenDirectory(dir);
+  
+  // const char* entry;
+  // Int_t n = 0;
+  // TString str;
+  
+  // int prevRelay = 0;
+  // string configname;
+  // string prevConfigname = "";
+  // while((entry = (char*)gSystem->GetDirEntry(dirp))) {
+  //   str = entry;
+  //   if(str.EndsWith(".yaml") and str.Contains("Serenity")){
+  //     string str1 = str.Data();
+  //     string s_pat = "Constants";
+  //     TString str2 = str1.substr( s_pat.size(), str1.find_first_of("_")-s_pat.size());
+  //     //cout<< "str : " << str << ", relay : " << str2.Atoi() << " prevRelay : " << prevRelay << endl;
+  //     int relay = str2.Atoi();
+  //     configname = gSystem->ConcatFileName(dir, entry);
+  //     if(relay>int(refRelay) and int(refRelay)>=prevRelay) {
+  // 	//cout<<"Found config : " << relay << endl;
+  // 	break;
+  // 	//return;
+  //     }
+  //     prevRelay = relay;
+  //     prevConfigname = configname;
+  //   }
+  // }
+  // cout<<"Prev config name : "<<prevConfigname<<endl;
+  // cout<<"Config name : "<<configname<<endl;
+
+  // ifstream fin(prevConfigname);
+  // string s;
+  // string s_pat = "PayloadVersion: ";
+  // int version = 0;
+  // while(getline(fin,s)){
+  //   str = s;
+  //   if(str.Contains(s_pat)){
+  //     TString str2 = s.substr( s_pat.size(), s.size()-s_pat.size());
+  //     //cout << "Version : " << str2.Atoi() << endl;
+  //     version  = str2.Atoi();
+  //   }
+  // }
+  
+  return true;
 }
 
 uint32_t compress_roc(uint32_t val, bool isldm)
@@ -1719,13 +1780,13 @@ int main(int argc, char** argv){
   read_econt_data_bc(econtarray,relayNumber,runNumber);
   cout<<"Link0 size : " << econtarray.size() <<endl;
   
-  // vector<rocdata> rocarray1; rocarray1.clear();
-  // read_roc_data(rocarray1,relayNumber,runNumber,1);
-  // cout<<"Link1 size : " << rocarray1.size() <<endl;
+  vector<rocdata> rocarray1; rocarray1.clear();
+  read_roc_data(rocarray1,relayNumber,runNumber,1);
+  cout<<"Link1 size : " << rocarray1.size() <<endl;
   
-  vector<rocdata> rocarray2; rocarray2.clear();
-  read_roc_data(rocarray2,relayNumber,runNumber,2);
-  cout<<"Link2 size : " << rocarray2.size() <<endl;
+  // vector<rocdata> rocarray2; rocarray2.clear();
+  // read_roc_data(rocarray2,relayNumber,runNumber,2);
+  // cout<<"Link2 size : " << rocarray2.size() <<endl;
   //===============================================================================================================================
   //Reading complete for Link0, Link1 and Link2 files
   //===============================================================================================================================
@@ -1736,6 +1797,12 @@ int main(int argc, char** argv){
   map<int,tuple<int,int,int,int>> tctorocch; tctorocch.clear();
   ReadChannelMapping(tctorocch);
 
+  //===============================================================================================================================
+  //Read adc pedestal and threshold from yaml module file
+  //===============================================================================================================================
+  unsigned pedestal_adc[2][3][2][38], threshold_adc[2][3][2][38]; //2links,3chips,2halves,38sequences
+  read_Ped_from_yaml(relayNumber, runNumber, 1);
+  //read_Ped_from_yaml(relayNumber, runNumber, 2);
   //===============================================================================================================================
   //Print the information as read from Link0, Link1 and Link2.
   //===============================================================================================================================
@@ -1781,8 +1848,8 @@ int main(int argc, char** argv){
   //   }
   // }
   
-  for(const auto& roc : rocarray2){
-    if(roc.eventId<2)
+  for(const auto& roc : rocarray1){
+    if(roc.eventId<0)
       printf("\troc Event : : %05d, Chip : %02d, Half : %02d, Channel : %02d, ADCM : %5d, ADC : %5d, TOA : %5d, TOT : %5d, TOTflag : %2d, BXCounter : %d, EventCounter : %d, OrbitCounter : %d\n",
   	     roc.event, roc.chip, roc.half, roc.channel, roc.adcm, roc.adc, roc.toa, roc.tot, roc.totflag, roc.bxcounter, roc.eventcounter, roc.orbitcounter);
     if(roc.totflag==0) hTOTFlag_0->Fill(roc.channel);
@@ -1973,19 +2040,25 @@ int main(int argc, char** argv){
   TProfile *hProfTCvsCh0 = new TProfile("hProfTCvsCh0","hProfTCvsCh0",300,0,300,0,100);
   TH1I *hTC0 = new TH1I("hTC0","decompressed energy for TC0",1044,-10,1034);
   TH2F *h2DTCvsTOTCh0 = new TH2F("h2DTCvsTOTCh0","h2DTCvsTOTCh0",1200,0,12000,1200,0,12000);
+  TH2F *h2DTCvsTOTCh1 = new TH2F("h2DTCvsTOTCh1","h2DTCvsTOTCh1",1200,0,12000,1200,0,12000);
+  TH2F *h2DTCvsTOTCh2 = new TH2F("h2DTCvsTOTCh2","h2DTCvsTOTCh2",1200,0,12000,1200,0,12000);
+  TH2F *h2DTCvsTOTCh3 = new TH2F("h2DTCvsTOTCh3","h2DTCvsTOTCh3",1200,0,12000,1200,0,12000);
   TH1I *hTC0TOT = new TH1I("hTC0TOT","decompressed energy for TC0 for TOT",1200,0,12000);
   int choffset = get<0>(tctorocch[8]) ; //==36, since there are 16 TC per chip
   cout<<"choffset : "<<choffset<<endl;
-  int isMSB = 1; //0/1:LSB/MSB corresponds to link1/Link2
+  int isMSB = 0; //0/1:LSB/MSB corresponds to link1/Link2
   for(const auto& econt : econtarray){
     
     //if(econt.eventId>=10) continue;
     
     //First loop to get the bx with maximum modulesum
-    uint16_t modsum[15];
-    for(unsigned ibx(0);ibx<15;ibx++) modsum[ibx] = econt.modsum[isMSB][ibx];
-    const int N = sizeof(modsum) / sizeof(uint16_t);
-    int bx_max = distance(modsum, max_element(modsum, modsum + N));
+    // uint16_t modsum[15];
+    // for(unsigned ibx(0);ibx<15;ibx++) modsum[ibx] = econt.modsum[isMSB][ibx];
+    // const int N = sizeof(modsum) / sizeof(uint16_t);
+    // int bx_max = distance(modsum, max_element(modsum, modsum + N));
+
+    // if(bx_max==2) continue;
+    int bx_max = 10;
 
     //The bx with mod sum is not the 8 modulo bx, skip it
     bool condn = (econt.bxId==3564) ? (econt.bx_raw[isMSB][bx_max]==15) : (econt.bxId%8 == econt.bx_raw[isMSB][bx_max]) ;
@@ -2028,12 +2101,20 @@ int main(int argc, char** argv){
       //uint32_t aped0 = 93, aped1 = 96, aped2 = 89, aped3 = 89, adc_th = 21;
       //uint32_t aped0 = 91, aped1 = 96, aped2 = 88, aped3 = 86, adc_th = 20;
       //uint32_t aped0 = 86, aped1 = 96, aped2 = 86, aped3 = 86, adc_th = 19; //iterative checking
-      uint32_t aped0 = 90, aped1 = 92, aped2 = 90, aped3 = 92, adc_th = 6; //yaml file
+      //uint32_t aped0 = 90, aped1 = 92, aped2 = 90, aped3 = 92, adc_th = 6; //yaml file link2
+      uint32_t aped0 = 92, aped1 = 91, aped2 = 92, aped3 = 90, adc_th = 5; //yaml file link1
+      
       uint32_t multfactor = 15;
       bool iscp0hf0ch0tot = false;
+      bool iscp0hf0ch1tot = false;
+      bool iscp0hf0ch2tot = false;
+      bool iscp0hf0ch3tot = false;
       uint32_t reftotch0 = 0;
-      
-      for(const auto& roc : rocarray2){
+      uint32_t reftotch1 = 0;
+      uint32_t reftotch2 = 0;
+      uint32_t reftotch3 = 0;
+      uint32_t nof_offs_by_one = 0;
+      for(const auto& roc : rocarray1){
     	if(roc.eventId!=econt.eventId or roc.bxcounter!=econt.bxId) continue; //check if event and bx ids are matching
     	if(roc.channel>=37 or roc.channel==18) continue;                      //Skip the calibration and ch number > 27
   	if(roc.totflag==2) continue;                                          //Skip the totflag 2
@@ -2044,10 +2125,10 @@ int main(int argc, char** argv){
   	  uint32_t adc = uint32_t(roc.adc) & 0x3FF;
   	  //adc = (adc>(ped_adc[isMSB][roc.chip][roc.half][roc.channel]+noise_adc[isMSB][roc.chip][roc.half][roc.channel])) ? adc : 0 ;
   	  if(ch==get<0>(tctorocch[itc]) or ch==get<1>(tctorocch[itc]) or ch==get<2>(tctorocch[itc]) or ch==get<3>(tctorocch[itc])){
-  	    if(roc.chip==0 and roc.half==0 and roc.channel==0) {iscp0hf0ch0adc = true; refadcch0 = adc; adc = (adc>(aped0+adc_th)) ? adc-aped0 : 0 ;}
-  	    if(roc.chip==0 and roc.half==0 and roc.channel==1) {iscp0hf0ch1adc = true; refadcch1 = adc; adc = (adc>(aped1+adc_th)) ? adc-aped1 : 0 ;}
-  	    if(roc.chip==0 and roc.half==0 and roc.channel==2) {iscp0hf0ch2adc = true; refadcch2 = adc; adc = (adc>(aped2+adc_th)) ? adc-aped2 : 0 ;}
-  	    if(roc.chip==0 and roc.half==0 and roc.channel==3) {iscp0hf0ch3adc = true; refadcch3 = adc; adc = (adc>(aped3+adc_th)) ? adc-aped3 : 0 ;}
+  	    if(roc.chip==0 and roc.half==0 and roc.channel==0) {iscp0hf0ch0adc = true; refadcch0 = adc; if(TMath::Abs(int(adc)-int(aped0+adc_th))==1) nof_offs_by_one++; adc = (adc>=(aped0+adc_th)) ? adc-aped0 : 0 ;}
+  	    if(roc.chip==0 and roc.half==0 and roc.channel==1) {iscp0hf0ch1adc = true; refadcch1 = adc; if(TMath::Abs(int(adc)-int(aped1+adc_th))==1) nof_offs_by_one++; adc = (adc>=(aped1+adc_th)) ? adc-aped1 : 0 ;}
+  	    if(roc.chip==0 and roc.half==0 and roc.channel==2) {iscp0hf0ch2adc = true; refadcch2 = adc; if(TMath::Abs(int(adc)-int(aped2+adc_th))==1) nof_offs_by_one++; adc = (adc>=(aped2+adc_th)) ? adc-aped2 : 0 ;}
+  	    if(roc.chip==0 and roc.half==0 and roc.channel==3) {iscp0hf0ch3adc = true; refadcch3 = adc; if(TMath::Abs(int(adc)-int(aped3+adc_th))==1) nof_offs_by_one++; adc = (adc>=(aped3+adc_th)) ? adc-aped3 : 0 ;}
   	    totadc += adc ;
   	    if(roc.totflag==1) istot1 = true;
   	    if(econt.eventId<=10 and foundTC)
@@ -2061,7 +2142,10 @@ int main(int argc, char** argv){
   	  uint32_t totlin = tot*multfactor;
   	  uint32_t totlinup = totup*multfactor;
   	  if(ch==get<0>(tctorocch[itc]) or ch==get<1>(tctorocch[itc]) or ch==get<2>(tctorocch[itc]) or ch==get<3>(tctorocch[itc])){
-	    if(roc.chip==0 and roc.half==0 and roc.channel==0) {iscp0hf0ch0tot = true; reftotch0 = totlin;}
+  	    if(roc.chip==0 and roc.half==0 and roc.channel==0) {iscp0hf0ch0tot = true; reftotch0 = totlin;}
+  	    if(roc.chip==0 and roc.half==0 and roc.channel==1) {iscp0hf0ch1tot = true; reftotch1 = totlin;}
+  	    if(roc.chip==0 and roc.half==0 and roc.channel==2) {iscp0hf0ch2tot = true; reftotch2 = totlin;}
+  	    if(roc.chip==0 and roc.half==0 and roc.channel==3) {iscp0hf0ch3tot = true; reftotch3 = totlin;}
   	    totadc += totlin ;
   	    totadcup += totlinup ;
   	    if(roc.totflag==3) noftot3++;
@@ -2094,10 +2178,32 @@ int main(int argc, char** argv){
   	       <<", compressed_econt [econ-t output] : "<< compressed_econt 
   	       << endl;
   	diff = float(compressed_econt) - float(econt.energy_raw[isMSB][bx_max][refTC]);
-	bool isZero = false;
-	if(compressed_econt==0 or econt.energy_raw[isMSB][bx_max][refTC]==0) isZero = true;
+  	bool isZero = false;
+  	if(compressed_econt==0 or econt.energy_raw[isMSB][bx_max][refTC]==0) isZero = true;
+  	if(TMath::Abs(diff)>1 and noftot3==0 and !isZero){
+  	  cout<<"ADC::Large Diff : "<<diff<< ", Event : "<<econt.eventId<<", ADC : ("<<refadcch0<<", "<<refadcch1<<", "<<refadcch2<<", "<<refadcch3<<"), nof_offs_by_one : "<<nof_offs_by_one<<endl;
+  	  cout << "Event : "<<econt.eventId<<", bx_index_with_maximum_modsum : "<< bx_max <<", modsum : " << econt.modsum[isMSB][bx_max] << endl;
+  	  cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<econt.energy_raw[isMSB][bx_max][itc]<<" "; cout<<endl;
+  	  cout<<"L : \t"; for(int itc=0;itc<9;itc++) cout<<setw(2)<<std::setfill('0')<<econt.loc_raw[isMSB][bx_max][itc]<<" "; cout<<endl;  
+  	  cout <<"\t  itc : "<<(itc)<<", totadc : "<<totadc
+  	       <<", compressed : "<< compressed
+  	       << ", decompressed [econt-t input] : "<< decompressed
+  	       <<", compressed_econt [econ-t output] : "<< compressed_econt 
+  	       << endl;
+  	}
+  	if(TMath::Abs(diff)>1 and noftot3!=0 and !isZero){
+  	  cout<<"TOT::Large Diff : "<<diff<< ", Event : "<<econt.eventId<<", TOT : ("<<reftotch0<<", "<<reftotch1<<", "<<reftotch2<<", "<<reftotch3<<"), ADC : ("<<refadcch0<<", "<<refadcch1<<", "<<refadcch2<<", "<<refadcch3<<") "<<endl;
+  	  cout << "Event : "<<econt.eventId<<", bx_index_with_maximum_modsum : "<< bx_max <<", modsum : " << econt.modsum[isMSB][bx_max] << endl;
+  	  cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<econt.energy_raw[isMSB][bx_max][itc]<<" "; cout<<endl;
+  	  cout<<"L : \t"; for(int itc=0;itc<9;itc++) cout<<setw(2)<<std::setfill('0')<<econt.loc_raw[isMSB][bx_max][itc]<<" "; cout<<endl;  
+  	  cout <<"\t  itc : "<<(itc)<<", totadc : "<<totadc
+  	       <<", compressed : "<< compressed
+  	       << ", decompressed [econt-t input] : "<< decompressed
+  	       <<", compressed_econt [econ-t output] : "<< compressed_econt 
+  	       << endl;
+  	}
   	if(foundTC and noftot3==0 and !isZero) hCompressDiffECONT->Fill(diff);
-	if(foundTC and noftot3!=0 and !isZero) hCompressDiffTOTECONT->Fill(diff);
+  	if(foundTC and noftot3!=0 and !isZero) hCompressDiffTOTECONT->Fill(diff);
   	diff = float(compressed_econt_PD) - float(econt.energy_raw[isMSB][bx_max][refTC]);
   	if(foundTC) hCompressDiffECONTPD->Fill(diff);
   	diff = float(compressed_econt_PD) - float(compressed_econt);
@@ -2108,8 +2214,11 @@ int main(int argc, char** argv){
   	if(iscp0hf0ch2adc and foundTC and itc==0 and noftot3==0) h2DTCvsCh2->Fill(float(refadcch2),float(tc_decompressed));
   	if(iscp0hf0ch3adc and foundTC and itc==0 and noftot3==0) h2DTCvsCh3->Fill(float(refadcch3),float(tc_decompressed));
   	if(foundTC and itc==0 and noftot3==0) hTC0->Fill(float(tc_decompressed));
-	if(iscp0hf0ch0tot and foundTC and itc==0 and noftot3!=0) h2DTCvsTOTCh0->Fill(float(reftotch0),float(tc_decompressed));
-	if(foundTC and itc==0 and noftot3!=0) hTC0TOT->Fill(float(tc_decompressed));
+  	if(iscp0hf0ch0tot and foundTC and itc==0 and noftot3!=0) h2DTCvsTOTCh0->Fill(float(reftotch0),float(tc_decompressed));
+  	if(iscp0hf0ch1tot and foundTC and itc==0 and noftot3!=0) h2DTCvsTOTCh1->Fill(float(reftotch1),float(tc_decompressed));
+  	if(iscp0hf0ch2tot and foundTC and itc==0 and noftot3!=0) h2DTCvsTOTCh2->Fill(float(reftotch2),float(tc_decompressed));
+  	if(iscp0hf0ch3tot and foundTC and itc==0 and noftot3!=0) h2DTCvsTOTCh3->Fill(float(reftotch3),float(tc_decompressed));
+  	if(foundTC and itc==0 and noftot3!=0) hTC0TOT->Fill(float(tc_decompressed));
       }
       
     }//trigger cell for loop
@@ -2202,14 +2311,17 @@ int main(int argc, char** argv){
   hProfTCvsCh0->Write();
   hTC0->Write();
   h2DTCvsTOTCh0->Write();
+  h2DTCvsTOTCh1->Write();
+  h2DTCvsTOTCh2->Write();
+  h2DTCvsTOTCh3->Write();
   hTC0TOT->Write();
   fout->Close();
   delete fout;
   
   tctorocch.clear();
   econtarray.clear();
-  //rocarray1.clear();
-  rocarray2.clear();
+  rocarray1.clear();
+  //rocarray2.clear();
   
   return 0;
 }
