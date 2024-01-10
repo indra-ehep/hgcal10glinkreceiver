@@ -25,7 +25,62 @@
 
 using namespace std;
 
-const uint64_t maxEvent = 1e6; //6e5
+const uint64_t maxEvent = 1e5; //6e5
+
+typedef struct{
+
+  uint64_t eventId;
+  uint32_t sequenceId;
+  uint16_t l1aType;
+  uint16_t ECONT_packet_status[2][12];               //2 : LSB/MSB, 12 : STC
+  bool ECONT_packet_validity[2][12];                 //2 : LSB/MSB, 12 : STC
+  uint16_t OC[2],EC[2];                              //2 : LSB/MSB
+  uint16_t BC[2];                                    //2 : LSB/MSB
+  uint16_t bxId;                                     //bxId
+  
+  uint16_t daq_data[5];                              //5 : data blocks separated by 0xfecafe
+  uint16_t daq_nbx[5];                               //5 : data blocks separated by 0xfecafe
+  uint16_t size_in_cafe[5];                          //5 : data blocks separated by 0xfecafe
+  
+  uint32_t energy_raw[2][15][12];                    //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t loc_raw[2][15][12];                       //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t bx_raw[2][15][12];                        //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t energy_unpkd[2][15][12];                  //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t loc_unpkd[2][15][12];                     //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t bx_unpkd[2][15][12];                      //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  
+} econt_event;
+
+typedef struct{
+  uint64_t eventId,event;
+  uint16_t chip,half,channel,totflag,bxcounter,eventcounter,orbitcounter;
+  int adcm,adc,toa,tot;
+} rocdata;
+
+typedef struct{
+
+  uint64_t event;
+  uint64_t eventId;
+  uint32_t sequenceId;
+  uint16_t bxId;                                     //bxId
+
+  uint16_t daq_data[5];                              //5 : data blocks separated by 0xfecafe
+  uint16_t daq_nbx[5];                               //5 : data blocks separated by 0xfecafe
+  uint16_t size_in_cafe[5];                          //5 : data blocks separated by 0xfecafe
+
+  uint16_t modsum[2][15];
+  uint32_t energy_raw[2][15][12];                    //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t loc_raw[2][15][12];                       //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t bx_raw[2][15];                        //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+
+  uint32_t energy_unpkd[2][15][12];                  //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t loc_unpkd[2][15][12];                     //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  uint32_t bx_unpkd[2][15];                      //2 : LSB/MSB, 15 : for max 7 bxs, 12 : STC
+  // int event,chip,channelsumid,rawsum,compressed;
+  // float decompresssum;
+
+} econtdata;
+
 
 typedef struct{
   bitset<2> chip;
@@ -43,7 +98,11 @@ typedef struct{
   uint8_t loc_raw[2][9]; 
 } bcdata;
 
-
+typedef struct{
+  uint8_t chip;
+  uint8_t half;
+  uint8_t channel;
+} chid;
 
 uint64_t Abs32(uint32_t a, uint32_t b)
 {
@@ -63,6 +122,57 @@ uint64_t Abs64(uint64_t a, uint64_t b)
     return (b-a);
   else
     return 0;
+}
+
+int read_Payload_Version(unsigned refRelay)
+{
+  const char* inDir = "/eos/cms/store/group/dpg_hgcal/tb_hgcal/2023/BeamTestSep/HgcalBeamtestSep2023";
+  
+  char* dir = gSystem->ExpandPathName(inDir);
+  void* dirp = gSystem->OpenDirectory(dir);
+  
+  const char* entry;
+  Int_t n = 0;
+  TString str;
+  
+  int prevRelay = 0;
+  string configname;
+  string prevConfigname = "";
+  while((entry = (char*)gSystem->GetDirEntry(dirp))) {
+    str = entry;
+    if(str.EndsWith(".yaml") and str.Contains("Serenity")){
+      string str1 = str.Data();
+      string s_pat = "Constants";
+      TString str2 = str1.substr( s_pat.size(), str1.find_first_of("_")-s_pat.size());
+      //cout<< "str : " << str << ", relay : " << str2.Atoi() << " prevRelay : " << prevRelay << endl;
+      int relay = str2.Atoi();
+      configname = gSystem->ConcatFileName(dir, entry);
+      if(relay>int(refRelay) and int(refRelay)>=prevRelay) {
+	//cout<<"Found config : " << relay << endl;
+	break;
+	//return;
+      }
+      prevRelay = relay;
+      prevConfigname = configname;
+    }
+  }
+  cout<<"Prev config name : "<<prevConfigname<<endl;
+  cout<<"Config name : "<<configname<<endl;
+
+  ifstream fin(prevConfigname);
+  string s;
+  string s_pat = "PayloadVersion: ";
+  int version = 0;
+  while(getline(fin,s)){
+    str = s;
+    if(str.Contains(s_pat)){
+      TString str2 = s.substr( s_pat.size(), s.size()-s_pat.size());
+      //cout << "Version : " << str2.Atoi() << endl;
+      version  = str2.Atoi();
+    }
+  }
+  
+  return version;
 }
 
 // print all (64-bit) words in event
@@ -306,6 +416,25 @@ void set_packet_energies_bc(uint64_t packet_energies[9], uint32_t* packet) {
     packet_energies[i] = pick_bits64(word1, i*7, 7);
 }
 
+void PrintLastEvents(deque<econt_event> econt_events)
+{
+  int nofEventPrint = 10;
+  int nofPop = (econt_events.size() > 10) ? (econt_events.size() - nofEventPrint) : 0 ;
+  for(int ievent = 0; ievent < nofPop ; ievent++ )
+    econt_events.pop_front();
+  
+  while (!econt_events.empty()) {
+    econt_event ev = econt_events.back();
+    cout << "\tPrev :: Event ID :  " << ev.eventId
+	 << ", OC[LSB] : " << ev.OC[0] << ", OC[MSB] : " << ev.OC[1]
+      	 << ", BC[LSB] : " << ev.BC[0] << ", BC[MSB] : " << ev.BC[1]
+	 <<endl;
+    econt_events.pop_back();
+  }
+  cout<<endl;
+
+  
+}
 
 bool is_ffsep_word(const uint64_t word, int& isMSB) {
 
@@ -635,6 +764,682 @@ int read_roc_data(map<uint64_t,vector<daqdata>>& rocarray, unsigned relayNumber,
   return true;
 }
 
+int read_roc_data(vector<rocdata>& rocarray, unsigned relayNumber, unsigned runNumber, unsigned linkNumber)
+{
+
+  //Create the file reader
+  Hgcal10gLinkReceiver::FileReader _fileReader;
+  
+  //Make the buffer space for the records
+  Hgcal10gLinkReceiver::RecordT<4095> *r(new Hgcal10gLinkReceiver::RecordT<4095>);
+  
+  //Set up specific records to interpet the formats
+  const Hgcal10gLinkReceiver::RecordStarting *rStart((Hgcal10gLinkReceiver::RecordStarting*)r);
+  const Hgcal10gLinkReceiver::RecordStopping *rStop ((Hgcal10gLinkReceiver::RecordStopping*)r);
+  const Hgcal10gLinkReceiver::RecordRunning  *rEvent((Hgcal10gLinkReceiver::RecordRunning*) r);
+  _fileReader.setDirectory(std::string("dat/Relay")+std::to_string(relayNumber));
+  _fileReader.openRun(runNumber,linkNumber);
+
+  rocdata rdata;
+  uint64_t nEvents = 0;
+  
+  //Use the fileReader to read the records
+  while(_fileReader.read(r)) {
+    //Check the state of the record and print the record accordingly
+    if( r->state()==Hgcal10gLinkReceiver::FsmState::Starting){
+      if(!(rStart->valid())){
+  	std::cerr << " FsmState::Starting validadity fails : rStart->valid() " << rStart->valid() << std::endl;
+  	// rStart->print();
+  	// std::cout << std::endl;
+  	continue;
+      }
+    }
+    
+    else if(r->state()==Hgcal10gLinkReceiver::FsmState::Stopping){
+      if(!(rStop->valid())){
+  	std::cerr << " FsmState::Stopping validadity fails : rStop->valid() " << rStop->valid() << std::endl;
+  	// rStop->print();
+  	// std::cout << std::endl;
+  	continue;
+      }
+    }
+    //Else we have an event record 
+    else{
+
+      const Hgcal10gLinkReceiver::SlinkBoe *boe = rEvent->slinkBoe();      
+      const Hgcal10gLinkReceiver::SlinkEoe *eoe = rEvent->slinkEoe();
+
+      if (nEvents < 4){ 
+       	event_dump(rEvent);
+      	rEvent->RecordHeader::print();
+      	boe->print();
+      	eoe->print();
+	// const uint32_t *p32(((const uint32_t*)rEvent)+1);
+	// for(unsigned i(0);i<2*rEvent->payloadLength();i++){
+	//   std::cout << "EventId : " << std::setw(3) << rEvent->slinkBoe()->eventId() ;
+	//   std::cout << "\t Word " << std::setw(3) << i << " ";
+	//   std::cout << std::hex << std::setfill('0');
+	//   std::cout << "0x" << std::setw(8) << p32[i] << std::endl;
+	//   std::cout << std::dec << std::setfill(' ');
+	// }
+	// std::cout << std::endl;
+
+	cout<<"Payload length : "<< rEvent->payloadLength() << endl;
+      }
+      //Increment event counter
+      nEvents++;
+      
+      int isMSB[6];
+      int ffsep_word_loc[6];
+      bool is_ff_sep_notfound = false;
+      for(int iloc=0;iloc<6;iloc++){
+      	isMSB[iloc] = -1;
+      	ffsep_word_loc[iloc] = find_ffsep_word(rEvent, isMSB[iloc], iloc+1);
+      	if(isMSB[iloc] == -1) is_ff_sep_notfound = true;
+	if (nEvents < 5){ 
+	  if(iloc==0)
+	    cout << "\nEvent : " << nEvents << ": " <<iloc+1 <<"-st 0xffff 0xffff separator word at location : " << ffsep_word_loc[iloc] << " word and isMSB : " << isMSB[iloc] << endl;
+	  else if(iloc==1)
+	    cout << "Event : " << nEvents << ": " <<iloc+1 <<"-nd 0xffff 0xffff separator word at location : " << ffsep_word_loc[iloc] << " word and isMSB : " << isMSB[iloc] << endl;
+	  else if(iloc==2)
+	    cout << "Event : " << nEvents << ": " <<iloc+1 <<"-rd 0xffff 0xffff separator word at location : " << ffsep_word_loc[iloc] << " word and isMSB : " << isMSB[iloc] << endl;
+	  else
+	    cout << "Event : " << nEvents << ": " <<iloc+1 <<"-th 0xffff 0xffff separator word at location : " << ffsep_word_loc[iloc] << " word and isMSB : " << isMSB[iloc] << endl;
+	}
+      }
+      
+      int expctd_empty_word_loc = ffsep_word_loc[5]+19;
+      int empty_isMSB = -1;
+      bool hasfound_emptry_word = found_empty_word(rEvent, empty_isMSB, expctd_empty_word_loc) ;
+      if (nEvents < 5)
+	cout << "Event : " << nEvents << ": 0x0000 0x0000 closing separator word at location : " << expctd_empty_word_loc << " hasfound_emptry_word : "<< hasfound_emptry_word << ",  and isMSB : " << empty_isMSB << endl;
+      
+      if(!hasfound_emptry_word) continue;
+      if(is_ff_sep_notfound) continue;
+      if(nEvents>maxEvent) continue;
+      
+      int ichip = 0;
+      const uint64_t *p64(((const uint64_t*)rEvent)+1);
+      
+      uint32_t wordH = ((p64[ffsep_word_loc[0]-1] >> 32) & 0xFFFFFFFF) ;
+      int daq_header_payload_length = int(((wordH>>14) & 0x1FF));
+      daq_header_payload_length -= 1 ; //1 for DAQ header
+      if (nEvents < 5){
+	std::cout << std::hex << std::setfill('0');
+	cout << "Event : " << nEvents << ", WordH : 0x" << wordH  ;
+	std::cout << std::dec << std::setfill(' ');
+	cout<<", Size in ECON-D header : " << daq_header_payload_length << endl;
+      }
+      
+      int record_header_sizeinfo = int(rEvent->payloadLength()); //in 64-bit format
+      int reduced_record_header_sizeinfo = record_header_sizeinfo - (4+2+1) ; //exclude 4 64-bit words for slink header/trailer + 2 DAQ header + 1 for DAQ trailer
+      int record_header_sizeinfo_32bit = 2*reduced_record_header_sizeinfo ; //change to 32-bit format
+      
+      if(record_header_sizeinfo_32bit!=daq_header_payload_length) continue;
+      
+      for(int iloc=0;iloc<6;iloc++){
+      	unsigned max_sep_word = (iloc==5) ? expctd_empty_word_loc : ffsep_word_loc[iloc+1] ;
+      	bool ishalf = (iloc%2==0) ? false : true ;
+      	if(isMSB[iloc]==1) max_sep_word++;
+      	int index = 0;
+      	int ch = 0;
+	int adcmL=-1, adcL=-1, toaL=-1, totL=-1;
+	int adcmM=-1, adcM=-1, toaM=-1, totM=-1;
+      	for(unsigned i = ffsep_word_loc[iloc]+1 ; i< max_sep_word ; i++){
+	  
+	  
+      	  uint32_t wordL = 0;
+      	  uint32_t wordM = 0;
+      	  if(isMSB[iloc]==0){
+      	    wordL = (p64[i] & 0xFFFFFFFF) ;
+      	    wordM = ((p64[i] >> 32) & 0xFFFFFFFF) ;
+      	  }else if(isMSB[iloc]==1){
+      	    wordL = (p64[i-1] & 0xFFFFFFFF) ;	  
+      	    wordM = ((p64[i] >> 32) & 0xFFFFFFFF) ;
+      	  }
+	  adcmL=-1; adcL=-1; toaL=-1; totL=-1;
+	  adcmM=-1; adcM=-1; toaM=-1; totM=-1;
+
+      	  const uint16_t trigflagL = (wordL>>30) & 0x3;
+	  if(trigflagL<=1){ //0 or 1
+	    adcmL = (wordL>>20) & 0x3FF;
+	    adcL = (wordL>>10) & 0x3FF;
+	    toaL = wordL & 0x3FF;
+	  }else if(trigflagL==2){
+	    adcmL = (wordL>>20) & 0x3FF;
+	    totL = (wordL>>10) & 0x3FF;
+	    toaL = wordL & 0x3FF;	    
+	  }else if(trigflagL==3){
+	    adcmL = (wordL>>20) & 0x3FF;
+	    totL = (wordL>>10) & 0x3FF;
+	    toaL = wordL & 0x3FF;
+	  }
+	  if(totL>>0x9==1)  totL = (totL & 0x1ff) << 0x3 ; //10-bit to 12-bit conversion
+
+      	  const uint16_t trigflagM = (wordM>>30) & 0x3;
+	  if(trigflagM<=1){ //0 or 1
+	    adcmM = (wordM>>20) & 0x3FF;
+	    adcM = (wordM>>10) & 0x3FF;
+	    toaM = wordM & 0x3FF;
+	  }else if(trigflagM==2){
+	    adcmM = (wordM>>20) & 0x3FF;
+	    totM = (wordM>>10) & 0x3FF;
+	    toaM = wordM & 0x3FF;	    
+	  }else if(trigflagM==3){
+	    adcmM = (wordM>>20) & 0x3FF;
+	    totM = (wordM>>10) & 0x3FF;
+	    toaM = wordM & 0x3FF;
+	  }
+	  if(totM>>0x9==1)  totM = (totM & 0x1ff) << 0x3 ; //10-bit to 12-bit conversion
+
+	  if (nEvents < 4){ 
+	    if(isMSB[iloc]==0){
+	      cout<<"\ti : "<<i<<", index : "<<index<<endl;
+	      std::cout << std::hex << std::setfill('0');
+	      cout<<"\tWordM : 0x" << std::setw(8) << wordM <<", wordL : 0x" << std::setw(8) << wordL<< std::endl;
+	      std::cout << std::dec << std::setfill(' ');
+	      cout<<"\tM:(flag,adc,tot,toa) : (" << trigflagM <<", " << adcM << ", " << totM <<", " << toaM << "), \t"
+		  <<"L:(flag,adc,tot,toa) : (" << trigflagL <<", " << adcL << ", " << totL <<", " << toaL << ")" << endl;
+	    }else{
+	      cout<<"\ti : "<<i<<", index : "<<index<<endl;
+	      std::cout << std::hex << std::setfill('0');
+	      cout<<"\tWordL[i-1] : 0x" << std::setw(8) << wordL<<", wordM : 0x" << std::setw(8) << wordM << std::endl;
+	      std::cout << std::dec << std::setfill(' ');
+	      cout<<"\tL:(flag,adc,tot,toa)[i-1] : (" << trigflagL <<", " << adcL << ", " << totL <<", " << toaL << "), \t"
+		  <<"M:(flag,adc,tot,toa) : (" << trigflagM <<", " << adcM << ", " << totM <<", " << toaM << ")" << endl;
+	    }
+	  }
+	  
+      	  if(isMSB[iloc]==0){
+      	    rdata.event = nEvents;
+      	    rdata.eventId = boe->eventId();
+      	    rdata.chip = uint16_t(ichip);
+      	    rdata.half = uint16_t(ishalf);
+      	    rdata.channel = ch ;
+	    rdata.adcm = adcmM;
+      	    rdata.adc = adcM;
+      	    rdata.tot = totM;
+      	    rdata.toa = toaM;
+      	    rdata.totflag = trigflagM;
+      	    rdata.bxcounter = eoe->bxId();
+      	    rdata.eventcounter = rEvent->RecordHeader::sequenceCounter();
+      	    rdata.orbitcounter = eoe->orbitId();
+      	    ch++;
+      	    rocarray.push_back(rdata);
+	    if(index!=18){
+	      rdata.event = nEvents;
+	      rdata.eventId = boe->eventId();
+	      rdata.chip = uint16_t(ichip);
+	      rdata.half = uint16_t(ishalf);
+	      rdata.channel = ch ;
+	      rdata.adcm = adcmL;
+	      rdata.adc = adcL;
+	      rdata.tot = totL;
+	      rdata.toa = toaL;
+	      rdata.totflag = trigflagL;
+	      rdata.bxcounter = eoe->bxId();
+	      rdata.eventcounter = rEvent->RecordHeader::sequenceCounter();
+	      rdata.orbitcounter = eoe->orbitId();
+	      ch++;
+	      rocarray.push_back(rdata);
+	    }
+      	  }else{
+	    
+      	    rdata.event = nEvents;
+      	    rdata.eventId = boe->eventId();
+      	    rdata.chip = uint16_t(ichip);
+      	    rdata.half = uint16_t(ishalf);
+      	    rdata.channel = ch ;
+	    rdata.adcm = adcmL;
+      	    rdata.adc = adcL;
+      	    rdata.tot = totL;
+      	    rdata.toa = toaL;
+      	    rdata.totflag = trigflagL;
+      	    rdata.bxcounter = eoe->bxId();
+      	    rdata.eventcounter = rEvent->RecordHeader::sequenceCounter();
+      	    rdata.orbitcounter = eoe->orbitId();
+      	    ch++;
+      	    rocarray.push_back(rdata);
+
+	    if(index!=18){
+	      rdata.event = nEvents;
+	      rdata.eventId = boe->eventId();
+	      rdata.chip = uint16_t(ichip);
+	      rdata.half = uint16_t(ishalf);
+	      rdata.channel = ch ;
+	      rdata.adcm = adcmM;
+	      rdata.adc = adcM;
+	      rdata.tot = totM;
+	      rdata.toa = toaM;
+	      rdata.totflag = trigflagM;
+	      rdata.bxcounter = eoe->bxId();
+	      rdata.eventcounter = rEvent->RecordHeader::sequenceCounter();
+	      rdata.orbitcounter = eoe->orbitId();
+	      ch++;
+	      rocarray.push_back(rdata);
+	    }
+      	  }
+      	  index++;
+      	}
+      	//cout<<endl;
+      	if(iloc%2==1)ichip++;
+      }
+    }
+  }//file reader
+
+  _fileReader.close();
+  return true;
+}
+
+int read_roc_data_old(vector<rocdata>& rocarray, unsigned relayNumber, unsigned runNumber, unsigned linkNumber)
+{
+
+  //Create the file reader
+  Hgcal10gLinkReceiver::FileReader _fileReader;
+  
+  //Make the buffer space for the records
+  Hgcal10gLinkReceiver::RecordT<4095> *r(new Hgcal10gLinkReceiver::RecordT<4095>);
+  
+  //Set up specific records to interpet the formats
+  const Hgcal10gLinkReceiver::RecordStarting *rStart((Hgcal10gLinkReceiver::RecordStarting*)r);
+  const Hgcal10gLinkReceiver::RecordStopping *rStop ((Hgcal10gLinkReceiver::RecordStopping*)r);
+  const Hgcal10gLinkReceiver::RecordRunning  *rEvent((Hgcal10gLinkReceiver::RecordRunning*) r);
+  _fileReader.setDirectory(std::string("dat/Relay")+std::to_string(relayNumber));
+  _fileReader.openRun(runNumber,linkNumber);
+
+  rocdata rdata;
+  uint64_t nEvents = 0;
+  
+  //Use the fileReader to read the records
+  while(_fileReader.read(r)) {
+    //Check the state of the record and print the record accordingly
+    if( r->state()==Hgcal10gLinkReceiver::FsmState::Starting){
+      if(!(rStart->valid())){
+  	std::cerr << " FsmState::Starting validadity fails : rStart->valid() " << rStart->valid() << std::endl;
+  	// rStart->print();
+  	// std::cout << std::endl;
+  	continue;
+      }
+    }
+    
+    else if(r->state()==Hgcal10gLinkReceiver::FsmState::Stopping){
+      if(!(rStop->valid())){
+  	std::cerr << " FsmState::Stopping validadity fails : rStop->valid() " << rStop->valid() << std::endl;
+  	// rStop->print();
+  	// std::cout << std::endl;
+  	continue;
+      }
+    }
+    //Else we have an event record 
+    else{
+
+      const Hgcal10gLinkReceiver::SlinkBoe *boe = rEvent->slinkBoe();      
+      const Hgcal10gLinkReceiver::SlinkEoe *eoe = rEvent->slinkEoe();
+
+      if (nEvents < 1){ 
+       	event_dump(rEvent);
+      	rEvent->RecordHeader::print();
+      	boe->print();
+      	eoe->print();
+      }
+      
+      //Increment event counter
+      nEvents++;
+
+      int isMSB[6];
+      int ffsep_word_loc[6];
+      bool is_ff_sep_notfound = false;
+      for(int iloc=0;iloc<6;iloc++){
+	isMSB[iloc] = -1;
+	ffsep_word_loc[iloc] = find_ffsep_word(rEvent, isMSB[iloc], iloc+1);
+	if(isMSB[iloc] == -1) is_ff_sep_notfound = true;
+	// if(iloc==0)
+	//   cout << "\nEvent : " << nEvents << ": " <<iloc+1 <<"-st 0xffff 0xffff separator word at location : " << ffsep_word_loc[iloc] << " word and isMSB : " << isMSB[iloc] << endl;
+	// else if(iloc==1)
+	//   cout << "Event : " << nEvents << ": " <<iloc+1 <<"-nd 0xffff 0xffff separator word at location : " << ffsep_word_loc[iloc] << " word and isMSB : " << isMSB[iloc] << endl;
+	// else if(iloc==2)
+	//   cout << "Event : " << nEvents << ": " <<iloc+1 <<"-rd 0xffff 0xffff separator word at location : " << ffsep_word_loc[iloc] << " word and isMSB : " << isMSB[iloc] << endl;
+	// else
+	//   cout << "Event : " << nEvents << ": " <<iloc+1 <<"-th 0xffff 0xffff separator word at location : " << ffsep_word_loc[iloc] << " word and isMSB : " << isMSB[iloc] << endl;
+      }
+      
+      int expctd_empty_word_loc = ffsep_word_loc[5]+20;
+      int empty_isMSB = -1;
+      bool hasfound_emptry_word = found_empty_word(rEvent, empty_isMSB, expctd_empty_word_loc) ;
+      // cout << "Event : " << nEvents << ": 0x0000 0x0000 closing separator word at location : " << expctd_empty_word_loc << " hasfound_emptry_word : "<< hasfound_emptry_word << ",  and isMSB : " << empty_isMSB << endl;
+
+      if(!hasfound_emptry_word) continue;
+      if(is_ff_sep_notfound) continue;
+      //if(nEvents>=500000) continue;
+      if(nEvents>maxEvent) continue;
+      int ichip = 0;
+      const uint64_t *p64(((const uint64_t*)rEvent)+1);
+      for(int iloc=0;iloc<6;iloc++){
+	unsigned max_sep_word = (iloc==5) ? expctd_empty_word_loc : ffsep_word_loc[iloc+1] ;
+	bool ishalf = (iloc%2==0) ? false : true ;
+	if(isMSB[iloc]==1 and iloc!=5) max_sep_word++;
+	int index = 0;
+	int ch = 0;
+	for(unsigned i = ffsep_word_loc[iloc]+1 ; i< max_sep_word ; i++){
+	  // std::cout << "chip "<<ichip<<", half : "<<ishalf<<", index  : "<< index << " word : " <<i <<" \t";
+	  // std::cout << std::hex << std::setfill('0');
+	  // //cout<<" : 0x" << std::setw(16) << p64[i] << std::endl;
+	  // std::cout << std::dec << std::setfill(' ');
+	  
+	  uint32_t wordL = 0;
+	  uint32_t wordM = 0;
+	  if(isMSB[iloc]==0){
+	    wordL = (p64[i] & 0xFFFFFFFF) ;
+	    wordM = ((p64[i] >> 32) & 0xFFFFFFFF) ;
+	  }else if(isMSB[iloc]==1){
+	    wordL = (p64[i-1] & 0xFFFFFFFF) ;	  
+	    wordM = ((p64[i] >> 32) & 0xFFFFFFFF) ;
+	  }
+	  const uint16_t trigflagL = (wordL>>30) & 0x3;
+	  const uint16_t adcL = (wordL>>20) & 0x3FF;
+	  const uint16_t totL = (wordL>>10) & 0x3FF;
+	  const uint16_t toaL = wordL & 0x3FF;
+	  
+	  const uint16_t trigflagM = (wordM>>30) & 0x3;
+	  const uint16_t adcM = (wordM>>20) & 0x3FF;
+	  const uint16_t totM = (wordM>>10) & 0x3FF;
+	  const uint16_t toaM = wordM & 0x3FF;
+	  
+	  // std::cout << std::hex << std::setfill('0');
+	  // if(isMSB[iloc]==0)
+	  //   cout<<"WordM : 0x" << std::setw(8) << wordM <<", wordL : 0x" << std::setw(8) << wordL<< std::endl;
+	  // else
+	  //   cout<<"WordL : 0x" << std::setw(8) << wordL<<", wordM : 0x" << std::setw(8) << wordM << std::endl;
+	  // std::cout << std::dec << std::setfill(' ');
+	  // cout<<"L:(flag,adc,tot,toa) : (" << trigflagL <<", " << adcL << ", " << totL <<", " << toaL << "), \t"
+	  //     <<"M:(flag,adc,tot,toa) : (" << trigflagM <<", " << adcM << ", " << totM <<", " << toaM << ")" << endl;
+	  if(isMSB[iloc]==0){
+	    rdata.event = nEvents;
+	    rdata.eventId = boe->eventId();
+	    rdata.chip = uint16_t(ichip);
+	    rdata.half = uint16_t(ishalf);
+	    rdata.channel = ch ;
+	    rdata.adc = adcM;
+	    rdata.tot = totM;
+	    rdata.toa = toaM;
+	    rdata.totflag = trigflagM;
+	    rdata.bxcounter = eoe->bxId();
+	    rdata.eventcounter = rEvent->RecordHeader::sequenceCounter();
+	    rdata.orbitcounter = eoe->orbitId();
+	    ch++;
+	    rocarray.push_back(rdata);
+
+	    rdata.event = nEvents;
+	    rdata.eventId = boe->eventId();
+	    rdata.chip = uint16_t(ichip);
+	    rdata.half = uint16_t(ishalf);
+	    rdata.channel = ch ;
+	    rdata.adc = adcL;
+	    rdata.tot = totL;
+	    rdata.toa = toaL;
+	    rdata.totflag = trigflagL;
+	    rdata.bxcounter = eoe->bxId();
+	    rdata.eventcounter = rEvent->RecordHeader::sequenceCounter();
+	    rdata.orbitcounter = eoe->orbitId();
+	    ch++;
+	    rocarray.push_back(rdata);
+	  }else{
+	    
+	    rdata.event = nEvents;
+	    rdata.eventId = boe->eventId();
+	    rdata.chip = uint16_t(ichip);
+	    rdata.half = uint16_t(ishalf);
+	    rdata.channel = ch ;
+	    rdata.adc = adcL;
+	    rdata.tot = totL;
+	    rdata.toa = toaL;
+	    rdata.totflag = trigflagL;
+	    rdata.bxcounter = eoe->bxId();
+	    rdata.eventcounter = rEvent->RecordHeader::sequenceCounter();
+	    rdata.orbitcounter = eoe->orbitId();
+	    ch++;
+	    rocarray.push_back(rdata);
+
+	    rdata.event = nEvents;
+	    rdata.eventId = boe->eventId();
+	    rdata.chip = uint16_t(ichip);
+	    rdata.half = uint16_t(ishalf);
+	    rdata.channel = ch ;
+	    rdata.adc = adcM;
+	    rdata.tot = totM;
+	    rdata.toa = toaM;
+	    rdata.totflag = trigflagM;
+	    rdata.bxcounter = eoe->bxId();
+	    rdata.eventcounter = rEvent->RecordHeader::sequenceCounter();
+	    rdata.orbitcounter = eoe->orbitId();
+	    ch++;
+	    rocarray.push_back(rdata);
+	  }
+	  index++;
+	}
+	//cout<<endl;
+	if(iloc%2==1)ichip++;
+      }
+    }
+  }//file reader
+
+  _fileReader.close();
+  return true;
+}
+
+int read_econt_data_stc4(vector<econtdata>& econtarray, unsigned relayNumber, unsigned runNumber)
+{
+
+  unsigned linkNumber(0);
+  
+  //Create the file reader
+  Hgcal10gLinkReceiver::FileReader _fileReader;
+  
+  //Make the buffer space for the records
+  Hgcal10gLinkReceiver::RecordT<4095> *r(new Hgcal10gLinkReceiver::RecordT<4095>);
+  
+  //Set up specific records to interpet the formats
+  const Hgcal10gLinkReceiver::RecordStarting *rStart((Hgcal10gLinkReceiver::RecordStarting*)r);
+  const Hgcal10gLinkReceiver::RecordStopping *rStop ((Hgcal10gLinkReceiver::RecordStopping*)r);
+  const Hgcal10gLinkReceiver::RecordRunning  *rEvent((Hgcal10gLinkReceiver::RecordRunning*) r);
+  _fileReader.setDirectory(std::string("dat/Relay")+std::to_string(relayNumber));
+  _fileReader.openRun(runNumber,linkNumber);
+  
+  econtdata edata;
+  uint64_t nEvents = 0;
+  uint64_t prevEvent = 0;
+  uint32_t prevSequence = 0;
+  uint32_t packet[4];
+  uint32_t packet_counter;
+  uint32_t packet_locations[12];
+  uint64_t packet_energies[12];
+  
+  //Use the fileReader to read the records
+  while(_fileReader.read(r)) {
+    //Check the state of the record and print the record accordingly
+    if( r->state()==Hgcal10gLinkReceiver::FsmState::Starting){
+      if(!(rStart->valid())){
+  	std::cerr << " FsmState::Starting validadity fails : rStart->valid() " << rStart->valid() << std::endl;
+  	// rStart->print();
+  	// std::cout << std::endl;
+  	continue;
+      }
+    }
+    
+    else if(r->state()==Hgcal10gLinkReceiver::FsmState::Stopping){
+      if(!(rStop->valid())){
+  	std::cerr << " FsmState::Stopping validadity fails : rStop->valid() " << rStop->valid() << std::endl;
+  	// rStop->print();
+  	// std::cout << std::endl;
+  	continue;
+      }
+    }
+    //Else we have an event record 
+    else{
+
+      const Hgcal10gLinkReceiver::SlinkBoe *boe = rEvent->slinkBoe();      
+      const Hgcal10gLinkReceiver::SlinkEoe *eoe = rEvent->slinkEoe();
+
+      // if (nEvents < 1){ 
+      //  	event_dump(rEvent);
+      // 	rEvent->RecordHeader::print();
+      // 	boe->print();
+      // 	eoe->print();
+      // }
+      
+      //Increment event counter
+      nEvents++;
+      
+      if(boe->boeHeader()!=boe->BoePattern) continue;
+      if(eoe->eoeHeader()!=eoe->EoePattern) continue;
+      uint16_t l1atype = boe->l1aType();      
+      if(l1atype==0) continue;
+      
+      const uint64_t *p64(((const uint64_t*)rEvent)+1);
+
+
+      edata.event = nEvents;
+      edata.eventId = boe->eventId();
+      edata.bxId = eoe->bxId();
+      edata.sequenceId = rEvent->RecordHeader::sequenceCounter(); 
+
+      if((Abs64(edata.eventId,prevEvent) != Abs32(edata.sequenceId, prevSequence)) and Abs64(edata.eventId,prevEvent)>=2){
+	prevEvent = boe->eventId();
+	prevSequence = rEvent->RecordHeader::sequenceCounter(); 
+	continue;
+      }
+      prevEvent = edata.eventId;
+      prevSequence = edata.sequenceId;
+
+      edata.daq_data[0] = p64[2] & 0xF;
+      edata.daq_nbx[0] = p64[2]>>4 & 0x7;
+      uint64_t daq0_event_size = (2*edata.daq_nbx[0] + 1)*edata.daq_data[0];
+      int first_cafe_word_loc = find_cafe_word(rEvent, 1);
+      edata.size_in_cafe[0] = p64[first_cafe_word_loc] & 0xFF;      
+      
+      edata.daq_data[1] = p64[2]>>7 & 0xF;
+      edata.daq_nbx[1] = p64[2]>>11 & 0x7;
+      uint64_t daq1_event_size = (2*edata.daq_nbx[1] + 1)*edata.daq_data[1];
+      int second_cafe_word_loc = find_cafe_word(rEvent, 2);
+      edata.size_in_cafe[1] = p64[second_cafe_word_loc] & 0xFF;
+      
+      int sixth_cafe_word_loc = find_cafe_word(rEvent, 6);
+      
+      if(sixth_cafe_word_loc!=0) continue;
+      if(first_cafe_word_loc != 3) continue;
+      if(daq0_event_size != edata.size_in_cafe[0]) continue;	
+      if(daq1_event_size != edata.size_in_cafe[1]) continue;	
+      
+      if(nEvents>maxEvent) continue;
+      
+      int bx_index = -1.0*int(edata.daq_nbx[0]);
+      const int maxnbx = (2*edata.daq_nbx[0] + 1);
+      uint64_t energy_raw[2][maxnbx][12];
+      for(int iect=0;iect<2;iect++)
+  	for(int ibx=0;ibx<maxnbx;ibx++){
+	  edata.bx_raw[iect][ibx] = 0;
+  	  for(int istc=0;istc<12;istc++){
+  	    energy_raw[iect][ibx][istc] = 0;
+  	    edata.energy_raw[iect][ibx][istc] = 0;
+  	    edata.loc_raw[iect][ibx][istc] = 0;
+  	  }
+	}
+      for(unsigned i(first_cafe_word_loc+1);i<daq0_event_size+first_cafe_word_loc+1;i=i+4){
+	
+      	const uint32_t word = (p64[i] & 0xFFFFFFFF) ;
+      	const uint32_t bx_counter = ( word >> 28 ) & 0xF;
+	
+      	packet[0] = (p64[i] & 0xFFFFFFFF) ;
+  	packet[1] = (p64[i+1] & 0xFFFFFFFF) ;
+  	packet[2] = (p64[i+2] & 0xFFFFFFFF) ; 
+  	packet[3] = (p64[i+3] & 0xFFFFFFFF) ;
+	
+      	set_packet_locations(packet_locations, packet);
+      	set_packet_energies(packet_energies, packet);
+	
+	uint64_t totEnergy = 0;
+	for(int istc=0;istc<12;istc++) totEnergy += packet_energies[istc] ;
+	
+      	// if (nEvents < 4) {
+	//   std::cout<<" EventId : "<<boe->eventId()
+	// 	   << ", bx_index : " << (bx_index+int(edata.daq_nbx[0])) 
+	// 	   <<", bx(LSB) :"  << bx_counter 
+	// 	   <<", edata.bxId : "<<edata.bxId <<", modulo8 : "<< (edata.bxId%8)
+	// 	   <<", totEnergy : "<<totEnergy
+	// 	   <<std::endl;
+  	//   std::cout<<"E(LSB) : \t";
+      	//   for(int istc=0;istc<12;istc++){
+      	//     std::cout<<packet_energies[istc]<<" ";
+      	//   }
+      	//   std::cout<<std::endl;
+	//   std::cout<<"L(LSB) : \t";
+      	//   for(int istc=0;istc<12;istc++){
+	//     std::cout<<packet_locations[istc]<<" ";
+      	//   }
+      	//   std::cout<<std::endl;
+      	// }
+	
+	edata.modsum[0][(bx_index+int(edata.daq_nbx[0]))] = totEnergy;
+	edata.bx_raw[0][(bx_index+int(edata.daq_nbx[0]))] = bx_counter;
+      	for(int istc=0;istc<12;istc++){
+      	  energy_raw[0][(bx_index+int(edata.daq_nbx[0]))][istc] = packet_energies[istc];
+  	  edata.energy_raw[0][(bx_index+int(edata.daq_nbx[0]))][istc] = packet_energies[istc];
+  	  edata.loc_raw[0][(bx_index+int(edata.daq_nbx[0]))][istc] = packet_locations[istc];
+      	}
+	
+  	const uint32_t word1 = ((p64[i] >> 32) & 0xFFFFFFFF) ;
+      	const uint32_t bx_counter1 = ( word1 >> 28 ) & 0xF;
+	
+      	packet[0] = ((p64[i] >> 32) & 0xFFFFFFFF) ;
+      	packet[1] = ((p64[i+1] >> 32) & 0xFFFFFFFF) ;
+      	packet[2] = ((p64[i+2] >> 32) & 0xFFFFFFFF) ;
+      	packet[3] = ((p64[i+3] >> 32) & 0xFFFFFFFF) ;
+	
+      	set_packet_locations(packet_locations, packet);
+      	set_packet_energies(packet_energies, packet);
+
+	uint64_t totEnergy1 = 0;
+	for(int istc=0;istc<12;istc++) totEnergy1 += packet_energies[istc] ;
+
+      	if (nEvents < 4) {
+	  std::cout<<" EventId : "<<boe->eventId()
+		   << ", bx_index : " << (bx_index+int(edata.daq_nbx[0])) 
+		   <<", bx(MSB) :"  << bx_counter 
+		   <<", edata.bxId : "<<edata.bxId <<", modulo8 : "<< (edata.bxId%8)
+		   <<", totEnergy : "<<totEnergy1
+		   <<std::endl;
+  	  std::cout<<"E(MSB) : \t";
+      	  for(int istc=0;istc<12;istc++){
+      	    std::cout<<packet_energies[istc]<<" ";
+      	  }
+      	  std::cout<<std::endl;
+	  std::cout<<"L(MSB) : \t";
+      	  for(int istc=0;istc<12;istc++){
+	    std::cout<<packet_locations[istc]<<" ";
+      	  }
+      	  std::cout<<std::endl;
+      	}
+	
+	edata.modsum[1][(bx_index+int(edata.daq_nbx[0]))] = totEnergy1;
+	edata.bx_raw[1][(bx_index+int(edata.daq_nbx[0]))] = bx_counter1;
+      	for(int istc=0;istc<12;istc++){
+      	  energy_raw[1][(bx_index+int(edata.daq_nbx[0]))][istc] = packet_energies[istc];
+  	  edata.energy_raw[1][(bx_index+int(edata.daq_nbx[0]))][istc] = packet_energies[istc];
+  	  edata.loc_raw[1][(bx_index+int(edata.daq_nbx[0]))][istc] = packet_locations[istc];
+      	}
+	
+      	bx_index++;
+      }//loop over unpacked
+
+      econtarray.push_back(edata);
+      if (nEvents < 4) std::cout<<std::endl;
+      
+    }
+  }//file reader
+
+  _fileReader.close();
+  return true;
+}
 
 int read_econt_data_bc(map<uint64_t,bcdata>& econtarray, unsigned relayNumber, unsigned runNumber)
 {
@@ -873,6 +1678,383 @@ int read_econt_data_bc(map<uint64_t,bcdata>& econtarray, unsigned relayNumber, u
 
   _fileReader.close();
   return true;
+}
+
+int read_econt_data_bc(vector<econtdata>& econtarray, unsigned relayNumber, unsigned runNumber)
+{
+
+  unsigned linkNumber(0);
+  
+  //Create the file reader
+  Hgcal10gLinkReceiver::FileReader _fileReader;
+  
+  //Make the buffer space for the records
+  Hgcal10gLinkReceiver::RecordT<4095> *r(new Hgcal10gLinkReceiver::RecordT<4095>);
+  
+  //Set up specific records to interpet the formats
+  const Hgcal10gLinkReceiver::RecordStarting *rStart((Hgcal10gLinkReceiver::RecordStarting*)r);
+  const Hgcal10gLinkReceiver::RecordStopping *rStop ((Hgcal10gLinkReceiver::RecordStopping*)r);
+  const Hgcal10gLinkReceiver::RecordRunning  *rEvent((Hgcal10gLinkReceiver::RecordRunning*) r);
+  _fileReader.setDirectory(std::string("dat/Relay")+std::to_string(relayNumber));
+  _fileReader.openRun(runNumber,linkNumber);
+  
+  econtdata edata;
+  uint64_t nEvents = 0;
+  uint64_t prevEvent = 0;
+  uint32_t prevSequence = 0;
+  uint32_t packet[4];
+  uint32_t packet_counter;
+  bool packet_tcs[48];
+  uint64_t packet_energies[9];
+  
+  //Use the fileReader to read the records
+  while(_fileReader.read(r)) {
+    //Check the state of the record and print the record accordingly
+    if( r->state()==Hgcal10gLinkReceiver::FsmState::Starting){
+      if(!(rStart->valid())){
+  	std::cerr << " FsmState::Starting validadity fails : rStart->valid() " << rStart->valid() << std::endl;
+  	// rStart->print();
+  	// std::cout << std::endl;
+  	continue;
+      }
+    }
+    
+    else if(r->state()==Hgcal10gLinkReceiver::FsmState::Stopping){
+      if(!(rStop->valid())){
+  	std::cerr << " FsmState::Stopping validadity fails : rStop->valid() " << rStop->valid() << std::endl;
+  	// rStop->print();
+  	// std::cout << std::endl;
+  	continue;
+      }
+    }
+    //Else we have an event record 
+    else{
+
+      const Hgcal10gLinkReceiver::SlinkBoe *boe = rEvent->slinkBoe();      
+      const Hgcal10gLinkReceiver::SlinkEoe *eoe = rEvent->slinkEoe();
+
+      // if (nEvents < 1){ 
+      //  	event_dump(rEvent);
+      // 	rEvent->RecordHeader::print();
+      // 	boe->print();
+      // 	eoe->print();
+      // }
+      
+      //Increment event counter
+      nEvents++;
+      
+      if(boe->boeHeader()!=boe->BoePattern) continue;
+      if(eoe->eoeHeader()!=eoe->EoePattern) continue;
+      uint16_t l1atype = boe->l1aType();      
+      if(l1atype==0) continue;
+      
+      const uint64_t *p64(((const uint64_t*)rEvent)+1);
+
+      edata.event = nEvents;
+      edata.eventId = boe->eventId();
+      edata.bxId = eoe->bxId();
+      edata.sequenceId = rEvent->RecordHeader::sequenceCounter(); 
+
+      if((Abs64(edata.eventId,prevEvent) != Abs32(edata.sequenceId, prevSequence)) and Abs64(edata.eventId,prevEvent)>=2){
+	prevEvent = boe->eventId();
+	prevSequence = rEvent->RecordHeader::sequenceCounter(); 
+	continue;
+      }
+      prevEvent = edata.eventId;
+      prevSequence = edata.sequenceId;
+
+      edata.daq_data[0] = p64[2] & 0xF;
+      edata.daq_nbx[0] = p64[2]>>4 & 0x7;
+      uint64_t daq0_event_size = (2*edata.daq_nbx[0] + 1)*edata.daq_data[0];
+      int first_cafe_word_loc = find_cafe_word(rEvent, 1);
+      edata.size_in_cafe[0] = p64[first_cafe_word_loc] & 0xFF;      
+      
+      edata.daq_data[1] = p64[2]>>7 & 0xF;
+      edata.daq_nbx[1] = p64[2]>>11 & 0x7;
+      uint64_t daq1_event_size = (2*edata.daq_nbx[1] + 1)*edata.daq_data[1];
+      int second_cafe_word_loc = find_cafe_word(rEvent, 2);
+      edata.size_in_cafe[1] = p64[second_cafe_word_loc] & 0xFF;
+
+      edata.daq_data[2] = p64[2]>>14 & 0xF;
+      edata.daq_nbx[2] = p64[2]>>18 & 0x7;
+      uint64_t daq2_event_size = (2*edata.daq_nbx[2] + 1)*edata.daq_data[2];
+      int third_cafe_word_loc = find_cafe_word(rEvent, 3);
+      edata.size_in_cafe[2] = p64[third_cafe_word_loc] & 0xFF;
+
+      int sixth_cafe_word_loc = find_cafe_word(rEvent, 6);
+      
+      if(sixth_cafe_word_loc!=0) continue;
+      if(first_cafe_word_loc != 3) continue;
+      if(daq0_event_size != edata.size_in_cafe[0]) continue;	
+      if(daq1_event_size != edata.size_in_cafe[1]) continue;
+      if(daq2_event_size != edata.size_in_cafe[2]) continue;	
+
+      if (nEvents < 2) {
+	event_dump(rEvent);
+	rEvent->RecordHeader::print();
+      	boe->print();
+      	eoe->print();
+      }
+      if(nEvents>maxEvent) continue;
+
+      int bx_index = -1.0*int(edata.daq_nbx[0]);
+      const int maxnbx = (2*edata.daq_nbx[0] + 1);
+      uint64_t energy_raw[2][maxnbx][12];
+      for(int iect=0;iect<2;iect++)
+  	for(int ibx=0;ibx<maxnbx;ibx++){
+	  edata.bx_raw[iect][ibx] = 0;
+  	  for(int istc=0;istc<12;istc++){
+  	    energy_raw[iect][ibx][istc] = 0;
+  	    edata.energy_raw[iect][ibx][istc] = 0;
+  	    edata.loc_raw[iect][ibx][istc] = 0;
+  	  }
+	}
+      
+      for(unsigned i(first_cafe_word_loc+1);i<daq0_event_size+first_cafe_word_loc+1;i=i+4){
+	
+      	const uint32_t word = (p64[i] & 0xFFFFFFFF) ;
+      	const uint32_t bx_counter = ( word >> 28 ) & 0xF;
+	const uint16_t modsum = ( word >> 20 ) & 0xFF;
+	
+      	packet[0] = (p64[i] & 0xFFFFFFFF) ;
+  	packet[1] = (p64[i+1] & 0xFFFFFFFF) ;
+  	packet[2] = (p64[i+2] & 0xFFFFFFFF) ; 
+  	packet[3] = (p64[i+3] & 0xFFFFFFFF) ;
+	
+      	set_packet_tcs_bc(packet_tcs, packet);
+      	set_packet_energies_bc(packet_energies, packet);
+
+	if (nEvents < 10) {
+	  std::cout<<" EventId : "<<boe->eventId()
+		   <<", bx(LSB) :"  << bx_counter 
+		   <<", edata.bxId : "<<edata.bxId <<", modulo8 : "<< (edata.bxId%8)
+		   <<", modsum : "<<modsum
+		   <<std::endl;
+  	  std::cout<<"E(LSB) : \t";
+      	  for(int itc=0;itc<9;itc++){
+      	    std::cout<<packet_energies[itc]<<" ";
+      	  }
+      	  std::cout<<std::endl;
+	  std::cout<<"L(LSB) : \t";
+      	  for(int itc=0;itc<48;itc++){
+	    if(packet_tcs[itc])
+	      std::cout<<itc<<" ";
+      	  }
+      	  std::cout<<std::endl;
+      	}
+	
+	edata.modsum[0][(bx_index+int(edata.daq_nbx[0]))] = modsum;
+	edata.bx_raw[0][(bx_index+int(edata.daq_nbx[0]))] = bx_counter;
+      	for(int itc=0;itc<9;itc++){	  
+      	  energy_raw[0][(bx_index+int(edata.daq_nbx[0]))][itc] = packet_energies[itc];
+  	  edata.energy_raw[0][(bx_index+int(edata.daq_nbx[0]))][itc] = packet_energies[itc];
+  	  edata.loc_raw[0][(bx_index+int(edata.daq_nbx[0]))][itc] = packet_tcs[itc];
+      	}
+	int itrigcell = 0;
+	for(int itc=0;itc<48;itc++)
+	  if(packet_tcs[itc]) edata.loc_raw[0][(bx_index+int(edata.daq_nbx[0]))][itrigcell++] = itc;
+
+  	const uint32_t word1 = ((p64[i] >> 32) & 0xFFFFFFFF) ;
+      	const uint32_t bx_counter1 = ( word1 >> 28 ) & 0xF;
+	const uint32_t modsum1 = ( word1 >> 20 ) & 0xFF;
+	
+      	packet[0] = ((p64[i] >> 32) & 0xFFFFFFFF) ;
+      	packet[1] = ((p64[i+1] >> 32) & 0xFFFFFFFF) ;
+      	packet[2] = ((p64[i+2] >> 32) & 0xFFFFFFFF) ;
+      	packet[3] = ((p64[i+3] >> 32) & 0xFFFFFFFF) ;
+
+      	set_packet_tcs_bc(packet_tcs, packet);
+      	set_packet_energies_bc(packet_energies, packet);
+
+      	if (nEvents < 10) {
+	  std::cout<<" EventId : "<<boe->eventId()
+		   <<", bx(MSB) :"  << bx_counter1 
+		   <<", edata.bxId : "<<edata.bxId <<", modulo8 : "<< (edata.bxId%8)
+		   <<", modsum : "<<modsum1
+		   <<std::endl;
+  	  std::cout<<"E(MSB) : \t";
+      	  for(int itc=0;itc<9;itc++){
+      	    std::cout<<packet_energies[itc]<<" ";
+      	  }
+      	  std::cout<<std::endl;
+	  std::cout<<"L(MSB) : \t";
+      	  for(int itc=0;itc<48;itc++){
+	    if(packet_tcs[itc])
+	      std::cout<<itc<<" ";
+      	  }
+      	  std::cout<<std::endl;
+      	}
+
+	edata.modsum[1][(bx_index+int(edata.daq_nbx[0]))] = modsum1;
+	edata.bx_raw[1][(bx_index+int(edata.daq_nbx[0]))] = bx_counter1;
+      	for(int itc=0;itc<9;itc++){	  	  
+      	  energy_raw[1][(bx_index+int(edata.daq_nbx[0]))][itc] = packet_energies[itc];
+  	  edata.energy_raw[1][(bx_index+int(edata.daq_nbx[0]))][itc] = packet_energies[itc];
+  	  edata.loc_raw[1][(bx_index+int(edata.daq_nbx[0]))][itc] = packet_tcs[itc];
+      	}
+	itrigcell = 0;
+	for(int itc=0;itc<48;itc++)
+	  if(packet_tcs[itc]) edata.loc_raw[1][(bx_index+int(edata.daq_nbx[0]))][itrigcell++] = itc;
+	
+      	bx_index++;
+      }
+
+      // std::cout << std::endl;
+      uint32_t energy_unpkd[2][maxnbx][12];
+      for(int iect=0;iect<2;iect++)
+  	for(int ibx=0;ibx<maxnbx;ibx++){
+	  edata.bx_unpkd[iect][ibx] = 0;	    
+  	  for(int istc=0;istc<12;istc++){
+  	    energy_unpkd[iect][ibx][istc] = 0;
+  	    edata.energy_unpkd[iect][ibx][istc] = 0;
+  	    edata.loc_unpkd[iect][ibx][istc] = 0;
+  	  }
+	}
+      
+      int index_ibx = 0;
+      int index_tc = 0;
+      for(unsigned i(second_cafe_word_loc+1);i<daq1_event_size+second_cafe_word_loc+1;i++){
+	
+      	const uint32_t word = (p64[i] & 0xFFFFFFFF) ;
+  	const uint32_t word1 = ((p64[i] >> 32) & 0xFFFFFFFF) ;
+	
+	if((word >> 8) == 0xaccdea){
+	  index_ibx++ ;
+	  index_tc = 0;
+	  continue;
+	}else{
+	  // std::cout << std::hex << std::setfill('0');
+	  // cout<<"Word : 0x" << std::setw(8) << word <<", Word1 : 0x" << std::setw(8) << word1 << std::endl;
+	  // std::cout << std::dec << std::setfill(' ');
+
+	  const uint32_t energy0 = word & 0x7F ;
+	  const uint32_t loc0 = (word >> 7) & 0x3F ; 
+	  const uint32_t energy1 = (word >> 13 ) & 0x7F ;
+	  const uint32_t loc1 = (word >> 20) & 0x3F ;
+	  const uint32_t bx0 = (word >> 26) & 0xF ;
+
+	  // if (nEvents < 2) {
+	  //   cout<<"EventId : "<< boe->eventId()<<", index_ibx : "<< index_ibx <<", bx0 :  "<< bx0
+	  // 	<<", loc1 : "<<loc1<<", energy1 : "<<energy1
+	  // 	<<", loc0 : "<<loc0<<", energy0 : "<<energy0
+	  // 	<< std::endl;	  
+	  // }
+	  
+	  const uint32_t energy2 = word1 & 0x7F ;
+	  const uint32_t loc2 = (word1 >> 7) & 0x3F ; 
+	  const uint32_t energy3 = (word1 >> 13 ) & 0x7F ;
+	  const uint32_t loc3 = (word1 >> 20) & 0x3F ;
+	  const uint32_t bx1 = (word1 >> 26) & 0xF ;
+	  const uint32_t bit31 = (word1 >> 30) & 0x1 ;
+	  const uint32_t bit32 = (word1 >> 31) & 0x1 ;
+	  
+	  if (nEvents < 10) {
+	    cout<<"EventId : "<< boe->eventId()<<", index_ibx : "<< index_ibx << ", bx1 : " << bx1
+		<<", b31 : "<<bit31<<", b32 : "<<bit32
+		<<", loc3 : "<<loc3<<", energy3 : "<<energy3
+		<<", loc2 : "<<loc2<<", energy2 : "<<energy2
+		<< std::endl;
+	  }
+	  
+	  energy_unpkd[0][index_ibx-1][index_tc] = energy0 ;
+	  edata.energy_unpkd[0][index_ibx-1][index_tc] = energy0 ;
+	  edata.loc_unpkd[0][index_ibx-1][index_tc] = loc0;
+	  edata.bx_unpkd[0][index_ibx-1] = bx0;
+	  if((index_tc+1)<=8){
+	    energy_unpkd[0][index_ibx-1][index_tc+1] = energy1 ;
+	    edata.energy_unpkd[0][index_ibx-1][index_tc+1] = energy1 ;
+	    edata.loc_unpkd[0][index_ibx-1][index_tc+1] = loc1;
+	  }
+	  
+	  energy_unpkd[1][index_ibx-1][index_tc] = energy2 ;
+	  edata.energy_unpkd[1][index_ibx-1][index_tc] = energy2 ;
+	  edata.loc_unpkd[1][index_ibx-1][index_tc] = loc2;
+	  edata.bx_unpkd[1][index_ibx-1] = bx1;
+	  if((index_tc+1)<=8){
+	    energy_unpkd[1][index_ibx-1][index_tc+1] = energy3 ;
+	    edata.energy_unpkd[1][index_ibx-1][index_tc+1] = energy3 ;
+	    edata.loc_unpkd[1][index_ibx-1][index_tc+1] = loc3;
+	  }
+	  
+	  index_tc += 2;	  
+	}//if valid word
+	  
+      }//loop over unpacked
+
+      econtarray.push_back(edata);
+      
+    }
+  }//file reader
+  _fileReader.close();
+  return true;
+}
+
+void ReadChannelMapping(map<int,tuple<chid,chid,chid,chid>>& tctorocch)
+{
+  string Dens;
+  unsigned Wtype, ROC, HalfROC, Seq;
+  string ROCpin;
+  unsigned ROCCH;
+  int SiCell, TrLink, TrCell, iu, iv;
+  float trace;
+  int t;
+  //Dens   Wtype     ROC HalfROC     Seq  ROCpin  SiCell  TrLink  TrCell      iu      iv   trace       t
+  ifstream inwafermap("/home/indra/Downloads/WaferCellMapTraces.txt");
+  //ifstream inwafermap("/home/hep/idas/codes/WaferCellMapTraces.txt");
+  //ifstream inwafermap("/afs/cern.ch/user/i/idas/Downloads/WaferCellMapTraces.txt");
+  stringstream ss;
+  string s;
+  
+  map<int,pair<int,int>> rocchtoiuiv;
+  //;
+  rocchtoiuiv.clear();
+  tctorocch.clear();
+  
+  int prevTrigCell = -1;
+  int itc = 0;
+  unsigned rocpin[4];
+  chid rocch[4];
+  while(getline(inwafermap,s)){
+    //cout << s.size() << endl;
+    if(s.find(" LD ")!=string::npos or s.find(" HD ")!=string::npos){
+      //cout << s << endl;
+      ss << s.data() << endl;
+      ss >> Dens >> Wtype >> ROC >> HalfROC >> Seq >> ROCpin >> SiCell  >> TrLink  >> TrCell  >> iu  >> iv  >> trace  >> t ;
+      if(ROCpin.find("CALIB")==string::npos){
+	ROCCH = stoi(ROCpin);
+	if(Dens.find("LD")!=string::npos){
+	  //if(Wtype==0 and ROC==0 and TrLink!=-1 and TrCell!=-1){
+	  if(Wtype==0 and TrLink!=-1 and TrCell!=-1){
+	    int absTC = ROC*16 + TrLink*4 + TrCell;
+	    //cout <<"\t"<< Dens <<"\t"<< Wtype <<"\t"<< ROC <<"\t"<< HalfROC <<"\t"<< Seq <<"\t"<< ROCpin <<"\t"<< SiCell  <<"\t"<< TrLink  <<"\t"<< TrCell  <<"\t new TC : "<< absTC <<"\t"<< iu  <<"\t"<< iv  <<"\t"<< trace  <<"\t"<< t << endl ;
+	    if(itc==3) prevTrigCell = absTC; 
+	    rocpin [itc] = ROC*72 + ROCCH;
+	    rocch[itc].chip = ROC;
+	    rocch[itc].half = HalfROC;
+	    rocch[itc].channel = ROCCH;
+	    rocchtoiuiv[ROCCH] = make_pair(iu, iv);
+	    itc++;
+	  }
+	  if(itc==4){
+	    //tctorocch[prevTrigCell] = make_tuple(rocpin[0],rocpin[1],rocpin[2],rocpin[3]);
+	    tctorocch[prevTrigCell] = make_tuple(rocch[0],rocch[1],rocch[2],rocch[3]);
+	    itc = 0;
+	  }
+	}//pick lines for LD modules
+      }
+    }else{
+      ;//cout << s << endl;
+    }
+  }
+  inwafermap.close();
+  // for(const auto& tcmap : tctorocch){
+  //   if(tcmap.first < 8 )
+  //     cout <<"TC " <<tcmap.first<<", pins :  ("<< get<0>(tcmap.second) << ", "<< get<1>(tcmap.second) << ", "<< get<2>(tcmap.second) << ", "<< get<3>(tcmap.second) << ") "<<endl;
+  //   else
+  //     cout <<"TC " <<tcmap.first<<", pins :  ("<< get<0>(tcmap.second) << ", "<< get<1>(tcmap.second) << ", "<< get<2>(tcmap.second) << ", "<< get<3>(tcmap.second) << ") "<<endl;
+  // }
+
+  
 }
 
 void ReadChannelMapping(map<int,tuple<int,int,int,int>>& tctorocch)
@@ -1171,13 +2353,13 @@ int main(int argc, char** argv){
   read_econt_data_bc(econtarray,relayNumber,runNumber);
   cout<<"Link0 size : " << econtarray.size() <<endl;
 
-  // map<uint64_t,vector<daqdata>> rocarray1; rocarray1.clear();
-  // read_roc_data(rocarray1,relayNumber,runNumber,1);
-  // cout<<"Link1 size : " << rocarray1.size() <<endl;
+  map<uint64_t,vector<daqdata>> rocarray1; rocarray1.clear();
+  read_roc_data(rocarray1,relayNumber,runNumber,1);
+  cout<<"Link1 size : " << rocarray1.size() <<endl;
   
-  map<uint64_t,vector<daqdata>> rocarray2; rocarray2.clear();
-  read_roc_data(rocarray2,relayNumber,runNumber,2);
-  cout<<"Link2 size : " << rocarray2.size() <<endl;
+  // map<uint64_t,vector<daqdata>> rocarray2; rocarray2.clear();
+  // read_roc_data(rocarray2,relayNumber,runNumber,2);
+  // cout<<"Link2 size : " << rocarray2.size() <<endl;
 
   //===============================================================================================================================
   //Reading complete for Link0, Link1 and Link2 files
@@ -1236,7 +2418,6 @@ int main(int argc, char** argv){
   // }
   TH1I *hADC_ch_flag0[3][2][36], *hADC_ch_flag3[3][2][36];
   // TH1I *hADCM_ch_flag0[3][2][36], *hADCM_ch_flag3[3][2][36];
-  TH1I *hTOT_ch_flag3[3][2][36];
   for(int ichip=0;ichip<3;ichip++){
     for(int ihalf=0;ihalf<2;ihalf++){
       for(int ich=0;ich<36;ich++){	
@@ -1244,7 +2425,6 @@ int main(int argc, char** argv){
   	hADC_ch_flag3[ichip][ihalf][ich] = new TH1I(Form("hADC_ch_flag3_%d_%d_%d",ichip,ihalf,ich),Form("ADC for chip=%d,half==%d,ch==%d & (Flag==0b11)",ichip,ihalf,ich),1044,-10,1034);
   	// hADCM_ch_flag0[ichip][ihalf][ich] = new TH1I(Form("hADCM_ch_flag0_%d_%d_%d",ichip,ihalf,ich),Form("ADCM for chip=%d,half==%d,ch==%d & (Flag==0b00)",ichip,ihalf,ich),1044,-10,1034);
   	// hADCM_ch_flag3[ichip][ihalf][ich] = new TH1I(Form("hADCM_ch_flag3_%d_%d_%d",ichip,ihalf,ich),Form("ADCM for chip=%d,half==%d,ch==%d & (Flag==0b11)",ichip,ihalf,ich),1044,-10,1034);
-	hTOT_ch_flag3[ichip][ihalf][ich] = new TH1I(Form("hTOT_ch_flag3_%d_%d_%d",ichip,ihalf,ich),Form("TOT for chip=%d,half==%d,ch==%d & (Flag==0b11)",ichip,ihalf,ich),1044,-10,1034);
   	////////////////////////////////////////////////////////////
   	hADC_ch_flag0[ichip][ihalf][ich]->GetXaxis()->SetTitle("ADC");
   	hADC_ch_flag0[ichip][ihalf][ich]->GetYaxis()->SetTitle("Entries");
@@ -1254,13 +2434,11 @@ int main(int argc, char** argv){
   	// hADCM_ch_flag0[ichip][ihalf][ich]->GetYaxis()->SetTitle("Entries");
   	// hADCM_ch_flag3[ichip][ihalf][ich]->GetXaxis()->SetTitle("ADCM");
   	// hADCM_ch_flag3[ichip][ihalf][ich]->GetYaxis()->SetTitle("Entries");
-  	hTOT_ch_flag3[ichip][ihalf][ich]->GetXaxis()->SetTitle("TOT");
-  	hTOT_ch_flag3[ichip][ihalf][ich]->GetYaxis()->SetTitle("Entries");
       }
     }
   }
   
-  for(const auto& [eventId, rocarray] : rocarray2){
+  for(const auto& [eventId, rocarray] : rocarray1){
     //if(eventId<10){
     if(eventId<maxEvent){
       for(const auto& roc : rocarray){
@@ -1271,7 +2449,6 @@ int main(int argc, char** argv){
     	int roc_ch = int(roc.channel.to_ulong());
   	int roc_adc = int(roc.adc.to_ulong());
   	//int roc_adcm = int(roc.adcm.to_ulong());
-	int roc_tot = int(roc.tot.to_ulong());
     	int roc_totflag = int(roc.totflag.to_ulong());
   	if(roc_ch>18) roc_ch -= 1;
   	//printf("\troc Event : : %05d, Chip : %02d, Half : %02d, Channel : %02d, ADC : %5d, ADCM : %5d, TOTflag : %2d\n", eventId, roc_chip, roc_half, roc_ch, roc_adc, roc_adcm, roc_totflag);
@@ -1281,15 +2458,13 @@ int main(int argc, char** argv){
   	}else if(roc_totflag==3){
   	  hADC_ch_flag3[roc_chip][roc_half][roc_ch]->Fill(roc_adc);
   	  //hADCM_ch_flag3[roc_chip][roc_half][roc_ch]->Fill(roc_adcm);
-	  hTOT_ch_flag3[roc_chip][roc_half][roc_ch]->Fill(roc_tot);
   	}
       }
     }
   }
   
   TCanvas *c1_ADC_flag0[3][2],*c1_ADC_flag3[3][2];
-  //TCanvas *c1_ADCM_flag0[3][2],*c1_ADCM_flag3[3][2];
-  TCanvas *c1_TOT_flag3[3][2];
+  TCanvas *c1_ADCM_flag0[3][2],*c1_ADCM_flag3[3][2];
   for(int ichip=0;ichip<3;ichip++){
     for(int ihalf=0;ihalf<2;ihalf++){
       c1_ADC_flag0[ichip][ihalf] = new TCanvas(Form("canvas_ADC_flag0_%d_%d",ichip,ihalf));
@@ -1330,30 +2505,11 @@ int main(int argc, char** argv){
   //     }
   //   }
   // }
-  for(int ichip=0;ichip<3;ichip++){
-    for(int ihalf=0;ihalf<2;ihalf++){
-      c1_TOT_flag3[ichip][ihalf] = new TCanvas(Form("canvas_TOT_flag3_%d_%d",ichip,ihalf));
-      c1_TOT_flag3[ichip][ihalf]->Divide(9,4);
-      for(int ich=0;ich<36;ich++){
-  	c1_TOT_flag3[ichip][ihalf]->cd(ich+1)->SetLogy();
-  	hTOT_ch_flag3[ichip][ihalf][ich]->Draw();
-      }
-    }
-  }
   TFile *fChDist = new TFile("log/ADCDist.root","recreate");
   for(int ichip=0;ichip<3;ichip++){
     for(int ihalf=0;ihalf<2;ihalf++){
       c1_ADC_flag0[ichip][ihalf]->Write();
-    }
-  }
-  for(int ichip=0;ichip<3;ichip++){
-    for(int ihalf=0;ihalf<2;ihalf++){
       c1_ADC_flag3[ichip][ihalf]->Write();
-    }
-  }
-  for(int ichip=0;ichip<3;ichip++){
-    for(int ihalf=0;ihalf<2;ihalf++){
-      c1_TOT_flag3[ichip][ihalf]->Write();
     }
   }
   // for(int ichip=0;ichip<3;ichip++){
@@ -1366,13 +2522,6 @@ int main(int argc, char** argv){
     for(int ihalf=0;ihalf<2;ihalf++){
       for(int ich=0;ich<36;ich++){	
   	hADC_ch_flag0[ichip][ihalf][ich]->Write();
-      }
-    }
-  }
-  for(int ichip=0;ichip<3;ichip++){
-    for(int ihalf=0;ihalf<2;ihalf++){
-      for(int ich=0;ich<36;ich++){	
-  	hTOT_ch_flag3[ichip][ihalf][ich]->Write();
       }
     }
   }
@@ -1832,20 +2981,14 @@ int main(int argc, char** argv){
   TH1F *hTCEnergy[48], *hEmulEnergy[48];
   TH1F *hCompressDiffTCADC[48],*hCompressDiffTCTOT[48];
   for(int itc=0;itc<48;itc++){
-    hTCEnergy[itc] = new TH1F(Form("hTCEnergy_%d",itc),Form("Compressed energy distribution of ECONT for TC : %d",itc), 200, -99, 101);
-    hEmulEnergy[itc] = new TH1F(Form("hEmulEnergy_%d",itc),Form("Compressed energy distribution using Emulator for TC  : %d",itc), 200, -99, 101);
-    hCompressDiffTCADC[itc] = new TH1F(Form("hCompressDiffTCADC_%d",itc),Form("Difference in (Emulator - ECONT) compression for TC : %d with totflag==0",itc), 200, -99, 101);
-    hCompressDiffTCTOT[itc] = new TH1F(Form("hCompressDiffTCTOT_%d",itc),Form("Difference in (Emulator - ECONT) compression for TC : %d with totflag==3",itc), 200, -99, 101);
-    hCompressDiffTCADC[itc]->SetLineColor(kRed);
-    hCompressDiffTCADC[itc]->GetXaxis()->SetTitle("Difference in (Emulator - ECONT)");
-    hCompressDiffTCTOT[itc]->SetLineColor(kBlue);
-    hCompressDiffTCTOT[itc]->GetXaxis()->SetTitle("Difference in (Emulator - ECONT)");
-    hTCEnergy[itc]->SetLineColor(kBlack);
-    hEmulEnergy[itc]->SetLineColor(kMagenta);
+    hTCEnergy[itc] = new TH1F(Form("hTCEnergy_%d",itc),Form("Compressed energy distribution for TC : %d",itc), 200, -99, 101);
+    hEmulEnergy[itc] = new TH1F(Form("hEmulEnergy_%d",itc),Form("Compressed energy distribution for Emul : %d",itc), 200, -99, 101);
+    hCompressDiffTCADC[itc] = new TH1F(Form("hCompressDiffTCADC_%d",itc),Form("Difference in (Emulator - ROC) compression for TC : %d with totflag==0",itc), 200, -99, 101);
+    hCompressDiffTCTOT[itc] = new TH1F(Form("hCompressDiffTCTOT_%d",itc),Form("Difference in (Emulator - ROC) compression for TC : %d with totflag==3",itc), 200, -99, 101);
   }
   int choffset = get<0>(tctorocch[8]) ; //==36, since there are 16 TC per chip
   cout<<"choffset : "<<choffset<<endl;  
-  int isMSB = 1; //0/1:LSB/MSB corresponds to link1/Link2
+  int isMSB = 0; //0/1:LSB/MSB corresponds to link1/Link2
   uint64_t roc_counter = 0;
   for(const auto& [eventId, econt] : econtarray){
     
@@ -1893,7 +3036,7 @@ int main(int argc, char** argv){
       bool istot2 = false;      
       uint32_t multfactor = 15;
       
-      for(const auto& roc : rocarray2[eventId]){
+      for(const auto& roc : rocarray1[eventId]){
 	roc_counter++;
     	if(roc.channel.to_ulong()>=37 or roc.channel.to_ulong()==18) continue;
 	//if(roc.totflag.to_ulong()==2) continue;
@@ -1909,7 +3052,6 @@ int main(int argc, char** argv){
     	if(roc_totflag==0 or roc_totflag==1 or roc_totflag==2){
     	  unsigned ped = pedestal_adc[isMSB][roc_chip][roc_half][pedch];
 	  if(ped==255) ped = 1024; //pedestal value 255 has been used for masked channels
-	  if(ped<10) ped = 255; //pedestal value 255 has been used for masked channels
     	  unsigned thr = threshold_adc[isMSB][roc_chip][roc_half][pedch];
     	  uint32_t adc = roc.adc.to_ulong() & 0x3FF;
     	  adc = (adc>(ped+thr)) ? adc-ped : 0 ;
@@ -1935,7 +3077,7 @@ int main(int argc, char** argv){
   	    if(ch==get<1>(tctorocch[itc])) {iscp0hf0ch1tot = true; reftotch1 = roc.tot.to_ulong();}
   	    if(ch==get<2>(tctorocch[itc])) {iscp0hf0ch2tot = true; reftotch2 = roc.tot.to_ulong();}
   	    if(ch==get<3>(tctorocch[itc])) {iscp0hf0ch3tot = true; reftotch3 = roc.tot.to_ulong();}	    
-    	    if(ch!=137) totadc += totlin ;
+    	    totadc += totlin ;
     	    totadcup += totlinup ;
     	    if(roc_totflag==3) noftot3++;
     	    if(eventId<=10 and foundTC)
@@ -1981,7 +3123,7 @@ int main(int argc, char** argv){
     	       <<", compressed_econt [econ-t output] : "<< compressed_econt 
     	       << endl;
     	}
-    	if(TMath::Abs(diff)>10 and noftot3!=0 and !isZero){
+    	if(TMath::Abs(diff)>1 and noftot3!=0 and !isZero){
     	  cout<<"TOT::Large Diff : "<<diff<< ", Event : "<<eventId<<", TOT : ("<<reftotch0<<", "<<reftotch1<<", "<<reftotch2<<", "<<reftotch3<<"), ADC : ("<<refadcch0<<", "<<refadcch1<<", "<<refadcch2<<", "<<refadcch3<<") "<<endl;
 	  cout << "Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB]) << endl;
 	  cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<uint16_t(econt.energy_raw[isMSB][itc])<<" "; cout<<endl;
@@ -2026,25 +3168,6 @@ int main(int argc, char** argv){
   //BC9 New
   //===============================================================================================================================
 
-  TCanvas *c1_Diff_ADC[3], *c1_Diff_TOT[3];
-  for(int ichip=0;ichip<3;ichip++){
-    c1_Diff_ADC[ichip] = new TCanvas(Form("c1_Diff_Comp_ADC_chip_%d",ichip),Form("c1_Diff_Comp_ADC_chip_%d",ichip));
-    c1_Diff_ADC[ichip]->Divide(4,4);
-    for(int ipad=0;ipad<16;ipad++){
-      c1_Diff_ADC[ichip]->cd(ipad+1)->SetLogy();
-      int ihist = 16*ichip + ipad;
-      hCompressDiffTCADC[ihist]->Draw();
-    }
-  }
-  for(int ichip=0;ichip<3;ichip++){
-    c1_Diff_TOT[ichip] = new TCanvas(Form("c1_Diff_Comp_TOT_chip_%d",ichip),Form("c1_Diff_Comp_TOT_chip_%d",ichip));
-    c1_Diff_TOT[ichip]->Divide(4,4);
-    for(int ipad=0;ipad<16;ipad++){
-      c1_Diff_TOT[ichip]->cd(ipad+1)->SetLogy();
-      int ihist = 16*ichip + ipad;
-      hCompressDiffTCTOT[ihist]->Draw();
-    }
-  }
   // //===============================================================================================================================
   // //ADC/ADCM/TOA/TOT histograms
   // //===============================================================================================================================
@@ -2189,10 +3312,6 @@ int main(int argc, char** argv){
   
 
   TFile *fout = new TFile("log/out.root","recreate");
-  for(int ichip=0;ichip<3;ichip++){
-    c1_Diff_ADC[ichip]->Write();
-    c1_Diff_TOT[ichip]->Write();
-  }
   // hTOTFlag_0->Write();
   // hTOTFlag_1->Write();
   // hTOTFlag_2->Write();
@@ -2228,8 +3347,8 @@ int main(int argc, char** argv){
   
   tctorocch.clear();
   econtarray.clear();
-  //rocarray1.clear();
-  rocarray2.clear();
+  rocarray1.clear();
+  //rocarray2.clear();
 
   cout<<"roc_counter : "<<roc_counter<<endl;
   
