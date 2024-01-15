@@ -36,7 +36,8 @@ uint32_t compress(uint32_t val, bool isldm)
     if(val>maxval_hdm) val = maxval_hdm;
   }
   if(val>maxval) val = maxval;
-  
+
+  //Ref:https://graphics.stanford.edu/%7Eseander/bithacks.html
   uint32_t r = 0; // r will be lg(v)
   uint32_t sub ;
   uint32_t shift ;
@@ -217,20 +218,19 @@ int ROCRead(const char *infile="/Data/hgcaltestbeam/register/SingleModuleTest/ML
       cout <<"TC " <<tcmap.first<<", pins :  ("<< get<0>(tcmap.second) << ", "<< get<1>(tcmap.second) << ", "<< get<2>(tcmap.second) << ", "<< get<3>(tcmap.second) << ") "<<endl;
   }
   
-  TH1F *hCompressDiff = new TH1F("hCompressDiff","Difference in (Emulator - ROC) compression", 100, -50, 50);
-  TH1F *hCompressDiffTOT = new TH1F("hCompressDiffTOT","Difference in (Emulator - ROC) compression for TOT > 512", 100, -50, 50);
+  TH1F *hCompressDiffADC = new TH1F("hCompressDiffADC","Difference in (Emulator - ROC) compression ADC (totflag=0)", 100, -50, 50);
+  TH1F *hCompressDiffTOT = new TH1F("hCompressDiffTOT","Difference in (Emulator - ROC) compression TOT (totflag=3)", 100, -50, 50);
+  TH1F *hCompressDiffTOTUP = new TH1F("hCompressDiffTOTUP","Difference in (Emulator - ROC) compression for TOT>=512 (totflag=3)", 100, -50, 50);
+  TH1F *hCompressDiffTOT9Bit = new TH1F("hCompressDiffTOT9Bit","Difference in (Emulator - ROC) compression for TOT<512 (totflag=3)", 100, -50, 50);
+  TH1F *hCompressDiffTOTUPSel = new TH1F("hCompressDiffTOTUPSel","Difference in (Emulator - ROC) compression for TOTUPSel (totflag=3)", 100, -50, 50);
   TH1F *hDecompressDiffROC = new TH1F("hDecompressDiffROC","Difference for (decompressed - totadc) in ROC code", 1000, -500, 500);
   TH1F *hDecompressDiffECONT = new TH1F("hDecompressDiffECONT","Difference for (decompressed - totadc) in ECONT", 1000, -500, 500);
-  TH1F *hDecompressDiffROCTOT = new TH1F("hDecompressDiffROCTOT","Difference for (decompressed - totadc) in ROC code", 1000, -5000, 5000);
-  TH1F *hDecompressDiffECONTTOT = new TH1F("hDecompressDiffECONTTOT","Difference for (decompressed - totadc) in ECONT", 1000, -5000, 5000);
   TH1F *hDecompressDiffROCP = new TH1F("hDecompressDiffROCP","Difference for (decompressed - totadc)/totadc in ROC code in \%", 100, -50, 50);
   TH1F *hDecompressDiffECONTP = new TH1F("hDecompressDiffECONTP","Difference for (decompressed - totadc)/totadc in ECONT in \%", 100, -50, 50);
-  TH1F *hDecompressDiffROCTOTP = new TH1F("hDecompressDiffROCTOTP","Difference for (decompressed - totadc)/totadc in ROC code in \%", 100, -50, 50);
-  TH1F *hDecompressDiffECONTTOTP = new TH1F("hDecompressDiffECONTTOTP","Difference for (decompressed - totadc)/totadc in ECONT in \%", 100, -50, 50);
   
   int choffset = get<0>(tctorocch[8]) ; //since there are 16 TC per chip 
   for(const auto& trig : trarray){
-    if(trig.event>100) continue;
+    //if(trig.event>100) continue;
     //if(trig.chip!=0) continue;
     uint32_t totadc = 0;
     uint32_t totadcup = 0;
@@ -260,7 +260,6 @@ int ROCRead(const char *infile="/Data/hgcaltestbeam/register/SingleModuleTest/ML
       }
     }//roc for loop
     
-    //if(noftot3==1 and !istot1 and !istot2) {
     if(!istot1 and !istot2) {
       uint32_t compressed = compress(totadc, 1);
       uint32_t compressedup = compress(totadcup, 1);
@@ -269,19 +268,31 @@ int ROCRead(const char *infile="/Data/hgcaltestbeam/register/SingleModuleTest/ML
       float diffup = float(compressedup) - float(trig.rawsum);
       float decomp_diff_roc = float(trig.decompresssum) - float(totadc);
       float decomp_diff_econt = float(decompressed) - float(totadc);
-      if(issattot){
-	hCompressDiffTOT->Fill(diff);	
-	hDecompressDiffROCTOT->Fill(decomp_diff_roc);
-	hDecompressDiffECONTTOT->Fill(decomp_diff_econt);
-	hDecompressDiffROCTOTP->Fill(100.*decomp_diff_roc/totadc);
-	hDecompressDiffECONTTOTP->Fill(100.*decomp_diff_econt/totadc);
-      }else{
-	hCompressDiff->Fill(diff);
+      
+      if(noftot3==0){
+	hCompressDiffADC->Fill(diff);
 	hDecompressDiffROC->Fill(decomp_diff_roc);
 	hDecompressDiffECONT->Fill(decomp_diff_econt);
 	hDecompressDiffROCP->Fill(100.*decomp_diff_roc/totadc);
 	hDecompressDiffECONTP->Fill(100.*decomp_diff_econt/totadc);
       }
+      
+      if(noftot3>0){
+	hCompressDiffTOT->Fill(diff);
+	if(!issattot)
+	  hCompressDiffTOT9Bit->Fill(diff);
+	else
+	  hCompressDiffTOTUP->Fill(diff);	
+	if(!issattot)
+	  hCompressDiffTOTUPSel->Fill(diff);
+	else
+	  hCompressDiffTOTUPSel->Fill(diffup);	
+	hDecompressDiffROC->Fill(decomp_diff_roc);
+	hDecompressDiffECONT->Fill(decomp_diff_econt);
+	hDecompressDiffROCP->Fill(100.*decomp_diff_roc/totadc);
+	hDecompressDiffECONTP->Fill(100.*decomp_diff_econt/totadc);
+      }
+      
       if(TMath::Abs(trig.rawsum - int(compressed))>0){
 	printf("trig : Event : %05d, Chip : %02d, Trigtime : %4d, Channelsumid : %02d(%d), Sensorsum : %u, Rawsum : %3d, Compressed : %u, CompressedUp : %u, Decompresssum : %7.0f, ValidTP : %d\n", trig.event, trig.chip, trig.trigtime, trig.channelsumid, channelsumid, totadc, trig.rawsum, compressed, compressedup, trig.decompresssum, trig.validtp);
 	// for(const auto& roc : rocarray){
@@ -295,10 +306,30 @@ int ROCRead(const char *infile="/Data/hgcaltestbeam/register/SingleModuleTest/ML
     }//has a second incomplete tot
   }//trig for loop
   
-  hCompressDiff->SetMinimum(1.e-1);
-  hCompressDiff->GetXaxis()->SetTitle("Difference in compressed value : Emulator - ROC");
-  hCompressDiff->SetLineColor(kBlue);
-  hCompressDiffTOT->SetLineColor(kRed);
+  hCompressDiffADC->SetMinimum(1.e-1);
+  hCompressDiffADC->GetXaxis()->SetTitle("Difference in compressed value : Emulator - ROC");
+  hCompressDiffADC->SetLineColor(kRed);
+  hCompressDiffADC->SetLineWidth(2);
+  
+  hCompressDiffTOT->SetMinimum(1.e-1);
+  hCompressDiffTOT->GetXaxis()->SetTitle("Difference in compressed value : Emulator - ROC");
+  hCompressDiffTOT->SetLineColor(kBlue);
+  hCompressDiffTOT->SetLineWidth(2);
+  
+  hCompressDiffTOTUPSel->SetMinimum(1.e-1);
+  hCompressDiffTOTUPSel->GetXaxis()->SetTitle("Difference in compressed value : Emulator - ROC");
+  hCompressDiffTOTUPSel->SetLineColor(kGreen+2);
+  hCompressDiffTOTUPSel->SetLineWidth(2);
+
+  hCompressDiffTOTUP->SetMinimum(1.e-1);
+  hCompressDiffTOTUP->GetXaxis()->SetTitle("Difference in compressed value : Emulator - ROC");
+  hCompressDiffTOTUP->SetLineColor(kBlack);
+  hCompressDiffTOTUP->SetLineWidth(2);
+
+  hCompressDiffTOT9Bit->SetMinimum(1.e-1);
+  hCompressDiffTOT9Bit->GetXaxis()->SetTitle("Difference in compressed value : Emulator - ROC");
+  hCompressDiffTOT9Bit->SetLineColor(kMagenta);
+  hCompressDiffTOT9Bit->SetLineWidth(2);
 
   hDecompressDiffECONT->SetMinimum(1.e-1);
   hDecompressDiffECONT->GetXaxis()->SetTitle("Difference in decompressed value : (Emulator/ROC - totadc)");
@@ -306,40 +337,58 @@ int ROCRead(const char *infile="/Data/hgcaltestbeam/register/SingleModuleTest/ML
   hDecompressDiffROC->SetLineColor(kRed);
 
   hDecompressDiffECONTP->SetMinimum(1.e-1);
-  hDecompressDiffECONTP->GetXaxis()->SetTitle("Difference in decompressed value : (Emulator/ROC - totadc)/totadc in \%");
+  hDecompressDiffECONTP->GetXaxis()->SetTitle("Difference in decompressed value : (Emulator/ROC - totadc) in \%");
   hDecompressDiffECONTP->SetLineColor(kBlue);
   hDecompressDiffROCP->SetLineColor(kRed);
 
   TCanvas *c1 = new TCanvas("c1","c1",800,600);
-  c1->SetLogy();
-  hCompressDiff->Draw();
-  hCompressDiffTOT->Draw("sames");
+  c1->Divide(2,1);
+  c1->cd(1)->SetLogy();
+  hCompressDiffADC->Draw();
+  c1->cd(2)->SetLogy();
+  hCompressDiffTOT->Draw();
 
   TCanvas *c2 = new TCanvas("c2","c2",800,600);
-  //c2->SetLogy();
+  c2->Divide(3,1);
+  c2->cd(1)->SetLogy();
+  hCompressDiffTOT->Draw();
+  c2->cd(2)->SetLogy();
+  hCompressDiffTOT9Bit->Draw();
+  c2->cd(3)->SetLogy();
+  hCompressDiffTOTUP->Draw();
+
+  TCanvas *c3 = new TCanvas("c3","c3",800,600);
+  c3->Divide(2,1);
+  c3->cd(1)->SetLogy();
+  hCompressDiffTOT->Draw();
+  c3->cd(2)->SetLogy();
+  hCompressDiffTOTUPSel->Draw();
+
+  TCanvas *c4 = new TCanvas("c4","c4",800,600);
+  c4->SetLogy();
   hDecompressDiffECONT->Draw();
   hDecompressDiffROC->Draw("sames");
-  //c1->SaveAs("CompressDiff.pdf");
-  
-  TCanvas *c3 = new TCanvas("c3","c3",800,600);
-  c3->SetLogy();
+
+  TCanvas *c5 = new TCanvas("c5","c5",800,600);
+  c5->SetLogy();
   hDecompressDiffECONTP->Draw();
   hDecompressDiffROCP->Draw("sames");
-
-  TFile *fout = new TFile("CompressDiff.root","recreate");
+  
+  TFile *fout = new TFile("log/CompressDiff.root","recreate");
   c1->Write();
   c2->Write();
   c3->Write();
-  hCompressDiff->Write();
+  c4->Write();
+  c5->Write();
+  hCompressDiffADC->Write();
   hCompressDiffTOT->Write();
+  hCompressDiffTOT9Bit->Write();
+  hCompressDiffTOTUP->Write();
+  hCompressDiffTOTUPSel->Write();
   hDecompressDiffECONT->Write();
   hDecompressDiffROC->Write();
-  hDecompressDiffECONTTOT->Write();
-  hDecompressDiffROCTOT->Write();
   hDecompressDiffECONTP->Write();
   hDecompressDiffROCP->Write();
-  hDecompressDiffECONTTOTP->Write();
-  hDecompressDiffROCTOTP->Write();
   fout->Close();
 
   return true;

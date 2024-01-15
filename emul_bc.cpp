@@ -899,8 +899,8 @@ void ReadChannelMapping(map<int,tuple<int,int,int,int>>& tctorocch)
   int t;
   //Dens   Wtype     ROC HalfROC     Seq  ROCpin  SiCell  TrLink  TrCell      iu      iv   trace       t
   //ifstream inwafermap("/home/indra/Downloads/WaferCellMapTraces.txt");
-  ifstream inwafermap("/home/hep/idas/codes/WaferCellMapTraces.txt");
-  //ifstream inwafermap("/afs/cern.ch/user/i/idas/Downloads/WaferCellMapTraces.txt");
+  //ifstream inwafermap("/home/hep/idas/codes/WaferCellMapTraces.txt");
+  ifstream inwafermap("/afs/cern.ch/user/i/idas/Downloads/WaferCellMapTraces.txt");
   stringstream ss;
   string s;
   
@@ -1187,20 +1187,19 @@ uint32_t decompress_compress_econt_PD(uint32_t compressed, bool isldm, uint32_t&
 }
 
 
-int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daqdata>>& rocarray, int isMSB, map<int,tuple<int,int,int,int>>& tctorocch, unsigned pedestal_adc[][3][2][36], unsigned threshold_adc[][3][2][36], TDirectory*& dir_diff, TDirectory*& dir_adctot)
+int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daqdata>>& rocarray, int isMSB, map<int,tuple<int,int,int,int>>& tctorocch, unsigned pedestal_adc[][3][2][36], unsigned threshold_adc[][3][2][36], TDirectory*& dir_diff)
 {
   // ////./emul_econt.exe 1695829026 1695829027
   // //===============================================================================================================================
   // //BC9 New
   // //===============================================================================================================================
   TList *list = (TList *)dir_diff->GetList();
-  TList *list1 = (TList *)dir_adctot->GetList(); 
 
   int choffset = get<0>(tctorocch[8]) ; //==36, since there are 16 TC per chip
   cout<<"choffset : "<<choffset<<endl;      
-  uint64_t roc_counter = 0;
   for(const auto& [eventId, econt] : econtarray){
-    
+
+    if(eventId%1000==0)  cout << "Processing event : "<<eventId<<"  .........."<< endl;
     if(eventId<=10){
       cout << "Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB]) << endl;
       cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<uint16_t(econt.energy_raw[isMSB][itc])<<" "; cout<<endl;
@@ -1264,7 +1263,7 @@ int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daq
       uint32_t multfactor = 15 ;
       
       for(const auto& roc : rocarray[eventId]){
-  	roc_counter++;
+
     	if(roc.channel.to_ulong()>=37 or roc.channel.to_ulong()==18) continue;
   	//if(roc.totflag.to_ulong()==2) continue;
     	int roc_chip = int(roc.chip.to_ulong());
@@ -1293,7 +1292,7 @@ int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daq
 	    totadcdown += adc ;
     	    if(roc.totflag==1) {istot1 = true; istot1MS = true; }
   	    if(roc.totflag==2) {istot2 = true; istot2MS = true; }
-	    if(roc_totflag==0) ((TH1F *) list1->FindObject(Form("hADC_ch_flag0_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.adc.to_ulong()));
+	    //if(roc_totflag==0) ((TH1F *) list1->FindObject(Form("hADC_ch_flag0_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.adc.to_ulong()));
     	    if(eventId<=10 and foundTC)
     	      cout<<"\t\tievent : " << eventId <<", chip : " << roc_chip << ", half : "<<roc_half<< ", channel : " << roc_channel<<", ch : "<<ch<<", adc_raw : "<<roc.adc.to_ulong()<<", adc : "<<adc<<", pedch : "<<pedch<<", ped : "<<ped<<", totflag : "<<roc_totflag <<", tot : "<<roc.tot.to_ulong()<<", totadc : "<<totadc<<endl;
     	  }
@@ -1323,17 +1322,16 @@ int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daq
 	    }
     	    if(roc_totflag==3) {noftot3++; noftot3MS++;}
 	    if(roc.tot.to_ulong()>=512 and roc_totflag==3) {issattot = true; issattotMS = true;}
-	    ((TH1F *) list1->FindObject(Form("hADC_ch_flag3_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.adc.to_ulong()));
-	    ((TH1F *) list1->FindObject(Form("hTOT_ch_flag3_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.tot.to_ulong()));
+	    //((TH1F *) list1->FindObject(Form("hADC_ch_flag3_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.adc.to_ulong()));
+	    //((TH1F *) list1->FindObject(Form("hTOT_ch_flag3_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.tot.to_ulong()));
     	    if(eventId<=10 and foundTC)
     	      cout<<"\t\tievent : " << eventId <<", chip : " << roc_chip << ", half : "<<roc_half<< ", channel : " << roc_channel<<", ch : "<<ch<<", adc : "<<roc.adc.to_ulong()<<", totflag : "<<roc_totflag <<", tot : "<<tot<<", multfactor : "<<multfactor<<", totadc : "<<totadc<<endl;
     	  }
 	  
     	}
       }//roc for loop
-
+      
       if(!istot1 and !istot2) {
-  	//{
     	compressed = compress_roc(totadc, 1);
     	compressedup = compress_roc(totadcup, 1);
     	compresseddown = compress_roc(totadcdown, 1);
@@ -1539,7 +1537,7 @@ int main(int argc, char** argv){
   //===============================================================================================================================
   //Book histograms
   //===============================================================================================================================
-  TFile *fout = new TFile(Form("log/out_bc_link%d.root",linkNumber),"recreate");
+  TFile *fout = new TFile(Form("log/out_bc_link%d_adctot.root",linkNumber),"recreate");
   TDirectory *dir_diff = fout->mkdir("diff_plots");
   dir_diff->cd();
   TH1F *hCompressDiff = new TH1F("hCompressDiff","Difference in (Emulator - ROC) compression", 200, -99, 101);
@@ -1635,13 +1633,12 @@ int main(int argc, char** argv){
   hModSumDiff5E3M->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
   hModSumDiff5E3M->SetLineColor(kMagenta);
   hModSumDiff5E3M->SetDirectory(dir_diff);  
-
   
   TDirectory *dir_adctot = fout->mkdir("adctot_plots");
   dir_adctot->cd();
   int choffset = get<0>(tctorocch[8]) ; //==36, since there are 16 TC per chip
-  TH1F *hADC_ch_flag0[3][2][32], *hADC_ch_flag3[3][2][32];
-  TH1F *hTOT_ch_flag3[3][2][32];
+  TH1I *hADC_ch_flag0[3][2][32], *hADC_ch_flag3[3][2][32];
+  TH1I *hTOT_ch_flag3[3][2][32];
   for(int ichip=0;ichip<3;ichip++){
     for(int ihalf=0;ihalf<2;ihalf++){
       int chindex = 0 ;
@@ -1654,9 +1651,9 @@ int main(int argc, char** argv){
 	for(int itc=0;itc<48;itc++){
 	  if(ch==get<0>(tctorocch[itc]) or ch==get<1>(tctorocch[itc]) or ch==get<2>(tctorocch[itc]) or ch==get<3>(tctorocch[itc])){
 	    //printf("hADC_ch_flag0_%d_hf-%d_ich-%d_rocch-%d_chindex_%d\n",ichip,ihalf,ich,rocch,chindex);
-	    hADC_ch_flag0[ichip][ihalf][chindex] = new TH1F(Form("hADC_ch_flag0_%d_%d_%d",ichip,ihalf,rocch),Form("ADC for chip=%d,half==%d,ch==%d & (Flag==0b00)",ichip,ihalf,rocch),1044,-10,1034);
-	    hADC_ch_flag3[ichip][ihalf][chindex] = new TH1F(Form("hADC_ch_flag3_%d_%d_%d",ichip,ihalf,rocch),Form("ADC for chip=%d,half==%d,ch==%d & (Flag==0b11)",ichip,ihalf,rocch),1044,-10,1034);
-	    hTOT_ch_flag3[ichip][ihalf][chindex] = new TH1F(Form("hTOT_ch_flag3_%d_%d_%d",ichip,ihalf,rocch),Form("TOT for chip=%d,half==%d,ch==%d & (Flag==0b11)",ichip,ihalf,rocch),1044,-10,1034);
+	    hADC_ch_flag0[ichip][ihalf][chindex] = new TH1I(Form("hADC_ch_flag0_%d_%d_%d",ichip,ihalf,rocch),Form("ADC for chip=%d,half=%d,ch=%d & (Flag=0b00)",ichip,ihalf,rocch),1044,-10,1034);
+	    hADC_ch_flag3[ichip][ihalf][chindex] = new TH1I(Form("hADC_ch_flag3_%d_%d_%d",ichip,ihalf,rocch),Form("ADC for chip=%d,half=%d,ch=%d & (Flag=0b11)",ichip,ihalf,rocch),1044,-10,1034);
+	    hTOT_ch_flag3[ichip][ihalf][chindex] = new TH1I(Form("hTOT_ch_flag3_%d_%d_%d",ichip,ihalf,rocch),Form("TOT for chip=%d,half=%d,ch=%d & (Flag=0b11)",ichip,ihalf,rocch),1044,-10,1034);
 	    ////////////////////////////////////////////////////////////
 	    hADC_ch_flag0[ichip][ihalf][chindex]->GetXaxis()->SetTitle("ADC");
 	    hADC_ch_flag0[ichip][ihalf][chindex]->GetYaxis()->SetTitle("Entries");
@@ -1719,6 +1716,39 @@ int main(int argc, char** argv){
     //===============================================================================================================================
     uint64_t nofECONTEvents = 0, nofECONDEvents = 0, sizeofROCarray = 0;
     for(const auto& [eventId, econt] : econtarray){    
+      
+      //===============================================================================================================================
+      // Fill ADC/TOT histograms
+      //===============================================================================================================================
+      if(eventId%2000==0)  cout << "Processing event : "<<eventId<<"  .........."<< endl;
+      int chindex = 0 ;
+      int prevhalf = 2;
+      for(const auto& roc : rocarray[eventId]){
+	if(roc.channel.to_ulong()>=37 or roc.channel.to_ulong()==18) continue;
+	//if(roc.totflag.to_ulong()==2) continue;
+	int ichip = int(roc.chip.to_ulong());
+	int ihalf = int(roc.half.to_ulong());
+	if(ihalf!=prevhalf) chindex = 0 ;
+	int ich = int(roc.channel.to_ulong());
+	int roc_totflag = int(roc.totflag.to_ulong());
+	int ch = (ihalf==1)?(ich+choffset):ich;
+	if(ich>18) ch -= 1;
+	int rocch = ch%36;
+	ch += 72*ichip;
+	for(int itc=0;itc<48;itc++){
+	  if(ch==get<0>(tctorocch[itc]) or ch==get<1>(tctorocch[itc]) or ch==get<2>(tctorocch[itc]) or ch==get<3>(tctorocch[itc])){
+	    //printf("hADC_ch_flag0_%d_hf-%d_ich-%d_rocch-%d_chindex_%d\n",ichip,ihalf,ich,rocch,chindex);
+	    if(roc_totflag==0) hADC_ch_flag0[ichip][ihalf][chindex]->Fill(int(roc.adc.to_ulong()));
+	    if(roc_totflag==3){
+	      hADC_ch_flag3[ichip][ihalf][chindex]->Fill(int(roc.adc.to_ulong()));
+	      hTOT_ch_flag3[ichip][ihalf][chindex]->Fill(int(roc.tot.to_ulong()));
+	    }
+	    chindex++;
+	  }
+	}
+	prevhalf = ihalf ;
+      }
+      //===============================================================================================================================
       nofECONTEvents++;
       unsigned rocArraySize = rocarray[eventId].size();
       if(rocArraySize==222){
@@ -1730,7 +1760,7 @@ int main(int argc, char** argv){
     nofMatchedDAQEvents += nofECONDEvents;
     //===============================================================================================================================
     
-    CompareBC9Energies(econtarray, rocarray, isMSB, tctorocch, pedestal_adc, threshold_adc, dir_diff, dir_adctot);
+    //CompareBC9Energies(econtarray, rocarray, isMSB, tctorocch, pedestal_adc, threshold_adc, dir_diff);
     
     //===============================================================================================================================
     //Clear Link0, Link1/Link2 files
@@ -1740,7 +1770,7 @@ int main(int argc, char** argv){
     econtarray.clear();
     //===============================================================================================================================
     
-  }
+  }//event loop
   cout<<"Total Link0 size : " << nofTrigEvents <<endl;
   cout<<"Total Link"<<linkNumber<<" size (nofDAQEvents) : " << nofDAQEvents <<endl;
   cout<<"Total Link"<<linkNumber<<" size (nofMatchedDAQEvents) : " << nofMatchedDAQEvents <<endl;
@@ -1852,198 +1882,91 @@ int main(int argc, char** argv){
   delete fout;
   //===============================================================================================================================
 
-  //===============================================================================================================================
-  //Pedestal and threshold histograms
-  //===============================================================================================================================
-  TH1F *hPedADC_LSB[3][2], *hThreshADC_LSB[3][2];
-  for(int ichip=0;ichip<3;ichip++){
-    for(int ihalf=0;ihalf<2;ihalf++){
-      hPedADC_LSB[ichip][ihalf] = new TH1F(Form("hPedADC_LSB_%d_%d",ichip,ihalf),Form("hPedADC_LSB_%d_%d",ichip,ihalf),40,-1,39);
-      hThreshADC_LSB[ichip][ihalf] = new TH1F(Form("hThreshADC_LSB_%d_%d",ichip,ihalf),Form("hThreshADC_LSB_%d_%d",ichip,ihalf),40,-1,39);
-      for(int ichannel=0;ichannel<36;ichannel++) {
-  	hPedADC_LSB[ichip][ihalf]->SetBinContent(hPedADC_LSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), float(pedestal_adc[0][ichip][ihalf][ichannel]));
-  	hThreshADC_LSB[ichip][ihalf]->SetBinContent(hThreshADC_LSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), float(threshold_adc[0][ichip][ihalf][ichannel]));
-      }
-      hPedADC_LSB[ichip][ihalf]->GetXaxis()->SetTitle("Channel");
-      hPedADC_LSB[ichip][ihalf]->GetYaxis()->SetTitle("Pedestal");
-      hThreshADC_LSB[ichip][ihalf]->GetXaxis()->SetTitle("Channel");
-      hThreshADC_LSB[ichip][ihalf]->GetYaxis()->SetTitle("Threshold");
-    }
-  }
-  
-  TH1F *hPedADC_MSB[3][2], *hThreshADC_MSB[3][2];
-  for(int ichip=0;ichip<3;ichip++){
-    for(int ihalf=0;ihalf<2;ihalf++){
-      hPedADC_MSB[ichip][ihalf] = new TH1F(Form("hPedADC_MSB_%d_%d",ichip,ihalf),Form("hPedADC_MSB_%d_%d",ichip,ihalf),40,-1,39);
-      hThreshADC_MSB[ichip][ihalf] = new TH1F(Form("hThreshADC_MSB_%d_%d",ichip,ihalf),Form("hThreshADC_MSB_%d_%d",ichip,ihalf),40,-1,39);
-      for(int ichannel=0;ichannel<36;ichannel++) {
-  	hPedADC_MSB[ichip][ihalf]->SetBinContent(hPedADC_MSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), float(pedestal_adc[1][ichip][ihalf][ichannel]));
-  	hThreshADC_MSB[ichip][ihalf]->SetBinContent(hThreshADC_MSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), float(threshold_adc[1][ichip][ihalf][ichannel]));
-      }
-      hPedADC_MSB[ichip][ihalf]->GetXaxis()->SetTitle("Channel");
-      hPedADC_MSB[ichip][ihalf]->GetYaxis()->SetTitle("Pedestal");
-      hThreshADC_MSB[ichip][ihalf]->GetXaxis()->SetTitle("Channel");
-      hThreshADC_MSB[ichip][ihalf]->GetYaxis()->SetTitle("Threshold");
-    }
-  }
-  ////////////////////////////////////////////////////////////////////////////////////////////////
-  TCanvas *c1_ped_adc_lsb = new TCanvas("c1_ped_adc_lsb","c1_ped_adc_lsb",1200,800);
-  c1_ped_adc_lsb->Divide(3,2);
-  for(int ichip=0;ichip<3;ichip++){
-    for(int ihalf=0;ihalf<2;ihalf++){
-      int icanvas = 2*ichip + ihalf + 1;
-      c1_ped_adc_lsb->cd(icanvas);
-      hPedADC_LSB[ichip][ihalf]->Draw();
-    }
-  }
-  
-  TCanvas *c2_thresh_adc_lsb = new TCanvas("c2_thresh_adc_lsb","c2_thresh_adc_lsb",1200,800);
-  c2_thresh_adc_lsb->Divide(3,2);
-  for(int ichip=0;ichip<3;ichip++){
-    for(int ihalf=0;ihalf<2;ihalf++){
-      int icanvas = 2*ichip + ihalf + 1;
-      c2_thresh_adc_lsb->cd(icanvas);
-      hThreshADC_LSB[ichip][ihalf]->Draw();
-    }
-  }
-  ////////////////////////////////////////////////////////////////////////////////////////////////
-  TCanvas *c1_ped_adc_msb = new TCanvas("c1_ped_adc_msb","c1_ped_adc_msb",1200,800);
-  c1_ped_adc_msb->Divide(3,2);
-  for(int ichip=0;ichip<3;ichip++){
-    for(int ihalf=0;ihalf<2;ihalf++){
-      int icanvas = 2*ichip + ihalf + 1;
-      c1_ped_adc_msb->cd(icanvas);
-      hPedADC_MSB[ichip][ihalf]->Draw();
-    }
-  }
-  
-  TCanvas *c2_thresh_adc_msb = new TCanvas("c2_thresh_adc_msb","c2_thresh_adc_msb",1200,800);
-  c2_thresh_adc_msb->Divide(3,2);
-  for(int ichip=0;ichip<3;ichip++){
-    for(int ihalf=0;ihalf<2;ihalf++){
-      int icanvas = 2*ichip + ihalf + 1;
-      c2_thresh_adc_msb->cd(icanvas);
-      hThreshADC_MSB[ichip][ihalf]->Draw();
-    }
-  }
-
-  // TFile *fChDist = new TFile("log/ADCDist.root","recreate");
-  // fChDist->Close();
-  // delete fChDist;
-
-  TFile *fcanva_out = new TFile("log/Pedestal.root","recreate");
-  c1_ped_adc_lsb->Write();
-  c2_thresh_adc_lsb->Write();
-  c1_ped_adc_msb->Write();
-  c2_thresh_adc_msb->Write();
-  fcanva_out->Close();
-  delete fcanva_out;
-
-  //===============================================================================================================================
-
-  return true;  
-  
-
-  // ///// ./emul_econt.exe 1695733045 1695733046
   // //===============================================================================================================================
-  // //STC4
+  // //Pedestal and threshold histograms
   // //===============================================================================================================================
-  // TH1F *hCompressDiff = new TH1F("hCompressDiff","Difference in (Emulator - ECONT) compression in percent", 200, -99, 101);
-  // TH1F *hCompressDiffECONT = new TH1F("hCompressDiffECONT","Difference in (Emulator - ECONT) compression", 200, -99, 101);
-  // int choffset = get<0>(tctorocch[8]) ; //since there are 16 TC per chip
-  // int isMSB = 1; //0/1:LSB/MSB corresponds to link1/Link2
-  // for(const auto& econt : econtarray){
-    
-  //   //if(econt.eventId>=10) continue;
-    
-  //   //First loop to get the bx with maximum modulesum
-  //   uint16_t modsum[15];
-  //   for(unsigned ibx(0);ibx<15;ibx++) modsum[ibx] = econt.modsum[isMSB][ibx];
-  //   const int N = sizeof(modsum) / sizeof(uint16_t);
-  //   int bx_max = distance(modsum, max_element(modsum, modsum + N));
-    
-  //   //The bx with mod sum is not the 8 modulo bx, skip it
-  //   bool condn = (econt.bxId==3564) ? (econt.bx_raw[isMSB][bx_max]==15) : (econt.bxId%8 == econt.bx_raw[isMSB][bx_max]) ;
-  //   if(!condn) continue;
-
-  //   if(econt.eventId<=5){
-  //     cout << "Event : "<<econt.eventId<<", bx_index_with_maximum_modsum : "<< bx_max << ", modsum : "<<econt.modsum[isMSB][bx_max]<< endl;
-  //     cout<<"E : \t"; for(int istc=0;istc<12;istc++) cout<<econt.energy_raw[isMSB][bx_max][istc]<<" "; cout<<endl;
-  //     cout<<"L : \t"; for(int istc=0;istc<12;istc++) cout<<setw(2)<<std::setfill('0')<<econt.loc_raw[isMSB][bx_max][istc]<<" "; cout<<endl;  
+  // TH1F *hPedADC_LSB[3][2], *hThreshADC_LSB[3][2];
+  // for(int ichip=0;ichip<3;ichip++){
+  //   for(int ihalf=0;ihalf<2;ihalf++){
+  //     hPedADC_LSB[ichip][ihalf] = new TH1F(Form("hPedADC_LSB_%d_%d",ichip,ihalf),Form("hPedADC_LSB_%d_%d",ichip,ihalf),40,-1,39);
+  //     hThreshADC_LSB[ichip][ihalf] = new TH1F(Form("hThreshADC_LSB_%d_%d",ichip,ihalf),Form("hThreshADC_LSB_%d_%d",ichip,ihalf),40,-1,39);
+  //     for(int ichannel=0;ichannel<36;ichannel++) {
+  // 	hPedADC_LSB[ichip][ihalf]->SetBinContent(hPedADC_LSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), float(pedestal_adc[0][ichip][ihalf][ichannel]));
+  // 	hThreshADC_LSB[ichip][ihalf]->SetBinContent(hThreshADC_LSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), float(threshold_adc[0][ichip][ihalf][ichannel]));
+  //     }
+  //     hPedADC_LSB[ichip][ihalf]->GetXaxis()->SetTitle("Channel");
+  //     hPedADC_LSB[ichip][ihalf]->GetYaxis()->SetTitle("Pedestal");
+  //     hThreshADC_LSB[ichip][ihalf]->GetXaxis()->SetTitle("Channel");
+  //     hThreshADC_LSB[ichip][ihalf]->GetYaxis()->SetTitle("Threshold");
   //   }
-    
-  //   for(unsigned istc = 0 ; istc < 12 ; istc++){
-  //     //if(istc>2) continue;
-  //     int noftctot = 0;
-  //     uint32_t stcsum = 0;
-  //     bool isselchiphalf = false;
-  //     for(unsigned itc = 4*istc ; itc < 4*istc + 4 ; itc++ ){
-  // 	//if(itc>3) continue;
-  // 	//if(econt.eventId<=5) cout << "Event : "<<econt.eventId<<", istc : "<< istc << ", itc : "<<itc<< endl;
-  // 	uint32_t compressed = 0;
-  // 	uint32_t compressedup = 0;
-  // 	uint32_t decompressed = 0;
-	
-  // 	uint32_t totadc = 0;
-  // 	uint32_t totadcup = 0;
-  // 	int noftot3 = 0;
-  // 	bool istot1 = false;
-  // 	bool istot2 = false;
-  // 	bool issattot = false;
-  // 	for(const auto& roc : rocarray2){
-  // 	  if(roc.eventId!=econt.eventId or roc.bxcounter!=econt.bxId) continue;
-  // 	  if(roc.channel>=37 or roc.channel==18) continue;
-  // 	  int ch = (roc.half==1)?(roc.channel+choffset):roc.channel;
-  // 	  if(roc.channel>18) ch -= 1;
-  // 	  ch += 72*roc.chip ; 
-  // 	  uint32_t adc = uint32_t(roc.adc) & 0x3FF;
-  // 	  adc = (adc>(ped_adc[isMSB][roc.chip][roc.half][roc.channel]+noise_adc[isMSB][roc.chip][roc.half][roc.channel])) ? adc : 0 ;
-  // 	  uint32_t tot = uint32_t(roc.tot) ; 
-  // 	  tot = (tot>(ped_tot[isMSB][roc.chip][roc.half][roc.channel]+noise_tot[isMSB][roc.chip][roc.half][roc.channel])) ? tot : 0 ;
-  // 	  uint32_t totup = tot + 7;
-  // 	  uint32_t totlin = tot*25;
-  // 	  uint32_t totlinup = totup*25;
-  // 	  if(ch==get<0>(tctorocch[itc]) or ch==get<1>(tctorocch[itc]) or ch==get<2>(tctorocch[itc]) or ch==get<3>(tctorocch[itc])){
-  // 	    totadc += (roc.totflag==3) ? totlin : adc ;
-  // 	    totadcup += (roc.totflag==3) ? totlinup : adc ;
-  // 	    if(roc.totflag==3) noftot3++;
-  // 	    if(roc.totflag==3) noftctot++;
-  // 	    if(roc.totflag==1) istot1 = true;
-  // 	    if(roc.totflag==2) istot2 = true;
-  // 	    if(tot>=512) issattot = true;
-  // 	    if(roc.chip==0 and roc.half==1) isselchiphalf = true;
-  // 	    if(econt.eventId<=5) cout<<"\t\tievent : " << roc.eventId <<", chip : " << roc.chip << ", half : "<<roc.half<< ", channel : " << roc.channel<<", ch : "<<ch<<", roc.adc : "<<roc.adc<<", adc : "<<adc<<", totflag : "<<roc.totflag <<", roc.tot : "<<roc.tot<<", tot : "<<tot<<", ped : "<<ped_adc[isMSB][roc.chip][roc.half][roc.channel] << ", noise : " << noise_adc[isMSB][roc.chip][roc.half][roc.channel] << ", ped_tot : " << ped_tot[isMSB][roc.chip][roc.half][roc.channel] << ", noise_tot : " << noise_tot[isMSB][roc.chip][roc.half][roc.channel]<<", totadc : "<<totadc<<endl;
-  // 	  }//if matching channel
-  // 	}//roc for loop
-    
-  // 	if(!istot1 and !istot2) {
-  // 	  compressed = compress_roc(totadc, 1);
-  // 	  compressedup = compress_roc(totadcup, 1);
-  // 	  decompressed = decompress_econt(compressed, 1);
-  // 	  uint32_t calib = 0x800;
-  // 	  decompressed = (calib*decompressed)>>11;
-  // 	}
-  // 	if(econt.eventId<=5) cout <<"\t  itc : "<<(itc)<<", totadc : "<<totadc<<", compressed : "<< compressed<< ", decompressed [econt-t input] : "<< decompressed<< endl;
-	
-  // 	stcsum += decompressed  ;
-  //     }//trig for loop
-  //     uint32_t compressed_econt = compress_econt(stcsum, 1);
-  //     if(econt.eventId<=5)
-  // 	cout <<"istc : "<<istc<<", stcsum : "<<stcsum<<", compressed_econt : "<<compressed_econt<<", econt_raw_energy : "<<econt.energy_raw[isMSB][bx_max][istc] << endl;
-      
-  //     float diff = float(compressed_econt) - float(econt.energy_raw[isMSB][bx_max][istc]);
-  //     float reldiff = 100*(float(compressed_econt) - float(econt.energy_raw[isMSB][bx_max][istc]))/float(econt.energy_raw[isMSB][bx_max][istc]);
-  //     //if(noftctot<10) {hCompressDiffECONT->Fill(diff); hCompressDiff->Fill(reldiff);}
-  //     //if(isselchiphalf) {hCompressDiffECONT->Fill(diff); hCompressDiff->Fill(reldiff);}
-  //     hCompressDiffECONT->Fill(diff);
-  //     hCompressDiff->Fill(reldiff);
+  // }
+  
+  // TH1F *hPedADC_MSB[3][2], *hThreshADC_MSB[3][2];
+  // for(int ichip=0;ichip<3;ichip++){
+  //   for(int ihalf=0;ihalf<2;ihalf++){
+  //     hPedADC_MSB[ichip][ihalf] = new TH1F(Form("hPedADC_MSB_%d_%d",ichip,ihalf),Form("hPedADC_MSB_%d_%d",ichip,ihalf),40,-1,39);
+  //     hThreshADC_MSB[ichip][ihalf] = new TH1F(Form("hThreshADC_MSB_%d_%d",ichip,ihalf),Form("hThreshADC_MSB_%d_%d",ichip,ihalf),40,-1,39);
+  //     for(int ichannel=0;ichannel<36;ichannel++) {
+  // 	hPedADC_MSB[ichip][ihalf]->SetBinContent(hPedADC_MSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), float(pedestal_adc[1][ichip][ihalf][ichannel]));
+  // 	hThreshADC_MSB[ichip][ihalf]->SetBinContent(hThreshADC_MSB[ichip][ihalf]->GetXaxis()->FindBin(ichannel), float(threshold_adc[1][ichip][ihalf][ichannel]));
+  //     }
+  //     hPedADC_MSB[ichip][ihalf]->GetXaxis()->SetTitle("Channel");
+  //     hPedADC_MSB[ichip][ihalf]->GetYaxis()->SetTitle("Pedestal");
+  //     hThreshADC_MSB[ichip][ihalf]->GetXaxis()->SetTitle("Channel");
+  //     hThreshADC_MSB[ichip][ihalf]->GetYaxis()->SetTitle("Threshold");
+  //   }
+  // }
+  // ////////////////////////////////////////////////////////////////////////////////////////////////
+  // TCanvas *c1_ped_adc_lsb = new TCanvas("c1_ped_adc_lsb","c1_ped_adc_lsb",1200,800);
+  // c1_ped_adc_lsb->Divide(3,2);
+  // for(int ichip=0;ichip<3;ichip++){
+  //   for(int ihalf=0;ihalf<2;ihalf++){
+  //     int icanvas = 2*ichip + ihalf + 1;
+  //     c1_ped_adc_lsb->cd(icanvas);
+  //     hPedADC_LSB[ichip][ihalf]->Draw();
+  //   }
+  // }
+  
+  // TCanvas *c2_thresh_adc_lsb = new TCanvas("c2_thresh_adc_lsb","c2_thresh_adc_lsb",1200,800);
+  // c2_thresh_adc_lsb->Divide(3,2);
+  // for(int ichip=0;ichip<3;ichip++){
+  //   for(int ihalf=0;ihalf<2;ihalf++){
+  //     int icanvas = 2*ichip + ihalf + 1;
+  //     c2_thresh_adc_lsb->cd(icanvas);
+  //     hThreshADC_LSB[ichip][ihalf]->Draw();
+  //   }
+  // }
+  // ////////////////////////////////////////////////////////////////////////////////////////////////
+  // TCanvas *c1_ped_adc_msb = new TCanvas("c1_ped_adc_msb","c1_ped_adc_msb",1200,800);
+  // c1_ped_adc_msb->Divide(3,2);
+  // for(int ichip=0;ichip<3;ichip++){
+  //   for(int ihalf=0;ihalf<2;ihalf++){
+  //     int icanvas = 2*ichip + ihalf + 1;
+  //     c1_ped_adc_msb->cd(icanvas);
+  //     hPedADC_MSB[ichip][ihalf]->Draw();
+  //   }
+  // }
+  
+  // TCanvas *c2_thresh_adc_msb = new TCanvas("c2_thresh_adc_msb","c2_thresh_adc_msb",1200,800);
+  // c2_thresh_adc_msb->Divide(3,2);
+  // for(int ichip=0;ichip<3;ichip++){
+  //   for(int ihalf=0;ihalf<2;ihalf++){
+  //     int icanvas = 2*ichip + ihalf + 1;
+  //     c2_thresh_adc_msb->cd(icanvas);
+  //     hThreshADC_MSB[ichip][ihalf]->Draw();
+  //   }
+  // }
 
-  //   }//stc loop
-  // }//econt loop
-  // //===============================================================================================================================
-  // //STC4
-  // //===============================================================================================================================
 
+  // TFile *fcanva_out = new TFile(Form("log/Pedestal_bc_link%d.root",linkNumber),"recreate");
+  // c1_ped_adc_lsb->Write();
+  // c2_thresh_adc_lsb->Write();
+  // c1_ped_adc_msb->Write();
+  // c2_thresh_adc_msb->Write();
+  // fcanva_out->Close();
+  // delete fcanva_out;
+
+  // //===============================================================================================================================
   
   return true;
 }
