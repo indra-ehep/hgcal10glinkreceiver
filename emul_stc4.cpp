@@ -25,9 +25,14 @@
 
 using namespace std;
 
-const long double maxEvent = 2e6; //6e5
+const long double maxEvent = 2e2; //6e5
 
 const uint64_t nShowEvents = 10;
+
+const bool scanMode = false;
+//const uint64_t scanEvent = 2587757;//Link2, modulesum mismatch
+//const uint64_t scanEvent = 3619913;//Link2, one TC7 mismatch
+const uint64_t scanEvent = 25;//Link2, one TC7 mismatch
 
 struct daqdata{
   bitset<2> chip;
@@ -445,7 +450,7 @@ int read_roc_data(map<uint64_t,vector<daqdata>>& rocarray, unsigned relayNumber,
       const Hgcal10gLinkReceiver::SlinkBoe *boe = rEvent->slinkBoe();      
       const Hgcal10gLinkReceiver::SlinkEoe *eoe = rEvent->slinkEoe();
 
-      if (nEvents < nShowEvents){ 
+      if ((nEvents < nShowEvents) or (scanMode and boe->eventId()==scanEvent)){ 
        	event_dump(rEvent);
       	rEvent->RecordHeader::print();
       	boe->print();
@@ -470,7 +475,7 @@ int read_roc_data(map<uint64_t,vector<daqdata>>& rocarray, unsigned relayNumber,
       	isMSB[iloc] = -1;
       	ffsep_word_loc[iloc] = find_ffsep_word(rEvent, isMSB[iloc], iloc+1);
       	if(isMSB[iloc] == -1) is_ff_sep_notfound = true;
-	if (nEvents < nShowEvents){ 
+	if ((nEvents < nShowEvents) or (scanMode and boe->eventId()==scanEvent)){ 
 	  if(iloc==0)
 	    cout << "\nEvent : " << nEvents << ": " <<iloc+1 <<"-st 0xffff 0xffff separator word at location : " << ffsep_word_loc[iloc] << " word and isMSB : " << isMSB[iloc] << endl;
 	  else if(iloc==1)
@@ -485,7 +490,7 @@ int read_roc_data(map<uint64_t,vector<daqdata>>& rocarray, unsigned relayNumber,
       int expctd_empty_word_loc = ffsep_word_loc[5]+19;
       int empty_isMSB = -1;
       bool hasfound_emptry_word = found_empty_word(rEvent, empty_isMSB, expctd_empty_word_loc) ;
-      if (nEvents < nShowEvents)
+      if ((nEvents < nShowEvents) or (scanMode and boe->eventId()==scanEvent))
 	cout << "Event : " << nEvents << ": 0x0000 0x0000 closing separator word at location : " << expctd_empty_word_loc << " hasfound_emptry_word : "<< hasfound_emptry_word << ",  and isMSB : " << empty_isMSB << endl;
       
       if(!hasfound_emptry_word) continue;
@@ -498,7 +503,7 @@ int read_roc_data(map<uint64_t,vector<daqdata>>& rocarray, unsigned relayNumber,
       uint32_t wordH = ((p64[ffsep_word_loc[0]-1] >> 32) & 0xFFFFFFFF) ;
       int daq_header_payload_length = int(((wordH>>14) & 0x1FF));
       daq_header_payload_length -= 1 ; //1 for DAQ header
-      if (nEvents < nShowEvents){
+      if ((nEvents < nShowEvents) or (scanMode and boe->eventId()==scanEvent)){
 	std::cout << std::hex << std::setfill('0');
 	cout << "Event : " << nEvents << ", WordH : 0x" << wordH  ;
 	std::cout << std::dec << std::setfill(' ');
@@ -511,7 +516,7 @@ int read_roc_data(map<uint64_t,vector<daqdata>>& rocarray, unsigned relayNumber,
 
       if(record_header_sizeinfo_32bit!=daq_header_payload_length) continue;
       
-      if(nEvents>=minEventDAQ and nEvents<maxEventDAQ){
+      if(boe->eventId()>=minEventDAQ and boe->eventId()<maxEventDAQ){
 	
       for(int iloc=0;iloc<6;iloc++){
       	unsigned max_sep_word = (iloc==5) ? expctd_empty_word_loc : ffsep_word_loc[iloc+1] ;
@@ -568,7 +573,7 @@ int read_roc_data(map<uint64_t,vector<daqdata>>& rocarray, unsigned relayNumber,
 	  }
 	  if(totM>>0x9==1)  totM = (totM & 0x1ff) << 0x3 ; //10-bit to 12-bit conversion
 
-	  if (nEvents < nShowEvents){ 
+	  if ((nEvents < nShowEvents) or (scanMode and boe->eventId()==scanEvent)){ 
 	    if(isMSB[iloc]==0){
 	      cout<<"\ti : "<<i<<", index : "<<index<<endl;
 	      std::cout << std::hex << std::setfill('0');
@@ -649,250 +654,6 @@ int read_roc_data(map<uint64_t,vector<daqdata>>& rocarray, unsigned relayNumber,
   return true;
 }
 
-
-int read_econt_data_bc(map<uint64_t,bcdata>& econtarray, unsigned relayNumber, unsigned runNumber, uint64_t minEventTrig, uint64_t maxEventTrig)
-{
-
-  unsigned linkNumber(0);
-  
-  //Create the file reader
-  Hgcal10gLinkReceiver::FileReader _fileReader;
-  
-  //Make the buffer space for the records
-  Hgcal10gLinkReceiver::RecordT<4095> *r(new Hgcal10gLinkReceiver::RecordT<4095>);
-  
-  //Set up specific records to interpet the formats
-  const Hgcal10gLinkReceiver::RecordStarting *rStart((Hgcal10gLinkReceiver::RecordStarting*)r);
-  const Hgcal10gLinkReceiver::RecordStopping *rStop ((Hgcal10gLinkReceiver::RecordStopping*)r);
-  const Hgcal10gLinkReceiver::RecordRunning  *rEvent((Hgcal10gLinkReceiver::RecordRunning*) r);
-  _fileReader.setDirectory(std::string("dat/Relay")+std::to_string(relayNumber));
-  _fileReader.openRun(runNumber,linkNumber);
-  
-  bcdata edata;
-  uint64_t nEvents = 0;
-  uint64_t prevEvent = 0;
-  uint32_t prevSequence = 0;
-  uint32_t packet[4];
-  uint32_t packet_counter;
-  bool packet_tcs[48];
-  uint64_t packet_energies[9];
-
-  uint16_t daq_data[5];                              
-  uint16_t daq_nbx[5];                               
-  uint16_t size_in_cafe[5];                          
-  uint32_t bx_raw[2][15];                        
-  int refbxindex = 10;
-  
-  //Use the fileReader to read the records
-  while(_fileReader.read(r)) {
-    //Check the state of the record and print the record accordingly
-    if( r->state()==Hgcal10gLinkReceiver::FsmState::Starting){
-      if(!(rStart->valid())){
-  	std::cerr << " FsmState::Starting validadity fails : rStart->valid() " << rStart->valid() << std::endl;
-  	// rStart->print();
-  	// std::cout << std::endl;
-  	continue;
-      }
-    }
-    
-    else if(r->state()==Hgcal10gLinkReceiver::FsmState::Stopping){
-      if(!(rStop->valid())){
-  	std::cerr << " FsmState::Stopping validadity fails : rStop->valid() " << rStop->valid() << std::endl;
-  	// rStop->print();
-  	// std::cout << std::endl;
-  	continue;
-      }
-    }
-    //Else we have an event record 
-    else{
-
-      const Hgcal10gLinkReceiver::SlinkBoe *boe = rEvent->slinkBoe();      
-      const Hgcal10gLinkReceiver::SlinkEoe *eoe = rEvent->slinkEoe();
-
-      // if (nEvents < 1){ 
-      //  	event_dump(rEvent);
-      // 	rEvent->RecordHeader::print();
-      // 	boe->print();
-      // 	eoe->print();
-      // }
-      
-      
-      if(boe->boeHeader()!=boe->BoePattern) continue;
-      if(eoe->eoeHeader()!=eoe->EoePattern) continue;
-      uint16_t l1atype = boe->l1aType();      
-      if(l1atype==0) continue;
-      
-      const uint64_t *p64(((const uint64_t*)rEvent)+1);
-
-      // edata.event = nEvents;
-      // edata.eventId = boe->eventId();
-      // edata.bxId = eoe->bxId();
-      // edata.sequenceId = rEvent->RecordHeader::sequenceCounter(); 
-
-      if((Abs64(boe->eventId(),prevEvent) != Abs32(rEvent->RecordHeader::sequenceCounter(), prevSequence)) and Abs64(boe->eventId(),prevEvent)>=2){
-	prevEvent = boe->eventId();
-	prevSequence = rEvent->RecordHeader::sequenceCounter(); 
-	continue;
-      }
-      prevEvent = boe->eventId();
-      prevSequence = rEvent->RecordHeader::sequenceCounter(); 
-      
-      daq_data[0] = p64[2] & 0xF;
-      daq_nbx[0] = p64[2]>>4 & 0x7;
-      uint64_t daq0_event_size = (2*daq_nbx[0] + 1)*daq_data[0];
-      int first_cafe_word_loc = find_cafe_word(rEvent, 1);
-      size_in_cafe[0] = p64[first_cafe_word_loc] & 0xFF;      
-      
-      daq_data[1] = p64[2]>>7 & 0xF;
-      daq_nbx[1] = p64[2]>>11 & 0x7;
-      uint64_t daq1_event_size = (2*daq_nbx[1] + 1)*daq_data[1];
-      int second_cafe_word_loc = find_cafe_word(rEvent, 2);
-      size_in_cafe[1] = p64[second_cafe_word_loc] & 0xFF;
-      
-      daq_data[2] = p64[2]>>14 & 0xF;
-      daq_nbx[2] = p64[2]>>18 & 0x7;
-      uint64_t daq2_event_size = (2*daq_nbx[2] + 1)*daq_data[2];
-      int third_cafe_word_loc = find_cafe_word(rEvent, 3);
-      size_in_cafe[2] = p64[third_cafe_word_loc] & 0xFF;
-      
-      int sixth_cafe_word_loc = find_cafe_word(rEvent, 6);
-      
-      if(sixth_cafe_word_loc!=0) continue;
-      if(first_cafe_word_loc != 3) continue;
-      if(daq0_event_size != size_in_cafe[0]) continue;	
-      if(daq1_event_size != size_in_cafe[1]) continue;
-      if(daq2_event_size != size_in_cafe[2]) continue;	
-      
-      if (nEvents < nShowEvents) {
-	event_dump(rEvent);
-	rEvent->RecordHeader::print();
-      	boe->print();
-      	eoe->print();
-      }
-      //if(nEvents>maxEvent) continue;
-      if(nEvents>=minEventTrig and nEvents<maxEventTrig){
-
-      //edata = new bcdata;
-      int bx_index = -1.0*int(daq_nbx[0]);
-      const int maxnbx = (2*daq_nbx[0] + 1);
-      uint64_t energy_raw[2][maxnbx][9];
-      for(int iect=0;iect<2;iect++)
-  	for(int ibx=0;ibx<maxnbx;ibx++){
-	  bx_raw[iect][ibx] = 0;
-  	  for(int istc=0;istc<9;istc++){
-  	    energy_raw[iect][ibx][istc] = 0;
-  	    edata.energy_raw[iect][istc] = 0;
-  	    edata.loc_raw[iect][istc] = 0;
-  	  }
-	}
-      
-      for(unsigned i(first_cafe_word_loc+1);i<daq0_event_size+first_cafe_word_loc+1;i=i+4){
-	
-      	const uint32_t word = (p64[i] & 0xFFFFFFFF) ;
-      	const uint32_t bx_counter = ( word >> 28 ) & 0xF;
-	const uint16_t modsum = ( word >> 20 ) & 0xFF;
-	
-      	packet[0] = (p64[i] & 0xFFFFFFFF) ;
-  	packet[1] = (p64[i+1] & 0xFFFFFFFF) ;
-  	packet[2] = (p64[i+2] & 0xFFFFFFFF) ; 
-  	packet[3] = (p64[i+3] & 0xFFFFFFFF) ;
-	
-      	set_packet_tcs_bc(packet_tcs, packet);
-      	set_packet_energies_bc(packet_energies, packet);
-	
-	if (nEvents < nShowEvents) {
-	  std::cout<<" EventId : "<<boe->eventId()
-		   <<", bx(LSB) :"  << bx_counter 
-		   <<", edata.bxId : "<<eoe->bxId() <<", modulo8 : "<< (eoe->bxId()%8)
-		   <<", modsum : "<<modsum
-		   <<std::endl;
-  	  std::cout<<"E(LSB) : \t";
-      	  for(int itc=0;itc<9;itc++){
-      	    std::cout<<packet_energies[itc]<<" ";
-      	  }
-      	  std::cout<<std::endl;
-	  std::cout<<"L(LSB) : \t";
-      	  for(int itc=0;itc<48;itc++){
-	    if(packet_tcs[itc])
-	      std::cout<<itc<<" ";
-      	  }
-      	  std::cout<<std::endl;
-      	}
-
-	bx_raw[0][(bx_index+int(daq_nbx[0]))] = bx_counter;
-	for(int itc=0;itc<9;itc++){	  
-	  energy_raw[0][(bx_index+int(daq_nbx[0]))][itc] = packet_energies[itc];
-	}
-	int itrigcell = 0;
-	if((bx_index+int(daq_nbx[0]))==refbxindex){
-	  edata.modsum[0] = modsum;
-	  for(int itc=0;itc<9;itc++)
-	    edata.energy_raw[0][itc] = packet_energies[itc];
-	  for(int itc=0;itc<48;itc++)
-	    if(packet_tcs[itc]) edata.loc_raw[0][itrigcell++] = itc;
-	}
-	
-	
-  	const uint32_t word1 = ((p64[i] >> 32) & 0xFFFFFFFF) ;
-      	const uint32_t bx_counter1 = ( word1 >> 28 ) & 0xF;
-	const uint32_t modsum1 = ( word1 >> 20 ) & 0xFF;
-	
-      	packet[0] = ((p64[i] >> 32) & 0xFFFFFFFF) ;
-      	packet[1] = ((p64[i+1] >> 32) & 0xFFFFFFFF) ;
-      	packet[2] = ((p64[i+2] >> 32) & 0xFFFFFFFF) ;
-      	packet[3] = ((p64[i+3] >> 32) & 0xFFFFFFFF) ;
-
-      	set_packet_tcs_bc(packet_tcs, packet);
-      	set_packet_energies_bc(packet_energies, packet);
-
-      	if (nEvents < nShowEvents) {
-	  std::cout<<" EventId : "<<boe->eventId()
-		   <<", bx(MSB) :"  << bx_counter1 
-		   <<", edata.bxId : "<<eoe->bxId() <<", modulo8 : "<< (eoe->bxId()%8)
-		   <<", modsum : "<<modsum1
-		   <<std::endl;
-  	  std::cout<<"E(MSB) : \t";
-      	  for(int itc=0;itc<9;itc++){
-      	    std::cout<<packet_energies[itc]<<" ";
-      	  }
-      	  std::cout<<std::endl;
-	  std::cout<<"L(MSB) : \t";
-      	  for(int itc=0;itc<48;itc++){
-	    if(packet_tcs[itc])
-	      std::cout<<itc<<" ";
-      	  }
-      	  std::cout<<std::endl;
-      	}
-
-	bx_raw[1][(bx_index+int(daq_nbx[0]))] = bx_counter1;
-	for(int itc=0;itc<9;itc++){	  
-	  energy_raw[1][(bx_index+int(daq_nbx[0]))][itc] = packet_energies[itc];
-	}
-	itrigcell = 0;
-	if((bx_index+int(daq_nbx[0]))==refbxindex){
-	  edata.modsum[1] = modsum1;
-	  for(int itc=0;itc<9;itc++)
-	    edata.energy_raw[1][itc] = packet_energies[itc];
-	  for(int itc=0;itc<48;itc++)
-	    if(packet_tcs[itc]) edata.loc_raw[1][itrigcell++] = itc;
-	}
-	
-      	bx_index++;
-      }
-      
-      //econtarray.push_back(edata);
-      econtarray[boe->eventId()] = edata;
-      }
-      //Increment event counter
-      nEvents++;
-    }
-  }//file reader
-
-  _fileReader.close();
-  delete r;
-
-  return true;
-}
 
 int read_econt_data_stc4(map<uint64_t,stc4data>& econtarray, unsigned relayNumber, unsigned runNumber, uint64_t minEventTrig, uint64_t maxEventTrig)
 {
@@ -999,14 +760,14 @@ int read_econt_data_stc4(map<uint64_t,stc4data>& econtarray, unsigned relayNumbe
       if(daq0_event_size != size_in_cafe[0]) continue;	
       if(daq1_event_size != size_in_cafe[1]) continue;	
 
-      if (nEvents < nShowEvents) {
+      if ((nEvents < nShowEvents) or (scanMode and boe->eventId()==scanEvent)) {
 	event_dump(rEvent);
 	rEvent->RecordHeader::print();
       	boe->print();
       	eoe->print();
       }
       //if(nEvents>maxEvent) continue;      
-      if(nEvents>=minEventTrig and nEvents<maxEventTrig){
+      if(boe->eventId()>=minEventTrig and boe->eventId()<maxEventTrig){
 	
       int bx_index = -1.0*int(daq_nbx[0]);
       const int maxnbx = (2*daq_nbx[0] + 1);
@@ -1037,7 +798,7 @@ int read_econt_data_stc4(map<uint64_t,stc4data>& econtarray, unsigned relayNumbe
 	uint64_t totEnergy = 0;
 	for(int istc=0;istc<12;istc++) totEnergy += packet_energies[istc] ;
 	
-      	if (nEvents < nShowEvents) {
+      	if ((nEvents < nShowEvents) or (scanMode and boe->eventId()==scanEvent)) {
 	  std::cout<<" EventId : "<<boe->eventId()
 		   << ", bx_index : " << (bx_index+int(daq_nbx[0])) 
 		   <<", bx(LSB) :"  << bx_counter
@@ -1082,7 +843,7 @@ int read_econt_data_stc4(map<uint64_t,stc4data>& econtarray, unsigned relayNumbe
 	uint64_t totEnergy1 = 0;
 	for(int istc=0;istc<12;istc++) totEnergy1 += packet_energies[istc] ;
 
-      	if (nEvents < nShowEvents) {
+      	if ((nEvents < nShowEvents) or (scanMode and boe->eventId()==scanEvent)) {
 	  std::cout<<" EventId : "<<boe->eventId()
 		   << ", bx_index : " << (bx_index+int(daq_nbx[0])) 
 		   <<", bx(MSB) :"  << bx_counter1
@@ -1116,7 +877,7 @@ int read_econt_data_stc4(map<uint64_t,stc4data>& econtarray, unsigned relayNumbe
       }//loop over unpacked
       
       econtarray[boe->eventId()] = edata;
-      if (nEvents < nShowEvents) std::cout<<std::endl;
+      if ((nEvents < nShowEvents) or (scanMode and boe->eventId()==scanEvent)) std::cout<<std::endl;
       }
       //Increment event counter
       nEvents++;
@@ -1138,9 +899,7 @@ void ReadChannelMapping(map<int,tuple<int,int,int,int>>& tctorocch)
   float trace;
   int t;
   //Dens   Wtype     ROC HalfROC     Seq  ROCpin  SiCell  TrLink  TrCell      iu      iv   trace       t
-  ifstream inwafermap("/home/indra/Downloads/WaferCellMapTraces.txt");
-  //ifstream inwafermap("/home/hep/idas/codes/WaferCellMapTraces.txt");
-  //ifstream inwafermap("/afs/cern.ch/user/i/idas/Downloads/WaferCellMapTraces.txt");
+  ifstream inwafermap("input/WaferCellMapTraces.txt");
   stringstream ss;
   string s;
   
@@ -1338,13 +1097,13 @@ uint32_t compress_econt(uint32_t val, bool isldm)
   return packed;
 }
 
-uint32_t compress_econt_modsum(uint32_t val)
+uint32_t compress_econt_stc4(uint32_t val, bool isldm)
 {
   
   // uint32_t maxval = 0x3FFFFF ; //22 bit
   // uint32_t maxval_ldm = 0x7FFFF ;
   // uint32_t maxval_hdm = 0x1FFFFF ;
-  // val = (isldm)?val>>1:val>>3;  
+  val = (isldm)?val>>1:val>>3;  
   // // if(isldm){
   // //   if(val>maxval_ldm) val = maxval_ldm;
   // // }else{
@@ -1362,10 +1121,14 @@ uint32_t compress_econt_modsum(uint32_t val)
     uint32_t v = val; 
     r = 0; 
     while (v >>= 1) r++;
-    //sub = r - 2;
-    sub = r;
+    sub = r - 2;
     shift = r - 3;
-    mant = (val>>shift) & 0x7;
+    if(sub<=15){
+      mant = (val>>shift) & 0x7;
+    }else{
+      sub = 0xF;
+      mant = 0x7;
+    }
   }else{
     r = 0;
     sub = 0;
@@ -1373,13 +1136,14 @@ uint32_t compress_econt_modsum(uint32_t val)
     mant = val & 0x7;
   }
   
-  bitset<4> expo = sub & 0x1F;
+  bitset<4> expo = sub;
   bitset<3> mantissa = mant; 
   
   uint32_t packed = (sub<<3) | mant;
   
   return packed;
 }
+
 
 uint32_t decompress_compress_econt_PD(uint32_t compressed, bool isldm, uint32_t& rawEnergy_)
 {
@@ -1427,296 +1191,6 @@ uint32_t decompress_compress_econt_PD(uint32_t compressed, bool isldm, uint32_t&
 }
 
 
-int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daqdata>>& rocarray, int isMSB, map<int,tuple<int,int,int,int>>& tctorocch, unsigned pedestal_adc[][3][2][36], unsigned threshold_adc[][3][2][36], TDirectory*& dir_diff)
-{
-  // ////./emul_econt.exe 1695829026 1695829027
-  // //===============================================================================================================================
-  // //BC9 New
-  // //===============================================================================================================================
-  TList *list = (TList *)dir_diff->GetList();
-
-  int choffset = get<0>(tctorocch[8]) ; //==36, since there are 16 TC per chip
-  cout<<"choffset : "<<choffset<<endl;      
-  for(const auto& [eventId, econt] : econtarray){
-
-    if(eventId%1000==0)  cout << "Processing event : "<<eventId<<"  .........."<< endl;
-    if(eventId<=10){
-      cout << "Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB]) << endl;
-      cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<uint16_t(econt.energy_raw[isMSB][itc])<<" "; cout<<endl;
-      cout<<"L : \t"; for(int itc=0;itc<9;itc++) cout<<setw(2)<<std::setfill('0')<<uint16_t(econt.loc_raw[isMSB][itc])<<" "; cout<<endl;  
-    }
-    
-    bool istot1MS = false;
-    bool istot2MS = false;
-    bool issattotMS = false;
-    int noftot3MS = 0;
-    uint32_t decompressedMS = 0;
-    uint32_t decompressedupMS = 0;
-    uint32_t decompresseddownMS = 0;
-    
-    // int modsum[48];
-    // int sorted_idx[48];
-    // int tcsize = 48;
-    
-    for(unsigned itc = 0 ; itc < 48 ; itc++ ){
-    //for(unsigned itc = 0 ; itc < 1 ; itc++ ){
-      
-      bool foundTC = false; int refTC = -1;
-      for(int jtc=0;jtc<9;jtc++)
-    	if(itc==econt.loc_raw[isMSB][jtc]){
-    	  foundTC = true;
-    	  refTC = jtc;
-    	}
-      //if(!foundTC) continue;
-      
-      uint32_t compressed = 0;
-      uint32_t compressedup = 0;
-      uint32_t compresseddown = 0;
-      uint32_t decompressed = 0;
-      uint32_t decompressedup = 0;
-      uint32_t decompresseddown = 0;
-      
-      bool iscp0hf0ch0adc = false;
-      bool iscp0hf0ch1adc = false;
-      bool iscp0hf0ch2adc = false;
-      bool iscp0hf0ch3adc = false;
-      uint32_t refadcch0 = 0;
-      uint32_t refadcch1 = 0;	    
-      uint32_t refadcch2 = 0;
-      uint32_t refadcch3 = 0;
-      bool iscp0hf0ch0tot = false;
-      bool iscp0hf0ch1tot = false;
-      bool iscp0hf0ch2tot = false;
-      bool iscp0hf0ch3tot = false;
-      uint32_t reftotch0 = 0;
-      uint32_t reftotch1 = 0;
-      uint32_t reftotch2 = 0;
-      uint32_t reftotch3 = 0;
-
-      uint32_t totadc = 0;
-      uint32_t totadcup = 0;
-      uint32_t totadcdown = 0;
-      int noftot3 = 0;
-      bool istot1 = false;
-      bool istot2 = false;      
-      bool issattot = false;
-      uint32_t multfactor = 15 ;
-      
-      for(const auto& roc : rocarray[eventId]){
-
-    	if(roc.channel.to_ulong()>=37 or roc.channel.to_ulong()==18) continue;
-  	//if(roc.totflag.to_ulong()==2) continue;
-    	int roc_chip = int(roc.chip.to_ulong());
-    	int roc_half = int(roc.half.to_ulong());
-    	int roc_channel = int(roc.channel.to_ulong());
-    	int roc_totflag = int(roc.totflag.to_ulong());
-	
-    	int ch = (roc_half==1)?(roc_channel+choffset):roc_channel;
-    	if(roc_channel>18) ch -= 1;
-    	int pedch = ch%36;
-    	ch += 72*roc_chip;
-    	if(roc_totflag==0 or roc_totflag==1 or roc_totflag==2){
-    	  unsigned ped = pedestal_adc[isMSB][roc_chip][roc_half][pedch];
-  	  if(ped==255) ped = 1024; //pedestal value 255 has been used for masked channels
-  	  if(isMSB==1 and ped<10) ped = 255; //pedestal value 255 has been used for masked channels only for link2
-    	  unsigned thr = threshold_adc[isMSB][roc_chip][roc_half][pedch];
-    	  uint32_t adc = roc.adc.to_ulong() & 0x3FF;
-    	  adc = (adc>(ped+thr)) ? adc-ped : 0 ;
-    	  if(ch==get<0>(tctorocch[itc]) or ch==get<1>(tctorocch[itc]) or ch==get<2>(tctorocch[itc]) or ch==get<3>(tctorocch[itc])){
-  	    if(ch==get<0>(tctorocch[itc])) {iscp0hf0ch0adc = true; refadcch0 = roc.adc.to_ulong();}
-  	    if(ch==get<1>(tctorocch[itc])) {iscp0hf0ch1adc = true; refadcch1 = roc.adc.to_ulong();}
-  	    if(ch==get<2>(tctorocch[itc])) {iscp0hf0ch2adc = true; refadcch2 = roc.adc.to_ulong();}
-  	    if(ch==get<3>(tctorocch[itc])) {iscp0hf0ch3adc = true; refadcch3 = roc.adc.to_ulong();}
-    	    totadc += adc ;
-	    totadcup += adc ;
-	    totadcdown += adc ;
-    	    if(roc.totflag==1) {istot1 = true; istot1MS = true; }
-  	    if(roc.totflag==2) {istot2 = true; istot2MS = true; }
-	    //if(roc_totflag==0) ((TH1F *) list1->FindObject(Form("hADC_ch_flag0_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.adc.to_ulong()));
-    	    if(eventId<=10 and foundTC)
-    	      cout<<"\t\tievent : " << eventId <<", chip : " << roc_chip << ", half : "<<roc_half<< ", channel : " << roc_channel<<", ch : "<<ch<<", adc_raw : "<<roc.adc.to_ulong()<<", adc : "<<adc<<", pedch : "<<pedch<<", ped : "<<ped<<", totflag : "<<roc_totflag <<", tot : "<<roc.tot.to_ulong()<<", totadc : "<<totadc<<endl;
-    	  }
-    	}
-    	if(roc.totflag==3){
-    	  uint32_t tot = roc.tot.to_ulong() ;
-    	  uint32_t totup = tot + 7;
-    	  uint32_t totdown = tot - 7;
-    	  uint32_t totlin = tot*multfactor;
-    	  uint32_t totlinup = totup*multfactor;
-    	  uint32_t totlindown = totdown*multfactor;
-    	  if(ch==get<0>(tctorocch[itc]) or ch==get<1>(tctorocch[itc]) or ch==get<2>(tctorocch[itc]) or ch==get<3>(tctorocch[itc])){
-  	    if(ch==get<0>(tctorocch[itc])) {iscp0hf0ch0tot = true; reftotch0 = roc.tot.to_ulong();}
-  	    if(ch==get<1>(tctorocch[itc])) {iscp0hf0ch1tot = true; reftotch1 = roc.tot.to_ulong();}
-  	    if(ch==get<2>(tctorocch[itc])) {iscp0hf0ch2tot = true; reftotch2 = roc.tot.to_ulong();}
-  	    if(ch==get<3>(tctorocch[itc])) {iscp0hf0ch3tot = true; reftotch3 = roc.tot.to_ulong();}	    
-    	    if(isMSB==1) {
-	      if(ch!=137) {
-		totadc += totlin ;
-		totadcup += totlinup ;
-		totadcdown += totlindown ;
-	      }
-	    }else if(isMSB==0) {
-	      totadc += totlin ;
-	      totadcup += totlinup ;
-	      totadcdown += totlindown ;
-	    }
-    	    if(roc_totflag==3) {noftot3++; noftot3MS++;}
-	    if(roc.tot.to_ulong()>=512 and roc_totflag==3) {issattot = true; issattotMS = true;}
-	    //((TH1F *) list1->FindObject(Form("hADC_ch_flag3_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.adc.to_ulong()));
-	    //((TH1F *) list1->FindObject(Form("hTOT_ch_flag3_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.tot.to_ulong()));
-    	    if(eventId<=10 and foundTC)
-    	      cout<<"\t\tievent : " << eventId <<", chip : " << roc_chip << ", half : "<<roc_half<< ", channel : " << roc_channel<<", ch : "<<ch<<", adc : "<<roc.adc.to_ulong()<<", totflag : "<<roc_totflag <<", tot : "<<tot<<", multfactor : "<<multfactor<<", totadc : "<<totadc<<endl;
-    	  }
-	  
-    	}
-      }//roc for loop
-      
-      if(!istot1 and !istot2) {
-    	compressed = compress_roc(totadc, 1);
-    	compressedup = compress_roc(totadcup, 1);
-    	compresseddown = compress_roc(totadcdown, 1);
-    	decompressed = decompress_econt(compressed, 1);
-	decompressedup = decompress_econt(compressedup, 1);
-	decompresseddown = decompress_econt(compresseddown, 1);
-
-    	uint32_t calib = 0x800;
-    	decompressed = (calib*decompressed)>>11;
-    	decompressedup = (calib*decompressedup)>>11;
-    	decompresseddown = (calib*decompresseddown)>>11;
-	
-    	//cout<<"itc : "<<itc<<", decompressed : " << decompressed << endl;
-    	float diff = float(compressed) - float(econt.energy_raw[isMSB][refTC]);
-    	if(foundTC) ((TH1F *) list->FindObject("hCompressDiff"))->Fill(diff);
-	
-    	uint32_t rawsum = 0;
-    	uint32_t compressed_econt_PD = decompress_compress_econt_PD(compressed, 1, rawsum);
-    	uint32_t compressed_econt = compress_econt(decompressed, 1);
-    	uint32_t compressedup_econt = compress_econt(decompressedup, 1);
-    	uint32_t compresseddown_econt = compress_econt(decompresseddown, 1);
-	
-    	if(eventId<=10 and foundTC)
-    	  cout <<"\t  itc : "<<(itc)<<", totadc : "<<totadc
-    	       <<", compressed : "<< compressed
-    	       << ", decompressed [econt-t input] : "<< decompressed
-    	       <<", compressed_econt [econ-t output] : "<< compressed_econt 
-    	       << endl;
-    	diff = float(compressed_econt) - float(econt.energy_raw[isMSB][refTC]);
-	float diffup = float(compressedup_econt) - float(econt.energy_raw[isMSB][refTC]);
-	float diffdown = float(compresseddown_econt) - float(econt.energy_raw[isMSB][refTC]);
-    	bool isZero = false;
-    	if(compressed_econt==0 or econt.energy_raw[isMSB][refTC]==0) isZero = true;
-    	if(foundTC and TMath::Abs(diff)>2 and noftot3==0 and !isZero){
-    	  cout<<"ADC::Large Diff : "<<diff<< ", Event : "<<eventId<<", ADC : ("<<refadcch0<<", "<<refadcch1<<", "<<refadcch2<<", "<<refadcch3<<")"<<endl;
-  	  cout << "Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB]) << endl;
-  	  cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<uint16_t(econt.energy_raw[isMSB][itc])<<" "; cout<<endl;
-  	  cout<<"L : \t"; for(int itc=0;itc<9;itc++) cout<<setw(2)<<std::setfill('0')<<uint16_t(econt.loc_raw[isMSB][itc])<<" "; cout<<endl;  
-    	  cout <<"\t  itc : "<<(itc)<<", totadc : "<<totadc
-    	       <<", compressed : "<< compressed
-    	       << ", decompressed [econt-t input] : "<< decompressed
-    	       <<", compressed_econt [econ-t output] : "<< compressed_econt 
-    	       << endl;
-    	}
-    	if(foundTC and TMath::Abs(diff)>2 and noftot3!=0 and !isZero){
-    	  cout<<"TOT::Large Diff : "<<diff<< ", Event : "<<eventId<<", TOT : ("<<reftotch0<<", "<<reftotch1<<", "<<reftotch2<<", "<<reftotch3<<"), ADC : ("<<refadcch0<<", "<<refadcch1<<", "<<refadcch2<<", "<<refadcch3<<") "<<endl;
-  	  cout << "Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB]) << endl;
-  	  cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<uint16_t(econt.energy_raw[isMSB][itc])<<" "; cout<<endl;
-  	  cout<<"L : \t"; for(int itc=0;itc<9;itc++) cout<<setw(2)<<std::setfill('0')<<uint16_t(econt.loc_raw[isMSB][itc])<<" "; cout<<endl;  
-    	  cout <<"\t  itc : "<<(itc)<<", totadc : "<<totadc
-    	       <<", compressed : "<< compressed
-    	       << ", decompressed [econt-t input] : "<< decompressed
-    	       <<", compressed_econt [econ-t output] : "<< compressed_econt 
-    	       << endl;
-    	}
-  	if(foundTC and !isZero){
-  	  ((TH1F *) list->FindObject("hTCHits"))->Fill(itc);
-  	  ((TH1F *) list->FindObject(Form("hTCEnergy_%d",itc)))->Fill(float(econt.energy_raw[isMSB][refTC]));
-  	  ((TH1F *) list->FindObject(Form("hEmulEnergy_%d",itc)))->Fill(float(compressed_econt));
-  	}
-    	if(foundTC and noftot3==0 and !isZero){
-  	  ((TH1F *) list->FindObject("hCompressDiffECONT"))->Fill(diff);
-  	  ((TH1F *) list->FindObject(Form("hCompressDiffTCADC_%d",itc)))->Fill(diff);
-  	}
-    	if(foundTC and noftot3!=0 and !isZero){
-  	  ((TH1F *) list->FindObject("hCompressDiffTOTECONT"))->Fill(diff);
-  	  ((TH1F *) list->FindObject(Form("hCompressDiffTCTOT_%d",itc)))->Fill(diff);
-	  //if(issattot){
-	    ((TH1F *) list->FindObject("hCompressDiffTOTUPECONT"))->Fill(diffup);
-	    ((TH1F *) list->FindObject(Form("hCompressDiffTCTOTUP_%d",itc)))->Fill(diffup);
-	    ((TH1F *) list->FindObject("hCompressDiffTOTDOWNECONT"))->Fill(diffdown);
-	    ((TH1F *) list->FindObject(Form("hCompressDiffTCTOTDOWN_%d",itc)))->Fill(diffdown);
-	    //}
-  	}
-    	diff = float(compressed_econt_PD) - float(econt.energy_raw[isMSB][refTC]);
-    	if(foundTC and noftot3==0 and !isZero) ((TH1F *) list->FindObject("hCompressDiffECONTPD"))->Fill(diff);
-      }
-      
-      //=========
-      //if(foundTC){
-      {
-	decompressedMS += decompressed ;
-	decompressedupMS += decompressedup ;
-	decompresseddownMS += decompresseddown ;
-	//modsum[itc] = decompressed;
-      }
-
-    }//trigger cell for loop
-    uint32_t compressed_econt_4E3M = compress_econt(decompressedMS,1);
-    float diffmodsum_4E3M = float(compressed_econt_4E3M) - float(econt.modsum[isMSB]);
-    bool isZeroMS = false;
-    if(compressed_econt_4E3M==0 or econt.modsum[isMSB]==0) isZeroMS = true;
-    if(!istot1MS and !istot2MS){
-      uint32_t compressedup_econt_4E3M = compress_econt(decompressedupMS,1);
-      uint32_t compresseddown_econt_4E3M = compress_econt(decompresseddownMS,1);
-      uint32_t compressed_econt_5E3M = compress_econt_modsum(decompressedMS);
-      float diffmodsumup_4E3M = float(compressedup_econt_4E3M) - float(econt.modsum[isMSB]);
-      float diffmodsumdown_4E3M = float(compresseddown_econt_4E3M) - float(econt.modsum[isMSB]);
-      float diffmodsum_5E3M = float(compressed_econt_5E3M) - float(econt.modsum[isMSB]);
-      if(eventId<=10){
-	cout << "Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB])
-	     << ", compressed_econt_4E3M : " << compressed_econt_4E3M << ", diffmodsum_4E3M : " << diffmodsum_4E3M
-	     << ", compressed_econt_5E3M : " << compressed_econt_5E3M << ", diffmodsum_5E3M : " << diffmodsum_5E3M << endl;
-	cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<uint16_t(econt.energy_raw[isMSB][itc])<<" "; cout<<endl;
-	cout<<"L : \t"; for(int itc=0;itc<9;itc++) cout<<setw(2)<<std::setfill('0')<<uint16_t(econt.loc_raw[isMSB][itc])<<" "; cout<<endl;  
-      }
-      if(!isZeroMS){
-	((TH1F *) list->FindObject("hModSumDiff"))->Fill(diffmodsum_4E3M);
-	((TH1F *) list->FindObject("hModSumDiff5E3M"))->Fill(diffmodsum_5E3M);
-      }
-      if(!isZeroMS and noftot3MS==0){
-	((TH1F *) list->FindObject("hModSumDiffADC"))->Fill(diffmodsum_4E3M);
-      }
-      if(!isZeroMS and noftot3MS!=0){
-	((TH1F *) list->FindObject("hModSumDiffTOT"))->Fill(diffmodsum_4E3M);
-	((TH1F *) list->FindObject("hModSumDiffTOTUP"))->Fill(diffmodsumup_4E3M);
-	((TH1F *) list->FindObject("hModSumDiffTOTDOWN"))->Fill(diffmodsumdown_4E3M);
-      }
-      
-      // TMath::Sort(tcsize, modsum,sorted_idx);
-      // int nofmatched = 0;
-      // for(int itc=0;itc<9;itc++)
-      // 	for(int jtc=0;jtc<9;jtc++)
-      // 	  if(uint8_t(sorted_idx[jtc]) == econt.loc_raw[isMSB][itc]) nofmatched++;
-      // int status = 0;
-      // if(nofmatched==9) status = 1;
-      // if(eventId<=10){
-      // 	cout << "Sorted::Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB]) << ", hasfound : " << status << ", nofmatched : " << nofmatched << endl;
-      // 	cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<< compress_econt(uint32_t(modsum[sorted_idx[itc]]),1) <<" "; cout<<endl;
-      // 	cout<<"L : \t"; for(int itc=0;itc<9;itc++) cout<<setw(2)<<std::setfill('0')<<uint16_t(sorted_idx[itc])<<" "; cout<<endl;
-      // }
-      
-    }else{
-      if(!isZeroMS)
-	((TH1F *) list->FindObject("hModSumDiffMissed"))->Fill(diffmodsum_4E3M);
-    }
-    
-  }//econt loop
-  // //===============================================================================================================================
-  // //BC9 New
-  // //===============================================================================================================================
-
-  return true;
-}
-
 int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<daqdata>>& rocarray, int isMSB, map<int,tuple<int,int,int,int>>& tctorocch, unsigned pedestal_adc[][3][2][36], unsigned threshold_adc[][3][2][36], TDirectory*& dir_diff)
 {
   // ////./emul_econt.exe 1695829026 1695829027
@@ -1724,21 +1198,23 @@ int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<
   // //BC9 New
   // //===============================================================================================================================
   TList *list = (TList *)dir_diff->GetList();
-
+  
   int choffset = get<0>(tctorocch[8]) ; //==36, since there are 16 TC per chip
   cout<<"choffset : "<<choffset<<endl;      
   for(const auto& [eventId, econt] : econtarray){
     
     if(eventId%1000==0)  cout << "Processing event : "<<eventId<<"  .........."<< endl;
-    if(eventId<=10){
+    if(eventId<=10 or (scanMode and eventId==scanEvent)){
       cout << "Event : "<<eventId<< endl;
       cout<<"E : \t"; for(int istc=0;istc<12;istc++) cout<<uint16_t(econt.energy_raw[isMSB][istc])<<" "; cout<<endl;
       cout<<"L : \t"; for(int istc=0;istc<12;istc++) cout<<setw(2)<<std::setfill('0')<<uint16_t(econt.loc_raw[isMSB][istc])<<" "; cout<<endl;  
     }
-    
-    for(unsigned istc = 0 ; istc < 12 ; istc++){
-    //for(unsigned istc = 0 ; istc < 1 ; istc++){
 
+    for(unsigned istc = 0 ; istc < 12 ; istc++) ((TH1F *) list->FindObject(Form("hSTCEnergy_%d",istc)))->Fill(float(econt.energy_raw[isMSB][istc]));
+    
+    //for(unsigned istc = 0 ; istc < 12 ; istc++){
+    for(unsigned istc = 0 ; istc < 12 ; istc++){
+      
       int noftctot = 0;
       uint32_t stcsum = 0;
       bool istot1STC = false;
@@ -1749,16 +1225,18 @@ int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<
       uint32_t compressedSTC = 0;
       uint32_t decompressedSTC = 0;
       uint32_t decompressedupSTC = 0;
-      uint32_t decompresseddownSTC = 0;
 
+      bool hasChADC[17];
+      for(int ichadc=0;ichadc<17;ichadc++) hasChADC[ichadc] == false;
+      
       for(unsigned itc = 4*istc ; itc < 4*istc + 4 ; itc++ ){
     
 	uint32_t compressed = 0;
 	uint32_t compressedup = 0;
-	uint32_t compresseddown = 0;
+
 	uint32_t decompressed = 0;
 	uint32_t decompressedup = 0;
-	uint32_t decompresseddown = 0;
+
       
 	bool iscp0hf0ch0adc = false;
 	bool iscp0hf0ch1adc = false;
@@ -1779,22 +1257,22 @@ int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<
 
 	uint32_t totadc = 0;
 	uint32_t totadcup = 0;
-	uint32_t totadcdown = 0;
+
 	int noftot3 = 0;
 	bool istot1 = false;
 	bool istot2 = false;      
 	bool issattot = false;
 	uint32_t multfactor = 15 ;
-      
+	
 	for(const auto& roc : rocarray[eventId]){
-
+	  
 	  if(roc.channel.to_ulong()>=37 or roc.channel.to_ulong()==18) continue;
 	  //if(roc.totflag.to_ulong()==2) continue;
 	  int roc_chip = int(roc.chip.to_ulong());
 	  int roc_half = int(roc.half.to_ulong());
 	  int roc_channel = int(roc.channel.to_ulong());
 	  int roc_totflag = int(roc.totflag.to_ulong());
-	
+	  
 	  int ch = (roc_half==1)?(roc_channel+choffset):roc_channel;
 	  if(roc_channel>18) ch -= 1;
 	  int pedch = ch%36;
@@ -1813,21 +1291,22 @@ int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<
 	      if(ch==get<3>(tctorocch[itc])) {iscp0hf0ch3adc = true; refadcch3 = roc.adc.to_ulong();}
 	      totadc += adc ;
 	      totadcup += adc ;
-	      totadcdown += adc ;
+
+	    //   if(adc>0) hasChADC[ch] = true;
 	      if(roc.totflag==1) {istot1 = true; istot1STC = true; }
 	      if(roc.totflag==2) {istot2 = true; istot2STC = true; }
-	      //if(roc_totflag==0) ((TH1F *) list1->FindObject(Form("hADC_ch_flag0_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.adc.to_ulong()));
-	      if(eventId<=10)
+	    //   //if(roc_totflag==0) ((TH1F *) list1->FindObject(Form("hADC_ch_flag0_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.adc.to_ulong()));
+	      if(eventId<=10 or (scanMode and eventId==scanEvent))
 		cout<<"\t\tievent : " << eventId <<", chip : " << roc_chip << ", half : "<<roc_half<< ", channel : " << roc_channel<<", ch : "<<ch<<", adc_raw : "<<roc.adc.to_ulong()<<", adc : "<<adc<<", pedch : "<<pedch<<", ped : "<<ped<<", totflag : "<<roc_totflag <<", tot : "<<roc.tot.to_ulong()<<", totadc : "<<totadc<<endl;
-	    }
+	  }
 	  }
 	  if(roc.totflag==3){
 	    uint32_t tot = roc.tot.to_ulong() ;
 	    uint32_t totup = tot + 7;
-	    uint32_t totdown = tot - 7;
+	    
 	    uint32_t totlin = tot*multfactor;
 	    uint32_t totlinup = totup*multfactor;
-	    uint32_t totlindown = totdown*multfactor;
+
 	    if(ch==get<0>(tctorocch[itc]) or ch==get<1>(tctorocch[itc]) or ch==get<2>(tctorocch[itc]) or ch==get<3>(tctorocch[itc])){
 	      if(ch==get<0>(tctorocch[itc])) {iscp0hf0ch0tot = true; reftotch0 = roc.tot.to_ulong();}
 	      if(ch==get<1>(tctorocch[itc])) {iscp0hf0ch1tot = true; reftotch1 = roc.tot.to_ulong();}
@@ -1837,18 +1316,16 @@ int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<
 		if(ch!=137) {
 		  totadc += totlin ;
 		  totadcup += totlinup ;
-		  totadcdown += totlindown ;
 		}
 	      }else if(isMSB==0) {
 		totadc += totlin ;
 		totadcup += totlinup ;
-		totadcdown += totlindown ;
 	      }
 	      if(roc_totflag==3) {noftot3++; noftot3STC++;}
 	      if(roc.tot.to_ulong()>=512 and roc_totflag==3) {issattot = true; issattotSTC = true;}
 	      //((TH1F *) list1->FindObject(Form("hADC_ch_flag3_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.adc.to_ulong()));
 	      //((TH1F *) list1->FindObject(Form("hTOT_ch_flag3_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.tot.to_ulong()));
-	      if(eventId<=10)
+	      if(eventId<=10 or (scanMode and eventId==scanEvent))
 		cout<<"\t\tievent : " << eventId <<", chip : " << roc_chip << ", half : "<<roc_half<< ", channel : " << roc_channel<<", ch : "<<ch<<", adc : "<<roc.adc.to_ulong()<<", totflag : "<<roc_totflag <<", tot : "<<tot<<", multfactor : "<<multfactor<<", totadc : "<<totadc<<endl;
 	    }
 	  
@@ -1858,44 +1335,40 @@ int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<
 	if(!istot1 and !istot2) {
 	  compressed = compress_roc(totadc, 1);
 	  compressedup = compress_roc(totadcup, 1);
-	  compresseddown = compress_roc(totadcdown, 1);
+
 	  decompressed = decompress_econt(compressed, 1);
 	  decompressedup = decompress_econt(compressedup, 1);
-	  decompresseddown = decompress_econt(compresseddown, 1);
 	  
 	  uint32_t calib = 0x800;
 	  decompressed = (calib*decompressed)>>11;
 	  decompressedup = (calib*decompressedup)>>11;
-	  decompresseddown = (calib*decompresseddown)>>11;
-	
 	}
-      
+	
 	//=========
-	//if(foundTC){
 	{
 	  totadcSTC += totadc ;
 	  compressedSTC += compressed ;
 	  decompressedSTC += decompressed ;
 	  decompressedupSTC += decompressedup ;
-	  decompresseddownSTC += decompresseddown ;
-	  //modsum[itc] = decompressed;
 	}
-
+	
       }//trigger cell for loop
 
+      decompressedSTC += 4;
+      decompressedupSTC += 4;
+      
       if(!istot1STC and !istot2STC){
-
+	
 	//cout<<"itc : "<<itc<<", decompressed : " << decompressed << endl;
 	float diff = float(compressedSTC) - float(econt.energy_raw[isMSB][istc]);
 	((TH1F *) list->FindObject("hCompressDiff"))->Fill(diff);
 	
 	uint32_t rawsum = 0;
 	uint32_t compressed_econt_PD = decompress_compress_econt_PD(compressedSTC, 1, rawsum);
-	uint32_t compressed_econt = compress_econt(decompressedSTC, 1);
-	uint32_t compressedup_econt = compress_econt(decompressedupSTC, 1);
-	uint32_t compresseddown_econt = compress_econt(decompresseddownSTC, 1);
-      
-	if(eventId<=10)
+	uint32_t compressed_econt = compress_econt_stc4(decompressedSTC, 1);
+	uint32_t compressedup_econt = compress_econt_stc4(decompressedupSTC, 1);
+	
+	if(eventId<=10 or (scanMode and eventId==scanEvent))
 	  cout <<"\t  istc : "<<(istc)<<", totadcSTC : "<<totadcSTC
 	       <<", compressedSTC : "<< compressedSTC
 	       << ", decompressedSTC [econt-t input] : "<< decompressedSTC
@@ -1903,10 +1376,10 @@ int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<
 	       << endl;
 	diff = float(compressed_econt) - float(econt.energy_raw[isMSB][istc]);
 	float diffup = float(compressedup_econt) - float(econt.energy_raw[isMSB][istc]);
-	float diffdown = float(compresseddown_econt) - float(econt.energy_raw[isMSB][istc]);
+
 	bool isZero = false;
 	if(compressed_econt==0 or econt.energy_raw[isMSB][istc]==0) isZero = true;
-	if(TMath::Abs(diff)>2 and noftot3STC==0 and !isZero){
+	if(TMath::Abs(diff)>1 and noftot3STC==0 and !isZero){
 	  cout<<"ADC::Large Diff : "<<diff<< ", Event : "<<eventId<<endl;
 	  cout<<"E : \t"; for(int jstc=0;jstc<12;jstc++) cout<<uint16_t(econt.energy_raw[isMSB][jstc])<<" "; cout<<endl;
 	  cout<<"L : \t"; for(int jstc=0;jstc<12;jstc++) cout<<setw(2)<<std::setfill('0')<<uint16_t(econt.loc_raw[isMSB][jstc])<<" "; cout<<endl;  
@@ -1928,52 +1401,40 @@ int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<
 	}
 	if(!isZero){
 	  ((TH1F *) list->FindObject("hTCHits"))->Fill(istc);
-	  ((TH1F *) list->FindObject(Form("hSTCEnergy_%d",istc)))->Fill(float(econt.energy_raw[isMSB][istc]));
+	  //((TH1F *) list->FindObject(Form("hSTCEnergy_%d",istc)))->Fill(float(econt.energy_raw[isMSB][istc]));
 	  ((TH1F *) list->FindObject(Form("hEmulEnergy_%d",istc)))->Fill(float(compressed_econt));
 	}
 	if(noftot3STC==0 and !isZero){
 	  ((TH1F *) list->FindObject("hCompressDiffECONT"))->Fill(diff);
+	  if(TMath::Abs(diff)==0){
+	    ((TH1F *) list->FindObject("hCompressDiffMatchedRaw"))->Fill(float(econt.energy_raw[isMSB][istc]));
+	    ((TH1F *) list->FindObject("hCompressDiffMatchedEmul"))->Fill(float(compressed_econt));
+	    for(int ichadc=0;ichadc<17;ichadc++)
+	      if(hasChADC[ichadc])
+		((TH1F *) list->FindObject("hMatchedCh"))->Fill(float(ichadc));
+	  }else{
+	    ((TH1F *) list->FindObject("hCompressDiffUnMatchedRaw"))->Fill(float(econt.energy_raw[isMSB][istc]));
+	    ((TH1F *) list->FindObject("hCompressDiffUnMatchedEmul"))->Fill(float(compressed_econt));
+	    for(int ichadc=0;ichadc<17;ichadc++)
+	      if(hasChADC[ichadc])
+		((TH1F *) list->FindObject("hUnMatchedCh"))->Fill(float(float(ichadc)));
+	  }
 	  ((TH1F *) list->FindObject(Form("hCompressDiffSTCADC_%d",istc)))->Fill(diff);
 	}
 	if(noftot3STC!=0 and !isZero){
 	  ((TH1F *) list->FindObject("hCompressDiffTOTECONT"))->Fill(diff);
 	  ((TH1F *) list->FindObject(Form("hCompressDiffSTCTOT_%d",istc)))->Fill(diff);
-	  //if(issattot){
-          ((TH1F *) list->FindObject("hCompressDiffTOTUPECONT"))->Fill(diffup);
-          ((TH1F *) list->FindObject(Form("hCompressDiffSTCTOTUP_%d",istc)))->Fill(diffup);
-          ((TH1F *) list->FindObject("hCompressDiffTOTDOWNECONT"))->Fill(diffdown);
-          ((TH1F *) list->FindObject(Form("hCompressDiffSTCTOTDOWN_%d",istc)))->Fill(diffdown);
-          //}
+	  if(issattotSTC){
+	    ((TH1F *) list->FindObject("hCompressDiffTOTUPECONT"))->Fill(diffup);
+	    ((TH1F *) list->FindObject(Form("hCompressDiffSTCTOTUP_%d",istc)))->Fill(diffup);
+          }else{
+	    ((TH1F *) list->FindObject("hCompressDiffTOTUPECONT"))->Fill(diff);
+	    ((TH1F *) list->FindObject(Form("hCompressDiffSTCTOTUP_%d",istc)))->Fill(diff);
+	  }
 	}
 	diff = float(compressed_econt_PD) - float(econt.energy_raw[isMSB][istc]);
 	if(noftot3STC==0 and !isZero) ((TH1F *) list->FindObject("hCompressDiffECONTPD"))->Fill(diff);
-
-	//   uint32_t compressedup_econt_4E3M = compress_econt(decompressedupSTC,1);
-	//   uint32_t compresseddown_econt_4E3M = compress_econt(decompresseddownSTC,1);
-
-	//   float diffmodsumup_4E3M = float(compressedup_econt_4E3M) - float(econt.modsum[isMSB]);
-	//   float diffmodsumdown_4E3M = float(compresseddown_econt_4E3M) - float(econt.modsum[isMSB]);
-	//   float diffmodsum_5E3M = float(compressed_econt_5E3M) - float(econt.modsum[isMSB]);
-	//   if(eventId<=10){
-	// 	cout << "Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB])
-	// 	     << ", compressed_econt_4E3M : " << compressed_econt_4E3M << ", diffmodsum_4E3M : " << diffmodsum_4E3M
-	// 	     << ", compressed_econt_5E3M : " << compressed_econt_5E3M << ", diffmodsum_5E3M : " << diffmodsum_5E3M << endl;
-	// 	cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<uint16_t(econt.energy_raw[isMSB][itc])<<" "; cout<<endl;
-	// 	cout<<"L : \t"; for(int itc=0;itc<9;itc++) cout<<setw(2)<<std::setfill('0')<<uint16_t(econt.loc_raw[isMSB][itc])<<" "; cout<<endl;  
-	//   }
-	//   if(!isZeroMS){
-	// 	((TH1F *) list->FindObject("hModSumDiff"))->Fill(diffmodsum_4E3M);
-	// 	((TH1F *) list->FindObject("hModSumDiff5E3M"))->Fill(diffmodsum_5E3M);
-	//   }
-	//   if(!isZeroMS and noftot3MS==0){
-	// 	((TH1F *) list->FindObject("hModSumDiffADC"))->Fill(diffmodsum_4E3M);
-	//   }
-	//   if(!isZeroMS and noftot3MS!=0){
-	// 	((TH1F *) list->FindObject("hModSumDiffTOT"))->Fill(diffmodsum_4E3M);
-	// 	((TH1F *) list->FindObject("hModSumDiffTOTUP"))->Fill(diffmodsumup_4E3M);
-	// 	((TH1F *) list->FindObject("hModSumDiffTOTDOWN"))->Fill(diffmodsumdown_4E3M);
-	// }
-      
+	
       }else{
 	// if(!isZeroMS)
 	// 	((TH1F *) list->FindObject("hModSumDiffMissed"))->Fill(diffmodsum_4E3M);
@@ -2058,57 +1519,87 @@ int main(int argc, char** argv){
   hCompressDiff->SetLineColor(kMagenta);
   hCompressDiff->SetDirectory(dir_diff);
   TH1F *hCompressDiffECONT = new TH1F("hCompressDiffECONT","Difference in (Emulator - ECONT) compression for totflag==0", 200, -99, 101);
+  hCompressDiffECONT->SetMinimum(1.e-1);
   hCompressDiffECONT->GetXaxis()->SetTitle("Difference in compressed value : Emulator - ECONT");
   hCompressDiffECONT->SetLineColor(kRed);
   hCompressDiffECONT->SetDirectory(dir_diff);
+  TH1F *hCompressDiffMatchedRaw = new TH1F("hCompressDiffMatchedRaw","Raw Energy for mached cases with totflag==0", 1050, -10, 1040);
+  hCompressDiffMatchedRaw->SetMinimum(1.e-1);
+  hCompressDiffMatchedRaw->GetXaxis()->SetTitle("Energy");
+  hCompressDiffMatchedRaw->SetLineColor(kRed);
+  hCompressDiffMatchedRaw->SetDirectory(dir_diff);
+  TH1F *hCompressDiffUnMatchedRaw = new TH1F("hCompressDiffUnMatchedRaw","Raw Energy for unmached cases with totflag==0", 1050, -10, 1040);
+  hCompressDiffUnMatchedRaw->SetMinimum(1.e-1);
+  hCompressDiffUnMatchedRaw->GetXaxis()->SetTitle("Energy");
+  hCompressDiffUnMatchedRaw->SetLineColor(kRed);
+  hCompressDiffUnMatchedRaw->SetDirectory(dir_diff);
+  TH1F *hCompressDiffMatchedEmul = new TH1F("hCompressDiffMatchedEmul","Emul Energy for mached cases with totflag==0", 1050, -10, 1040);
+  hCompressDiffMatchedEmul->SetMinimum(1.e-1);
+  hCompressDiffMatchedEmul->GetXaxis()->SetTitle("Energy");
+  hCompressDiffMatchedEmul->SetLineColor(kRed);
+  hCompressDiffMatchedEmul->SetDirectory(dir_diff);
+  TH1F *hCompressDiffUnMatchedEmul = new TH1F("hCompressDiffUnMatchedEmul","Emul Energy for unmached cases with totflag==0", 1050, -10, 1040);
+  hCompressDiffUnMatchedEmul->SetMinimum(1.e-1);
+  hCompressDiffUnMatchedEmul->GetXaxis()->SetTitle("Energy");
+  hCompressDiffUnMatchedEmul->SetLineColor(kRed);
+  hCompressDiffUnMatchedEmul->SetDirectory(dir_diff);
+  TH1F *hMatchedCh = new TH1F("hMatchedCh","Channels energy matched between Raw/Emul with totflag==0", 20, -1.5, 18.5);
+  hMatchedCh->SetMinimum(1.e-1);
+  hMatchedCh->GetXaxis()->SetTitle("Ch");
+  hMatchedCh->SetLineColor(kRed);
+  hMatchedCh->SetDirectory(dir_diff);
+  TH1F *hUnMatchedCh = new TH1F("hUnMatchedCh","Channels energy unmatched between Raw/Emul with totflag==0", 20, -1.5, 18.5);
+  hUnMatchedCh->SetMinimum(1.e-1);
+  hUnMatchedCh->GetXaxis()->SetTitle("Ch");
+  hUnMatchedCh->SetLineColor(kRed);
+  hUnMatchedCh->SetDirectory(dir_diff);
   TH1F *hCompressDiffTOTECONT = new TH1F("hCompressDiffTOTECONT","Difference in (Emulator - ECONT) compression for totflag==3", 200, -99, 101);
+  hCompressDiffTOTECONT->SetMinimum(1.e-1);
   hCompressDiffTOTECONT->GetXaxis()->SetTitle("Difference in compressed value : Emulator - ECONT");
   hCompressDiffTOTECONT->SetLineColor(kBlue);
   hCompressDiffTOTECONT->SetDirectory(dir_diff);
   TH1F *hCompressDiffTOTUPECONT = new TH1F("hCompressDiffTOTUPECONT","Difference in (Emulator - ECONT) compression for totflag==3", 200, -99, 101);
+  hCompressDiffTOTUPECONT->SetMinimum(1.e-1);
   hCompressDiffTOTUPECONT->GetXaxis()->SetTitle("Difference in compressed value : Emulator - ECONT");
   hCompressDiffTOTUPECONT->SetLineColor(kGreen+2);
   hCompressDiffTOTUPECONT->SetDirectory(dir_diff);
-  TH1F *hCompressDiffTOTDOWNECONT = new TH1F("hCompressDiffTOTDOWNECONT","Difference in (Emulator - ECONT) compression for totflag==3", 200, -99, 101);
-  hCompressDiffTOTDOWNECONT->GetXaxis()->SetTitle("Difference in compressed value : Emulator - ECONT");
-  hCompressDiffTOTDOWNECONT->SetLineColor(kBlack);
-  hCompressDiffTOTDOWNECONT->SetDirectory(dir_diff);
   TH1F *hCompressDiffECONTPD = new TH1F("hCompressDiffECONTPD","Difference in (Emulator - ECONT) compression", 200, -99, 101);
+  hCompressDiffECONTPD->SetMinimum(1.e-1);
   hCompressDiffECONTPD->GetXaxis()->SetTitle("Difference in compressed value : Emulator - ECONT");
   hCompressDiffECONTPD->SetLineColor(kBlack);
   hCompressDiffECONTPD->SetDirectory(dir_diff);  
   TH1F *hTCHits = new TH1F("hTCHits","Hit distribution in TCs", 50, -1, 49);
+  hTCHits->SetMinimum(1.e-1);
   hTCHits->GetXaxis()->SetTitle("TC");
   hTCHits->GetYaxis()->SetTitle("Nof Hits");
   hTCHits->SetLineColor(kBlue);
   hTCHits->SetDirectory(dir_diff);
   TH1F *hSTCEnergy[48], *hEmulEnergy[48];
-  TH1F *hCompressDiffSTCADC[48],*hCompressDiffSTCTOT[48],*hCompressDiffSTCTOTUP[48],*hCompressDiffSTCTOTDOWN[48];
+  TH1F *hCompressDiffSTCADC[48],*hCompressDiffSTCTOT[48],*hCompressDiffSTCTOTUP[48];
   for(int istc=0;istc<12;istc++){
-    hSTCEnergy[istc] = new TH1F(Form("hSTCEnergy_%d",istc),Form("Compressed energy distribution of ECONT for TC : %d",istc), 200, -99, 101);
+    hSTCEnergy[istc] = new TH1F(Form("hSTCEnergy_%d",istc),Form("Compressed energy distribution of ECONT for STC : %d",istc), 200, -9, 191);
     hSTCEnergy[istc]->GetXaxis()->SetTitle("ECONT Energy");
     hSTCEnergy[istc]->SetLineColor(kBlack);
     hSTCEnergy[istc]->SetDirectory(dir_diff);
-    hEmulEnergy[istc] = new TH1F(Form("hEmulEnergy_%d",istc),Form("Compressed energy distribution using Emulator for TC  : %d",istc), 200, -99, 101);
+    hEmulEnergy[istc] = new TH1F(Form("hEmulEnergy_%d",istc),Form("Compressed energy distribution using Emulator for STC  : %d",istc), 200, -9, 191);
     hEmulEnergy[istc]->GetXaxis()->SetTitle("Emulator Energy");
     hEmulEnergy[istc]->SetLineColor(kMagenta);
     hEmulEnergy[istc]->SetDirectory(dir_diff);
-    hCompressDiffSTCADC[istc] = new TH1F(Form("hCompressDiffSTCADC_%d",istc),Form("Difference in (Emulator - ECONT) compression for TC : %d with totflag==0",istc), 200, -99, 101);
+    hCompressDiffSTCADC[istc] = new TH1F(Form("hCompressDiffSTCADC_%d",istc),Form("Difference in (Emulator - ECONT) compression for STC : %d with totflag==0",istc), 200, -99, 101);
+    hCompressDiffSTCADC[istc]->SetMinimum(1.e-1);
     hCompressDiffSTCADC[istc]->GetXaxis()->SetTitle("Difference in (Emulator - ECONT)");
     hCompressDiffSTCADC[istc]->SetLineColor(kRed);
     hCompressDiffSTCADC[istc]->SetDirectory(dir_diff);
-    hCompressDiffSTCTOT[istc] = new TH1F(Form("hCompressDiffSTCTOT_%d",istc),Form("Difference in (Emulator - ECONT) compression for TC : %d with totflag==3",istc), 200, -99, 101);
+    hCompressDiffSTCTOT[istc] = new TH1F(Form("hCompressDiffSTCTOT_%d",istc),Form("Difference in (Emulator - ECONT) compression for STC : %d with totflag==3",istc), 200, -99, 101);
+    hCompressDiffSTCTOT[istc]->SetMinimum(1.e-1);
     hCompressDiffSTCTOT[istc]->GetXaxis()->SetTitle("Difference in (Emulator - ECONT)");
     hCompressDiffSTCTOT[istc]->SetLineColor(kBlue);
     hCompressDiffSTCTOT[istc]->SetDirectory(dir_diff);
-    hCompressDiffSTCTOTUP[istc] = new TH1F(Form("hCompressDiffSTCTOTUP_%d",istc),Form("Difference in (Emulator - ECONT) compression for TC : %d with totflag==3",istc), 200, -99, 101);
+    hCompressDiffSTCTOTUP[istc] = new TH1F(Form("hCompressDiffSTCTOTUP_%d",istc),Form("Difference in (Emulator - ECONT) compression for STC : %d with totflag==3",istc), 200, -99, 101);
+    hCompressDiffSTCTOTUP[istc]->SetMinimum(1.e-1);
     hCompressDiffSTCTOTUP[istc]->GetXaxis()->SetTitle("Difference in (Emulator - ECONT)");
     hCompressDiffSTCTOTUP[istc]->SetLineColor(kGreen+2);
     hCompressDiffSTCTOTUP[istc]->SetDirectory(dir_diff);
-    hCompressDiffSTCTOTDOWN[istc] = new TH1F(Form("hCompressDiffSTCTOTDOWN_%d",istc),Form("Difference in (Emulator - ECONT) compression for TC : %d with totflag==3",istc), 200, -99, 101);
-    hCompressDiffSTCTOTDOWN[istc]->GetXaxis()->SetTitle("Difference in (Emulator - ECONT)");
-    hCompressDiffSTCTOTDOWN[istc]->SetLineColor(kBlack);
-    hCompressDiffSTCTOTDOWN[istc]->SetDirectory(dir_diff);
   }
   TH1F *hModSumDiff = new TH1F("hModSumDiff","Difference in (Emulator - ROC) modsum compression (4E+3M)", 200, -99, 101);
   hModSumDiff->SetMinimum(1.e-1);
@@ -2135,11 +1626,6 @@ int main(int argc, char** argv){
   hModSumDiffTOTUP->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
   hModSumDiffTOTUP->SetLineColor(kGreen+2);
   hModSumDiffTOTUP->SetDirectory(dir_diff);
-  TH1F *hModSumDiffTOTDOWN = new TH1F("hModSumDiffTOTDOWN","Difference in (Emulator - ROC) modsum compression with totflag==3 (4E+3M)", 200, -99, 101);
-  hModSumDiffTOTDOWN->SetMinimum(1.e-1);
-  hModSumDiffTOTDOWN->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
-  hModSumDiffTOTDOWN->SetLineColor(kBlack);
-  hModSumDiffTOTDOWN->SetDirectory(dir_diff);
   TH1F *hModSumDiff5E3M = new TH1F("hModSumDiff5E3M","Difference in (Emulator - ROC) modsum compression (5E+3M)", 200, -99, 101);
   hModSumDiff5E3M->SetMinimum(1.e-1);
   hModSumDiff5E3M->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
@@ -2191,8 +1677,9 @@ int main(int argc, char** argv){
   uint64_t nofTrigEvents = 0;
   uint64_t nofDAQEvents = 0;
   uint64_t nofMatchedDAQEvents = 0;
-  long double nloopEvent = 4e5 ;
+  long double nloopEvent = 2e2 ;
   int nloop = TMath::CeilNint(maxEvent/nloopEvent) ;
+  if(scanMode) nloop = 1;
   cout <<"nloop : " << nloop << endl;
   uint64_t minEventTrig = 0, maxEventTrig = 0, minEventDAQ = 0, maxEventDAQ = 0 ;
   
@@ -2206,6 +1693,14 @@ int main(int argc, char** argv){
     maxEventTrig = (ieloop+1)*nloopEvent;
     minEventDAQ = (ieloop==0)?minEventTrig:minEventTrig-nloopEvent/10;
     maxEventDAQ = maxEventTrig+nloopEvent/10 ;
+    if(scanMode){
+      minEventTrig = scanEvent - 1 ;
+      maxEventTrig = scanEvent + 1 ;
+      minEventDAQ  = scanEvent - 10 ;
+      maxEventDAQ =  scanEvent + 10 ;
+
+    }
+
     printf("iloop : %d, minEventTrig = %lu, maxEventTrig = %lu, minEventDAQ = %lu, maxEventDAQ = %lu\n",ieloop,minEventTrig, maxEventTrig, minEventDAQ, maxEventDAQ);
     
     //===============================================================================================================================
@@ -2230,39 +1725,39 @@ int main(int argc, char** argv){
     //===============================================================================================================================
     uint64_t nofECONTEvents = 0, nofECONDEvents = 0, sizeofROCarray = 0;
     for(const auto& [eventId, econt] : econtarray){    
-      
-      //===============================================================================================================================
-      // Fill ADC/TOT histograms
-      //===============================================================================================================================
+
       if(eventId%2000==0)  cout << "Processing event : "<<eventId<<"  .........."<< endl;
-      int chindex = 0 ;
-      int prevhalf = 2;
-      for(const auto& roc : rocarray[eventId]){
-	if(roc.channel.to_ulong()>=37 or roc.channel.to_ulong()==18) continue;
-	//if(roc.totflag.to_ulong()==2) continue;
-	int ichip = int(roc.chip.to_ulong());
-	int ihalf = int(roc.half.to_ulong());
-	if(ihalf!=prevhalf) chindex = 0 ;
-	int ich = int(roc.channel.to_ulong());
-	int roc_totflag = int(roc.totflag.to_ulong());
-	int ch = (ihalf==1)?(ich+choffset):ich;
-	if(ich>18) ch -= 1;
-	int rocch = ch%36;
-	ch += 72*ichip;
-	for(int itc=0;itc<48;itc++){
-	  if(ch==get<0>(tctorocch[itc]) or ch==get<1>(tctorocch[itc]) or ch==get<2>(tctorocch[itc]) or ch==get<3>(tctorocch[itc])){
-	    //printf("hADC_ch_flag0_%d_hf-%d_ich-%d_rocch-%d_chindex_%d\n",ichip,ihalf,ich,rocch,chindex);
-	    if(roc_totflag==0) hADC_ch_flag0[ichip][ihalf][chindex]->Fill(int(roc.adc.to_ulong()));
-	    if(roc_totflag==3){
-	      hADC_ch_flag3[ichip][ihalf][chindex]->Fill(int(roc.adc.to_ulong()));
-	      hTOT_ch_flag3[ichip][ihalf][chindex]->Fill(int(roc.tot.to_ulong()));
-	    }
-	    chindex++;
-	  }
-	}
-	prevhalf = ihalf ;
-      }
-      //===============================================================================================================================
+      // //===============================================================================================================================
+      // // Fill ADC/TOT histograms
+      // //===============================================================================================================================
+      // int chindex = 0 ;
+      // int prevhalf = 2;
+      // for(const auto& roc : rocarray[eventId]){
+      // 	if(roc.channel.to_ulong()>=37 or roc.channel.to_ulong()==18) continue;
+      // 	//if(roc.totflag.to_ulong()==2) continue;
+      // 	int ichip = int(roc.chip.to_ulong());
+      // 	int ihalf = int(roc.half.to_ulong());
+      // 	if(ihalf!=prevhalf) chindex = 0 ;
+      // 	int ich = int(roc.channel.to_ulong());
+      // 	int roc_totflag = int(roc.totflag.to_ulong());
+      // 	int ch = (ihalf==1)?(ich+choffset):ich;
+      // 	if(ich>18) ch -= 1;
+      // 	int rocch = ch%36;
+      // 	ch += 72*ichip;
+      // 	for(int itc=0;itc<48;itc++){
+      // 	  if(ch==get<0>(tctorocch[itc]) or ch==get<1>(tctorocch[itc]) or ch==get<2>(tctorocch[itc]) or ch==get<3>(tctorocch[itc])){
+      // 	    //printf("hADC_ch_flag0_%d_hf-%d_ich-%d_rocch-%d_chindex_%d\n",ichip,ihalf,ich,rocch,chindex);
+      // 	    if(roc_totflag==0) hADC_ch_flag0[ichip][ihalf][chindex]->Fill(int(roc.adc.to_ulong()));
+      // 	    if(roc_totflag==3){
+      // 	      hADC_ch_flag3[ichip][ihalf][chindex]->Fill(int(roc.adc.to_ulong()));
+      // 	      hTOT_ch_flag3[ichip][ihalf][chindex]->Fill(int(roc.tot.to_ulong()));
+      // 	    }
+      // 	    chindex++;
+      // 	  }
+      // 	}
+      // 	prevhalf = ihalf ;
+      // }
+      // //===============================================================================================================================
       nofECONTEvents++;
       unsigned rocArraySize = rocarray[eventId].size();
       if(rocArraySize==222){
@@ -2274,7 +1769,6 @@ int main(int argc, char** argv){
     nofMatchedDAQEvents += nofECONDEvents;
     //===============================================================================================================================
     
-    //CompareBC9Energies(econtarray, rocarray, isMSB, tctorocch, pedestal_adc, threshold_adc, dir_diff);
     CompareSTC4Energies(econtarray, rocarray, isMSB, tctorocch, pedestal_adc, threshold_adc, dir_diff);
     
     //===============================================================================================================================
@@ -2314,12 +1808,6 @@ int main(int argc, char** argv){
   for(int istc=0;istc<12;istc++){
     c1_Diff_TOTUP->cd(istc+1)->SetLogy();
     hCompressDiffSTCTOTUP[istc]->Draw();
-  }
-  TCanvas *c1_Diff_TOTDOWN = new TCanvas(Form("c1_Diff_Comp_TOTDOWN"),Form("c1_Diff_Comp_TOTDOWN"));
-  c1_Diff_TOTDOWN->Divide(4,3);
-  for(int istc=0;istc<12;istc++){
-    c1_Diff_TOTDOWN->cd(istc+1)->SetLogy();
-    hCompressDiffSTCTOTDOWN[istc]->Draw();
   }
 
   //===============================================================================================================================
@@ -2368,7 +1856,6 @@ int main(int argc, char** argv){
   c1_Diff_ADC->Write();
   c1_Diff_TOT->Write();
   c1_Diff_TOTUP->Write();
-  c1_Diff_TOTDOWN->Write();
 
   dir_diff->Write();
   dir_adctot->Write();
@@ -2382,7 +1869,7 @@ int main(int argc, char** argv){
   fout->Close();
   delete fout;
   //===============================================================================================================================
-
+  
   // //===============================================================================================================================
   // //Pedestal and threshold histograms
   // //===============================================================================================================================
