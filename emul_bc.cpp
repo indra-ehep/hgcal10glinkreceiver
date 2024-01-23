@@ -25,13 +25,15 @@
 
 using namespace std;
 
-const long double maxEvent = 7e6; //6e5
+const long double maxEvent = 2e4; //6e5
 
 const uint64_t nShowEvents = 0;
 
-const bool scanMode = true;
+const bool scanMode = false;
 //const uint64_t scanEvent = 2587757;//Link2, modulesum mismatch
-const uint64_t scanEvent = 3619913;//Link2, one TC7 mismatch
+//const uint64_t scanEvent = 3619913;//Link2, one TC7 mismatch
+//const uint64_t scanEvent = 5276372;
+const uint64_t scanEvent = 2587757;
 
 struct daqdata{
   bitset<2> chip;
@@ -955,7 +957,7 @@ void ReadChannelMapping(map<int,tuple<int,int,int,int>>& tctorocch)
   
 }
 
-int read_Ped_from_yaml(unsigned refRelay, unsigned refRun, unsigned link, unsigned pedestal_adc[][3][2][36], unsigned threshold_adc[][3][2][36])
+int read_Ped_from_yaml(unsigned refRelay, unsigned refRun, unsigned link, unsigned pedestal_adc[][3][2][36], unsigned threshold_adc[][3][2][36], bool ch_mask[][3][2][36])
 {
   string infile = "";
   if(link==1)
@@ -986,13 +988,19 @@ int read_Ped_from_yaml(unsigned refRelay, unsigned refRun, unsigned link, unsign
     string rocname = (link==1)?Form("train_1.roc%d_e0",iroc):Form("train_0.roc%d_w0",iroc);
     unsigned th_0 = node["Configuration"]["roc"][rocname]["cfg"]["DigitalHalf"]["0"]["Adc_TH"].as<unsigned>();
     unsigned th_1 = node["Configuration"]["roc"][rocname]["cfg"]["DigitalHalf"]["1"]["Adc_TH"].as<unsigned>();
-    cout<<"rocname : "<<rocname<<", th_0 : "<<th_0<<", th_1 : "<<th_1<<endl;
+    unsigned long long  chmask_0 = node["Configuration"]["roc"][rocname]["cfg"]["DigitalHalf"]["0"]["ClrAdcTot_trig"].as<unsigned long long  >();
+    unsigned long long  chmask_1 = node["Configuration"]["roc"][rocname]["cfg"]["DigitalHalf"]["1"]["ClrAdcTot_trig"].as<unsigned long long>();
+    cout<<"rocname : "<<rocname<<", th_0 : "<<th_0<<", th_1 : "<<th_1<<", chmask_0 : "<<chmask_0<<", chmask_1 : "<<chmask_1<<endl;
     for(int ich=0;ich<72;ich++){
       int ihalf = (ich<=35)?0:1;
       int chnl = ich%36;
       unsigned adc_th = (ich<=35)?th_0:th_1;
+      unsigned long long chmask = (ich<=35)?chmask_0:chmask_1;
+      bool mask = (chmask>>chnl) & 0x1 ;
+      cout<<"ich : "<<ich<<", mask : "<<mask<<endl;
       pedestal_adc[isMSB][iroc][ihalf][chnl] = node["Configuration"]["roc"][rocname]["cfg"]["ch"][Form("%d",ich)]["Adc_pedestal"].as<unsigned>() ;
       threshold_adc[isMSB][iroc][ihalf][chnl] = adc_th;
+      ch_mask[isMSB][iroc][ihalf][chnl] =  mask;
     }
   }
   cout<<"============"<<endl;
@@ -1043,23 +1051,57 @@ uint32_t compress_roc(uint32_t val, bool isldm)
   return packed;
 }
 
+// uint32_t decompress_econt(uint32_t compressed, bool isldm)
+// {
+//   uint32_t mant = compressed & 0x7;
+//   uint32_t expo = (compressed>>3) & 0xF;
+
+//   if(expo==0) 
+//     return (isldm) ? (mant<<1) : (mant<<3) ;
+
+//   uint32_t shift = expo+2;
+//   uint32_t decomp = 1<<shift;
+//   uint32_t mpdeco = 1<<(shift-4);
+//   decomp = decomp | (mant<<(shift-3));
+//   decomp = decomp | mpdeco;
+//   decomp = (isldm) ? (decomp<<1) : (decomp<<3) ;
+  
+//   return decomp;
+// }
+
 uint32_t decompress_econt(uint32_t compressed, bool isldm)
 {
   uint32_t mant = compressed & 0x7;
   uint32_t expo = (compressed>>3) & 0xF;
 
-  if(expo==0) 
-    return (isldm) ? (mant<<1) : (mant<<3) ;
-
-  uint32_t shift = expo+2;
-  uint32_t decomp = 1<<shift;
-  uint32_t mpdeco = 1<<(shift-4);
-  decomp = decomp | (mant<<(shift-3));
-  decomp = decomp | mpdeco;
-  decomp = (isldm) ? (decomp<<1) : (decomp<<3) ;
+  uint32_t new_mant = (isldm) ? (mant<<1)+1 : (mant<<3)+4 ;  
   
+  if(expo==0) 
+    return new_mant ;
+    
+  uint32_t decomp = 16 +  new_mant;
+  decomp = (isldm) ? (decomp<<(expo-1)) : (decomp<<(expo+2)) ;
+
   return decomp;
 }
+
+// uint32_t decompress_econt(uint32_t compressed, bool isldm)
+// {
+//   uint32_t mant = compressed & 0x7;
+//   uint32_t expo = (compressed>>3) & 0xF;
+  
+//   if(expo==0) 
+//     return (isldm) ? (mant<<1)+1 : (mant<<3)+4 ;
+
+//   uint32_t shift = expo+3;
+//   uint32_t decomp = 1<<shift;
+//   uint32_t mpdeco = 1<<(shift-4);
+//   decomp = decomp | (mant<<(shift-3));
+//   decomp = decomp | mpdeco;
+//   decomp = (isldm) ? (decomp<<0) : (decomp<<2) ;
+  
+//   return decomp;
+// }
 
 uint32_t compress_econt(uint32_t val, bool isldm)
 {
@@ -1109,7 +1151,7 @@ uint32_t compress_econt_modsum(uint32_t val, bool isldm)
   // uint32_t maxval = 0x3FFFFF ; //22 bit
   // uint32_t maxval_ldm = 0x7FFFF ;
   // uint32_t maxval_hdm = 0x1FFFFF ;
-  val = (isldm)?val>>1:val>>3;  
+  //val = (isldm)?val>>1:val>>3;  
   // // if(isldm){
   // //   if(val>maxval_ldm) val = maxval_ldm;
   // // }else{
@@ -1191,17 +1233,20 @@ uint32_t decompress_compress_econt_PD(uint32_t compressed, bool isldm, uint32_t&
 }
 
 
-int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daqdata>>& rocarray, int isMSB, map<int,tuple<int,int,int,int>>& tctorocch, unsigned pedestal_adc[][3][2][36], unsigned threshold_adc[][3][2][36], TDirectory*& dir_diff)
+int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daqdata>>& rocarray, int isMSB, map<int,tuple<int,int,int,int>>& tctorocch, unsigned pedestal_adc[][3][2][36], unsigned threshold_adc[][3][2][36], bool ch_mask[][3][2][36], TDirectory*& dir_diff)
 {
   // ////./emul_econt.exe 1695829026 1695829027
   // //===============================================================================================================================
   // //BC9 New
   // //===============================================================================================================================
   TList *list = (TList *)dir_diff->GetList();
-
+  bool isldm = true;
+  
   int choffset = get<0>(tctorocch[8]) ; //==36, since there are 16 TC per chip
   cout<<"choffset : "<<choffset<<endl;      
   for(const auto& [eventId, econt] : econtarray){
+    
+    if(rocarray[eventId].size()!=222) continue;
     
     if((eventId<=10) or (scanMode and eventId==scanEvent)){
       cout << "Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB]) << endl;
@@ -1213,6 +1258,17 @@ int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daq
     bool istot2MS = false;
     bool issattotMS = false;
     int noftot3MS = 0;
+    uint32_t TCEnergy[48], TCEnergyup[48] ;
+    uint32_t TCEnergyComp[48] ;
+    bool isTCGood[48], hasBCFound[48];
+    for(unsigned itc = 0 ; itc < 48 ; itc++ ){
+      TCEnergy[itc] = 0;
+      TCEnergyup[itc] = 0;
+      TCEnergyComp[itc] = 0;
+      isTCGood[itc] = false;
+      hasBCFound[itc] = false;
+    }
+    
     uint32_t decompressedMS = 0;
     uint32_t decompressedupMS = 0;
     
@@ -1274,6 +1330,7 @@ int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daq
     	int ch = (roc_half==1)?(roc_channel+choffset):roc_channel;
     	if(roc_channel>18) ch -= 1;
     	int pedch = ch%36;
+	if(ch_mask[isMSB][roc_chip][roc_half][pedch]) continue;
     	ch += 72*roc_chip;
     	if(roc_totflag==0 or roc_totflag==1 or roc_totflag==2){
     	  unsigned ped = pedestal_adc[isMSB][roc_chip][roc_half][pedch];
@@ -1292,8 +1349,9 @@ int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daq
     	    if(roc.totflag==1) {istot1 = true; istot1MS = true; }
   	    if(roc.totflag==2) {istot2 = true; istot2MS = true; }
 	    //if(roc_totflag==0) ((TH1F *) list1->FindObject(Form("hADC_ch_flag0_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.adc.to_ulong()));
-    	    if((eventId<=10 or (scanMode and eventId==scanEvent)) and foundTC)
-    	      cout<<"\t\tievent : " << eventId <<", chip : " << roc_chip << ", half : "<<roc_half<< ", channel : " << roc_channel<<", ch : "<<ch<<", adc_raw : "<<roc.adc.to_ulong()<<", adc : "<<adc<<", pedch : "<<pedch<<", ped : "<<ped<<", totflag : "<<roc_totflag <<", tot : "<<roc.tot.to_ulong()<<", totadc : "<<totadc<<endl;
+    	    //if((eventId<=10 or (scanMode and eventId==scanEvent)) and foundTC)
+	    if((eventId<=10 or (scanMode and eventId==scanEvent)))
+    	      cout<<"\t\tievent : " << eventId <<", itc :"<<itc<<", chip : " << roc_chip << ", half : "<<roc_half<< ", channel : " << roc_channel<<", ch : "<<ch<<", adc_raw : "<<roc.adc.to_ulong()<<", adc : "<<adc<<", pedch : "<<pedch<<", ped : "<<ped<<", totflag : "<<roc_totflag <<", tot : "<<roc.tot.to_ulong()<<", totadc : "<<totadc<<endl;
     	  }
     	}
     	if(roc.totflag==3){
@@ -1319,19 +1377,21 @@ int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daq
 	    if(roc.tot.to_ulong()>=512 and roc_totflag==3) {issattot = true; issattotMS = true;}
 	    //((TH1F *) list1->FindObject(Form("hADC_ch_flag3_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.adc.to_ulong()));
 	    //((TH1F *) list1->FindObject(Form("hTOT_ch_flag3_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.tot.to_ulong()));
-    	    if((eventId<=10 or (scanMode and eventId==scanEvent)) and foundTC)
-    	      cout<<"\t\tievent : " << eventId <<", chip : " << roc_chip << ", half : "<<roc_half<< ", channel : " << roc_channel<<", ch : "<<ch<<", adc : "<<roc.adc.to_ulong()<<", totflag : "<<roc_totflag <<", tot : "<<tot<<", multfactor : "<<multfactor<<", totadc : "<<totadc<<endl;
+    	    //if((eventId<=10 or (scanMode and eventId==scanEvent)) and foundTC)
+	    if((eventId<=10 or (scanMode and eventId==scanEvent)))
+    	      cout<<"\t\tievent : " << eventId <<", itc :"<<itc<<", chip : " << roc_chip << ", half : "<<roc_half<< ", channel : " << roc_channel<<", ch : "<<ch<<", adc : "<<roc.adc.to_ulong()<<", totflag : "<<roc_totflag <<", tot : "<<tot<<", multfactor : "<<multfactor<<", totadc : "<<totadc<<endl;
     	  }
 	  
     	}
       }//roc for loop
-      
-      if(!istot1 and !istot2) {
-    	compressed = compress_roc(totadc, 1);
-    	compressedup = compress_roc(totadcup, 1);
 
-    	decompressed = decompress_econt(compressed, 1);
-	decompressedup = decompress_econt(compressedup, 1);
+      uint32_t compressed_econt;
+      if(!istot1 and !istot2) {
+    	compressed = compress_roc(totadc, isldm);
+    	compressedup = compress_roc(totadcup, isldm);
+
+    	decompressed = decompress_econt(compressed, isldm);
+	decompressedup = decompress_econt(compressedup, isldm);
 	
     	uint32_t calib = 0x800;
     	decompressed = (calib*decompressed)>>11;
@@ -1342,9 +1402,9 @@ int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daq
     	if(foundTC) ((TH1F *) list->FindObject("hCompressDiff"))->Fill(diff);
 	
     	uint32_t rawsum = 0;
-    	uint32_t compressed_econt_PD = decompress_compress_econt_PD(compressed, 1, rawsum);
-    	uint32_t compressed_econt = compress_econt(decompressed, 1);
-    	uint32_t compressedup_econt = compress_econt(decompressedup, 1);
+    	uint32_t compressed_econt_PD = decompress_compress_econt_PD(compressed, isldm, rawsum);
+    	compressed_econt = compress_econt(decompressed, isldm);
+    	uint32_t compressedup_econt = compress_econt(decompressedup, isldm);
 	
     	if((eventId<=10 or (scanMode and eventId==scanEvent)) and foundTC)
     	  cout <<"\t  itc : "<<(itc)<<", totadc : "<<totadc
@@ -1360,14 +1420,14 @@ int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daq
     	  cout<<"ADC::Large Diff : "<<diff<< ", Event : "<<eventId<<", ADC : ("<<refadcch0<<", "<<refadcch1<<", "<<refadcch2<<", "<<refadcch3<<")"<<endl;
   	  cout << "Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB]) << endl;
   	  cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<uint16_t(econt.energy_raw[isMSB][itc])<<" "; cout<<endl;
-  	  cout<<"L : \t"; for(int itc=0;itc<9;itc++) cout<<setw(2)<<std::setfill('0')<<uint16_t(econt.loc_raw[isMSB][itc])<<" "; cout<<endl;  
+  	  cout<<"L : \t"; for(int itc=0;itc<9;itc++) cout<<setw(2)<<std::setfill('0')<<uint16_t(econt.loc_raw[isMSB][itc])<<" "; cout<<endl;
     	  cout <<"\t  itc : "<<(itc)<<", totadc : "<<totadc
     	       <<", compressed : "<< compressed
     	       << ", decompressed [econt-t input] : "<< decompressed
     	       <<", compressed_econt [econ-t output] : "<< compressed_econt 
     	       << endl;
     	}
-    	if(foundTC and TMath::Abs(diff)>0 and noftot3!=0 and !isZero){
+    	if(foundTC and TMath::Abs(diff)>0 and diff>0 and noftot3!=0 and !isZero){
     	  cout<<"TOT::Large Diff : "<<diff<< ", Event : "<<eventId<<", TOT : ("<<reftotch0<<", "<<reftotch1<<", "<<reftotch2<<", "<<reftotch3<<"), ADC : ("<<refadcch0<<", "<<refadcch1<<", "<<refadcch2<<", "<<refadcch3<<") "<<endl;
   	  cout << "Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB]) << endl;
   	  cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<uint16_t(econt.energy_raw[isMSB][itc])<<" "; cout<<endl;
@@ -1400,49 +1460,104 @@ int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daq
   	}
     	diff = float(compressed_econt_PD) - float(econt.energy_raw[isMSB][refTC]);
     	if(foundTC and noftot3==0 and !isZero) ((TH1F *) list->FindObject("hCompressDiffECONTPD"))->Fill(diff);
+	isTCGood[itc] = true;
       }
+
       
       //=========
       //if(foundTC){
       {
 	decompressedMS += decompressed ;
 	decompressedupMS += decompressedup ;
-	//modsum[itc] = decompressed;
+	TCEnergy[itc] = decompressed ;
+	TCEnergyup[itc] = decompressedup ;
+	// decompressedMS += (isldm) ? (decompressed>>1) : (decompressed>>3) ;
+	// decompressedupMS += (isldm) ? (decompressedup>>1) : (decompressedup>>3) ;
+	// TCEnergy[itc] = (isldm) ? (decompressed>>1) : (decompressed>>3) ;
+	// TCEnergyup[itc] = (isldm) ? (decompressedup>>1) : (decompressedup>>3) ;
+	TCEnergyComp[itc] = compressed_econt ;
       }
-
+      if(foundTC) hasBCFound[itc] = true;
+      
     }//trigger cell for loop
-    uint32_t compressed_econt_5E3M = compress_econt_modsum(decompressedMS,1);
+    
+    int nofFoundBC = 0;
+    int nofGoodTC = 0;
+    uint32_t decompressFound = 0;
+    uint32_t decompressFoundUp = 0;
+    for(unsigned itc = 0 ; itc < 48 ; itc++ ){
+      if(hasBCFound[itc]) {
+	decompressFound += TCEnergy[itc];
+	decompressFoundUp += TCEnergyup[itc];
+	nofFoundBC++;
+      }
+      if(isTCGood[itc]) nofGoodTC++;
+    }
+    
+    uint32_t compressed_econt_5E3M = compress_econt_modsum(decompressedMS,isldm);
     float diffmodsum_5E3M = float(compressed_econt_5E3M) - float(econt.modsum[isMSB]);
     bool isZeroMS = false;
     if(compressed_econt_5E3M==0 or econt.modsum[isMSB]==0) isZeroMS = true;
-    if(!istot1MS and !istot2MS){
-      uint32_t compressedup_econt_5E3M = compress_econt_modsum(decompressedupMS,1);
+    if(!istot1MS and !istot2MS and nofFoundBC==9 and nofGoodTC==48){
+      uint32_t compressedup_econt_5E3M = compress_econt_modsum(decompressedupMS,isldm);
       float diffmodsumup_5E3M = float(compressedup_econt_5E3M) - float(econt.modsum[isMSB]);
-
+      
+      uint32_t decompmodsum_alt = decompressedMS - decompressFound;
+      uint32_t decompmodsum_alt_up = decompressedupMS - decompressFoundUp;
+      uint32_t compressed_econt_alt = compress_econt_modsum(decompmodsum_alt,isldm);
+      uint32_t compressed_econt_alt_up = compress_econt_modsum(decompmodsum_alt_up,isldm);
+      float diffmodsum_alt = float(compressed_econt_alt) - float(econt.modsum[isMSB]);
+      float diffmodsum_alt_up = float(compressed_econt_alt_up) - float(econt.modsum[isMSB]);
+      
+      uint32_t compressed_econt_found = compress_econt_modsum(decompressFound,isldm);
+      uint32_t compressed_econt_found_up = compress_econt_modsum(decompressFoundUp,isldm);
+      float diffmodsum_found = float(compressed_econt_found) - float(econt.modsum[isMSB]);
+      float diffmodsum_found_up = float(compressed_econt_found_up) - float(econt.modsum[isMSB]);
+      
       if((eventId<=10 or (scanMode and eventId==scanEvent)) or (TMath::Abs(diffmodsum_5E3M)>0 and noftot3MS==0 and !isZeroMS)){
-	cout << "ADC Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB])
-	     << ", compressed_econt_5E3M : " << compressed_econt_5E3M << ", diffmodsum_5E3M : " << diffmodsum_5E3M << endl;
-	cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<uint16_t(econt.energy_raw[isMSB][itc])<<" "; cout<<endl;
-	cout<<"L : \t"; for(int itc=0;itc<9;itc++) cout<<setw(2)<<std::setfill('0')<<uint16_t(econt.loc_raw[isMSB][itc])<<" "; cout<<endl;  
+    	cout << "Modsum-ADC Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB])
+    	     << ", compressed_econt_5E3M : " << compressed_econt_5E3M << ", diffmodsum_5E3M : " << diffmodsum_5E3M <<", decompressedMS : "<<decompressedMS<< endl;
+    	cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<uint16_t(econt.energy_raw[isMSB][itc])<<" "; cout<<endl;
+    	cout<<"L : \t"; for(int itc=0;itc<9;itc++) cout<<setw(2)<<std::setfill('0')<<uint16_t(econt.loc_raw[isMSB][itc])<<" "; cout<<endl;
+	cout<<"Emul : \t"; for(int jtc=0;jtc<9;jtc++) cout<< TCEnergyComp[econt.loc_raw[isMSB][jtc]]  <<" "; cout<<endl;
+	cout<<"Not Found E : \t"; for(unsigned itc = 0 ; itc < 48 ; itc++ ) if(!hasBCFound[itc]) cout<< TCEnergyComp[itc]  <<" "; cout<<endl;
+	cout<<"Not Found L : \t"; for(unsigned itc = 0 ; itc < 48 ; itc++ ) if(!hasBCFound[itc]) cout<< itc  <<" "; cout<<endl;
       }
       if((eventId<=10 or (scanMode and eventId==scanEvent)) or (TMath::Abs(diffmodsum_5E3M)>1 and noftot3MS!=0 and !isZeroMS)){
-	cout << "TOT Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB])
-	     << ", compressed_econt_5E3M : " << compressed_econt_5E3M << ", diffmodsum_5E3M : " << diffmodsum_5E3M << endl;
-	cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<uint16_t(econt.energy_raw[isMSB][itc])<<" "; cout<<endl;
-	cout<<"L : \t"; for(int itc=0;itc<9;itc++) cout<<setw(2)<<std::setfill('0')<<uint16_t(econt.loc_raw[isMSB][itc])<<" "; cout<<endl;  
+    	cout << "Modsum-TOT Event : "<<eventId<<", modsum : "<< uint16_t(econt.modsum[isMSB])
+    	     << ", compressed_econt_5E3M : " << compressed_econt_5E3M << ", diffmodsum_5E3M : " << diffmodsum_5E3M << endl;
+    	cout<<"E : \t"; for(int itc=0;itc<9;itc++) cout<<uint16_t(econt.energy_raw[isMSB][itc])<<" "; cout<<endl;
+    	cout<<"L : \t"; for(int itc=0;itc<9;itc++) cout<<setw(2)<<std::setfill('0')<<uint16_t(econt.loc_raw[isMSB][itc])<<" "; cout<<endl;  
       }
       if(!isZeroMS){
-	((TH1F *) list->FindObject("hModSumDiff"))->Fill(diffmodsum_5E3M);
+    	((TH1F *) list->FindObject("hModSumDiff"))->Fill(diffmodsum_5E3M);
       }
       if(!isZeroMS and noftot3MS==0){
-	((TH1F *) list->FindObject("hModSumDiffADC"))->Fill(diffmodsum_5E3M);
+    	((TH1F *) list->FindObject("hModSumDiffADC"))->Fill(diffmodsum_5E3M);
+	((TH1F *) list->FindObject("hModSumDiffADCAlt"))->Fill(diffmodsum_alt);
+	((TH1F *) list->FindObject("hModSumDiffADCFound"))->Fill(diffmodsum_found);
+	if(diffmodsum_5E3M==0){
+	  ((TH1F *) list->FindObject("hCompressMSDiffMatchedRaw"))->Fill( float(econt.modsum[isMSB]) );
+	  ((TH1F *) list->FindObject("hCompressMSDiffMatchedEmul"))->Fill( float(compressed_econt_5E3M) );
+	}else{
+	  ((TH1F *) list->FindObject("hCompressMSDiffUnMatchedRaw"))->Fill( float(econt.modsum[isMSB]) );
+	  ((TH1F *) list->FindObject("hCompressMSDiffUnMatchedEmul"))->Fill( float(compressed_econt_5E3M) );
+	}
+
       }
       if(!isZeroMS and noftot3MS!=0){
-	((TH1F *) list->FindObject("hModSumDiffTOT"))->Fill(diffmodsum_5E3M);
-	if(issattotMS)
-	  ((TH1F *) list->FindObject("hModSumDiffTOTUP"))->Fill(diffmodsumup_5E3M);
-	else
-	  ((TH1F *) list->FindObject("hModSumDiffTOTUP"))->Fill(diffmodsum_5E3M);
+    	((TH1F *) list->FindObject("hModSumDiffTOT"))->Fill(diffmodsum_5E3M);
+	((TH1F *) list->FindObject("hModSumDiffTOTAlt"))->Fill(diffmodsum_alt);
+	((TH1F *) list->FindObject("hModSumDiffTOTFound"))->Fill(diffmodsum_found);
+    	if(issattotMS){
+    	  ((TH1F *) list->FindObject("hModSumDiffTOTUP"))->Fill(diffmodsumup_5E3M);
+	  ((TH1F *) list->FindObject("hModSumDiffTOTUPAlt"))->Fill(diffmodsum_alt_up);
+	  ((TH1F *) list->FindObject("hModSumDiffTOTUPFound"))->Fill(diffmodsum_found_up);
+    	}else{
+    	  ((TH1F *) list->FindObject("hModSumDiffTOTUP"))->Fill(diffmodsum_5E3M);
+	  ((TH1F *) list->FindObject("hModSumDiffTOTUPAlt"))->Fill(diffmodsum_alt);
+	  ((TH1F *) list->FindObject("hModSumDiffTOTUPFound"))->Fill(diffmodsum_found);
+	}
       }
       
       // TMath::Sort(tcsize, modsum,sorted_idx);
@@ -1460,7 +1575,7 @@ int CompareBC9Energies(map<uint64_t,bcdata>& econtarray, map<uint64_t,vector<daq
       
     }else{
       if(!isZeroMS)
-	((TH1F *) list->FindObject("hModSumDiffMissed"))->Fill(diffmodsum_5E3M);
+    	((TH1F *) list->FindObject("hModSumDiffMissed"))->Fill(diffmodsum_5E3M);
     }
     
   }//econt loop
@@ -1524,8 +1639,9 @@ int main(int argc, char** argv){
   //Read adc pedestal and threshold from yaml module file
   //===============================================================================================================================
   unsigned pedestal_adc[2][3][2][36], threshold_adc[2][3][2][36]; //2links,3chips,2halves,38sequences
-  read_Ped_from_yaml(relayNumber, runNumber, 1, pedestal_adc, threshold_adc);
-  read_Ped_from_yaml(relayNumber, runNumber, 2, pedestal_adc, threshold_adc);
+  bool ch_mask[2][3][2][36];
+  read_Ped_from_yaml(relayNumber, runNumber, 1, pedestal_adc, threshold_adc, ch_mask);
+  read_Ped_from_yaml(relayNumber, runNumber, 2, pedestal_adc, threshold_adc, ch_mask);
   //===============================================================================================================================  
   
   //===============================================================================================================================
@@ -1594,31 +1710,81 @@ int main(int argc, char** argv){
     hCompressDiffTCTOTUP[itc]->SetLineColor(kGreen+2);
     hCompressDiffTCTOTUP[itc]->SetDirectory(dir_diff);
   }
-  TH1F *hModSumDiff = new TH1F("hModSumDiff","Difference in (Emulator - ROC) modsum compression (4E+3M)", 200, -99, 101);
+  TH1F *hModSumDiff = new TH1F("hModSumDiff","Difference in (Emulator - ROC) modsum compression", 200, -99, 101);
   hModSumDiff->SetMinimum(1.e-1);
   hModSumDiff->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
   hModSumDiff->SetLineColor(kMagenta);
   hModSumDiff->SetDirectory(dir_diff);
-  TH1F *hModSumDiffMissed = new TH1F("hModSumDiffMissed","Difference in (Emulator - ROC) modsum compression (missed,4E+3M)", 200, -99, 101);
+  TH1F *hModSumDiffMissed = new TH1F("hModSumDiffMissed","Difference in (Emulator - ROC) modsum compression (missed)", 200, -99, 101);
   hModSumDiffMissed->SetMinimum(1.e-1);
   hModSumDiffMissed->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
   hModSumDiffMissed->SetLineColor(kAzure);
   hModSumDiffMissed->SetDirectory(dir_diff);
-  TH1F *hModSumDiffADC = new TH1F("hModSumDiffADC","Difference in (Emulator - ROC) modsum compression with totflag==0 (4E+3M)", 200, -99, 101);
+  TH1F *hModSumDiffADC = new TH1F("hModSumDiffADC","Difference in (Emulator - ROC) modsum compression with totflag==0", 200, -99, 101);
   hModSumDiffADC->SetMinimum(1.e-1);
   hModSumDiffADC->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
   hModSumDiffADC->SetLineColor(kRed);
   hModSumDiffADC->SetDirectory(dir_diff);
-  TH1F *hModSumDiffTOT = new TH1F("hModSumDiffTOT","Difference in (Emulator - ROC) modsum compression with totflag==3 (4E+3M)", 200, -99, 101);
+  TH1F *hModSumDiffTOT = new TH1F("hModSumDiffTOT","Difference in (Emulator - ROC) modsum compression with totflag==3", 200, -99, 101);
   hModSumDiffTOT->SetMinimum(1.e-1);
   hModSumDiffTOT->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
   hModSumDiffTOT->SetLineColor(kBlue);
   hModSumDiffTOT->SetDirectory(dir_diff);
-  TH1F *hModSumDiffTOTUP = new TH1F("hModSumDiffTOTUP","Difference in (Emulator - ROC) modsum compression with totflag==3 (4E+3M)", 200, -99, 101);
+  TH1F *hModSumDiffTOTUP = new TH1F("hModSumDiffTOTUP","Difference in (Emulator - ROC) modsum compression with totflag==3", 200, -99, 101);
   hModSumDiffTOTUP->SetMinimum(1.e-1);
   hModSumDiffTOTUP->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
   hModSumDiffTOTUP->SetLineColor(kGreen+2);
   hModSumDiffTOTUP->SetDirectory(dir_diff);
+  TH1F *hModSumDiffADCAlt = new TH1F("hModSumDiffADCAlt","Difference in (Emulator - ROC) modsum compression with totflag==0", 200, -99, 101);
+  hModSumDiffADCAlt->SetMinimum(1.e-1);
+  hModSumDiffADCAlt->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
+  hModSumDiffADCAlt->SetLineColor(kRed);
+  hModSumDiffADCAlt->SetDirectory(dir_diff);
+  TH1F *hModSumDiffTOTAlt = new TH1F("hModSumDiffTOTAlt","Difference in (Emulator - ROC) modsum compression with totflag==3", 200, -99, 101);
+  hModSumDiffTOTAlt->SetMinimum(1.e-1);
+  hModSumDiffTOTAlt->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
+  hModSumDiffTOTAlt->SetLineColor(kBlue);
+  hModSumDiffTOTAlt->SetDirectory(dir_diff);
+  TH1F *hModSumDiffTOTUPAlt = new TH1F("hModSumDiffTOTUPAlt","Difference in (Emulator - ROC) modsum compression with totflag==3", 200, -99, 101);
+  hModSumDiffTOTUPAlt->SetMinimum(1.e-1);
+  hModSumDiffTOTUPAlt->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
+  hModSumDiffTOTUPAlt->SetLineColor(kGreen+2);
+  hModSumDiffTOTUPAlt->SetDirectory(dir_diff);
+  TH1F *hModSumDiffADCFound = new TH1F("hModSumDiffADCFound","Difference in (Emulator - ROC) modsum compression with totflag==0", 200, -99, 101);
+  hModSumDiffADCFound->SetMinimum(1.e-1);
+  hModSumDiffADCFound->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
+  hModSumDiffADCFound->SetLineColor(kRed);
+  hModSumDiffADCFound->SetDirectory(dir_diff);
+  TH1F *hModSumDiffTOTFound = new TH1F("hModSumDiffTOTFound","Difference in (Emulator - ROC) modsum compression with totflag==3", 200, -99, 101);
+  hModSumDiffTOTFound->SetMinimum(1.e-1);
+  hModSumDiffTOTFound->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
+  hModSumDiffTOTFound->SetLineColor(kBlue);
+  hModSumDiffTOTFound->SetDirectory(dir_diff);
+  TH1F *hModSumDiffTOTUPFound = new TH1F("hModSumDiffTOTUPFound","Difference in (Emulator - ROC) modsum compression with totflag==3", 200, -99, 101);
+  hModSumDiffTOTUPFound->SetMinimum(1.e-1);
+  hModSumDiffTOTUPFound->GetXaxis()->SetTitle("Difference in modsum compressed value : Emulator - ROC");
+  hModSumDiffTOTUPFound->SetLineColor(kGreen+2);
+  hModSumDiffTOTUPFound->SetDirectory(dir_diff);
+  TH1F *hCompressMSDiffMatchedRaw = new TH1F("hCompressMSDiffMatchedRaw","Raw Energy for mached cases with totflag==0", 1050, -10, 1040);
+  hCompressMSDiffMatchedRaw->SetMinimum(1.e-1);
+  hCompressMSDiffMatchedRaw->GetXaxis()->SetTitle("Energy");
+  hCompressMSDiffMatchedRaw->SetLineColor(kRed);
+  hCompressMSDiffMatchedRaw->SetDirectory(dir_diff);
+  TH1F *hCompressMSDiffUnMatchedRaw = new TH1F("hCompressMSDiffUnMatchedRaw","Raw Energy for unmached cases with totflag==0", 1050, -10, 1040);
+  hCompressMSDiffUnMatchedRaw->SetMinimum(1.e-1);
+  hCompressMSDiffUnMatchedRaw->GetXaxis()->SetTitle("Energy");
+  hCompressMSDiffUnMatchedRaw->SetLineColor(kRed);
+  hCompressMSDiffUnMatchedRaw->SetDirectory(dir_diff);
+  TH1F *hCompressMSDiffMatchedEmul = new TH1F("hCompressMSDiffMatchedEmul","Emul Energy for mached cases with totflag==0", 1050, -10, 1040);
+  hCompressMSDiffMatchedEmul->SetMinimum(1.e-1);
+  hCompressMSDiffMatchedEmul->GetXaxis()->SetTitle("Energy");
+  hCompressMSDiffMatchedEmul->SetLineColor(kRed);
+  hCompressMSDiffMatchedEmul->SetDirectory(dir_diff);
+  TH1F *hCompressMSDiffUnMatchedEmul = new TH1F("hCompressMSDiffUnMatchedEmul","Emul Energy for unmached cases with totflag==0", 1050, -10, 1040);
+  hCompressMSDiffUnMatchedEmul->SetMinimum(1.e-1);
+  hCompressMSDiffUnMatchedEmul->GetXaxis()->SetTitle("Energy");
+  hCompressMSDiffUnMatchedEmul->SetLineColor(kRed);
+  hCompressMSDiffUnMatchedEmul->SetDirectory(dir_diff);
   
   TDirectory *dir_adctot = fout->mkdir("adctot_plots");
   dir_adctot->cd();
@@ -1663,7 +1829,7 @@ int main(int argc, char** argv){
   uint64_t nofTrigEvents = 0;
   uint64_t nofDAQEvents = 0;
   uint64_t nofMatchedDAQEvents = 0;
-  long double nloopEvent = 4e5 ;
+  long double nloopEvent = 2e4 ;
   int nloop = TMath::CeilNint(maxEvent/nloopEvent) ;
   if(scanMode) nloop = 1;
   cout <<"nloop : " << nloop << endl;
@@ -1747,7 +1913,7 @@ int main(int argc, char** argv){
     nofMatchedDAQEvents += nofECONDEvents;
     //===============================================================================================================================
     
-    CompareBC9Energies(econtarray, rocarray, isMSB, tctorocch, pedestal_adc, threshold_adc, dir_diff);
+    CompareBC9Energies(econtarray, rocarray, isMSB, tctorocch, pedestal_adc, threshold_adc, ch_mask, dir_diff);
     
     //===============================================================================================================================
     //Clear Link0, Link1/Link2 files
@@ -1793,8 +1959,7 @@ int main(int argc, char** argv){
     for(int ipad=0;ipad<16;ipad++){
       c1_Diff_TOTUP[ichip]->cd(ipad+1)->SetLogy();
       int ihist = 16*ichip + ipad;
-      hCompressDiffTCTOT[ihist]->Draw();
-      hCompressDiffTCTOTUP[ihist]->Draw("sames");
+      hCompressDiffTCTOTUP[ihist]->Draw();
     }
   }
   //===============================================================================================================================

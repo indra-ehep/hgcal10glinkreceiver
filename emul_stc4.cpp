@@ -25,14 +25,14 @@
 
 using namespace std;
 
-const long double maxEvent = 2e2; //6e5
+const long double maxEvent = 2e6; //6e5
 
-const uint64_t nShowEvents = 10;
+const uint64_t nShowEvents = 0;
 
-const bool scanMode = false;
-//const uint64_t scanEvent = 2587757;//Link2, modulesum mismatch
-//const uint64_t scanEvent = 3619913;//Link2, one TC7 mismatch
-const uint64_t scanEvent = 25;//Link2, one TC7 mismatch
+const bool scanMode = true;
+//const uint64_t scanEvent = 6217; //
+//const uint64_t scanEvent = 21331 ;
+const uint64_t scanEvent = 24754 ;
 
 struct daqdata{
   bitset<2> chip;
@@ -949,7 +949,7 @@ void ReadChannelMapping(map<int,tuple<int,int,int,int>>& tctorocch)
   
 }
 
-int read_Ped_from_yaml(unsigned refRelay, unsigned refRun, unsigned link, unsigned pedestal_adc[][3][2][36], unsigned threshold_adc[][3][2][36])
+int read_Ped_from_yaml(unsigned refRelay, unsigned refRun, unsigned link, unsigned pedestal_adc[][3][2][36], unsigned threshold_adc[][3][2][36], bool ch_mask[][3][2][36])
 {
   string infile = "";
   if(link==1)
@@ -980,13 +980,19 @@ int read_Ped_from_yaml(unsigned refRelay, unsigned refRun, unsigned link, unsign
     string rocname = (link==1)?Form("train_1.roc%d_e0",iroc):Form("train_0.roc%d_w0",iroc);
     unsigned th_0 = node["Configuration"]["roc"][rocname]["cfg"]["DigitalHalf"]["0"]["Adc_TH"].as<unsigned>();
     unsigned th_1 = node["Configuration"]["roc"][rocname]["cfg"]["DigitalHalf"]["1"]["Adc_TH"].as<unsigned>();
-    cout<<"rocname : "<<rocname<<", th_0 : "<<th_0<<", th_1 : "<<th_1<<endl;
+    unsigned long long  chmask_0 = node["Configuration"]["roc"][rocname]["cfg"]["DigitalHalf"]["0"]["ClrAdcTot_trig"].as<unsigned long long  >();
+    unsigned long long  chmask_1 = node["Configuration"]["roc"][rocname]["cfg"]["DigitalHalf"]["1"]["ClrAdcTot_trig"].as<unsigned long long>();
+    cout<<"rocname : "<<rocname<<", th_0 : "<<th_0<<", th_1 : "<<th_1<<", chmask_0 : "<<chmask_0<<", chmask_1 : "<<chmask_1<<endl;
     for(int ich=0;ich<72;ich++){
       int ihalf = (ich<=35)?0:1;
       int chnl = ich%36;
       unsigned adc_th = (ich<=35)?th_0:th_1;
+      unsigned long long chmask = (ich<=35)?chmask_0:chmask_1;
+      bool mask = (chmask>>chnl) & 0x1 ;
+      //cout<<"ich : "<<ich<<", mask : "<<mask<<endl;
       pedestal_adc[isMSB][iroc][ihalf][chnl] = node["Configuration"]["roc"][rocname]["cfg"]["ch"][Form("%d",ich)]["Adc_pedestal"].as<unsigned>() ;
       threshold_adc[isMSB][iroc][ihalf][chnl] = adc_th;
+      ch_mask[isMSB][iroc][ihalf][chnl] =  mask;
     }
   }
   cout<<"============"<<endl;
@@ -1037,20 +1043,55 @@ uint32_t compress_roc(uint32_t val, bool isldm)
   return packed;
 }
 
+// uint32_t decompress_econt(uint32_t compressed, bool isldm)
+// {
+//   uint32_t mant = compressed & 0x7;
+//   uint32_t expo = (compressed>>3) & 0xF;
+
+//   if(expo==0) {
+//     return (isldm) ? (mant<<1)+1 : (mant<<3)+4 ;
+//   }
+  
+//   uint32_t shift = expo+2;
+//   uint32_t decomp = 1<<shift;
+//   uint32_t mpdeco = 1<<(shift-4);
+//   decomp = decomp | (mant<<(shift-3));
+//   decomp = decomp | mpdeco;
+//   decomp = (isldm) ? (decomp<<1) : (decomp<<3) ;
+  
+//   return decomp;
+// }
+
+// uint32_t decompress_econt(uint32_t compressed, bool isldm)
+// {
+//   uint32_t mant = compressed & 0x7;
+//   uint32_t expo = (compressed>>3) & 0xF;
+
+//   uint32_t new_mant = (isldm) ? (mant<<1)+1 : (mant<<3)+4 ;  
+  
+//   if(expo==0) 
+//     return new_mant ;
+    
+//   uint32_t decomp = 16 +  new_mant;
+//   decomp = (isldm) ? (decomp<<(expo-1)) : (decomp<<(expo+2)) ;
+  
+//   return decomp;
+// }
+
 uint32_t decompress_econt(uint32_t compressed, bool isldm)
 {
   uint32_t mant = compressed & 0x7;
   uint32_t expo = (compressed>>3) & 0xF;
-
+  
   if(expo==0) 
-    return (isldm) ? (mant<<1) : (mant<<3) ;
+    return (isldm) ? (mant<<1)+1 : (mant<<3)+4 ;
 
-  uint32_t shift = expo+2;
+  uint32_t shift = expo+3;
   uint32_t decomp = 1<<shift;
   uint32_t mpdeco = 1<<(shift-4);
   decomp = decomp | (mant<<(shift-3));
   decomp = decomp | mpdeco;
-  decomp = (isldm) ? (decomp<<1) : (decomp<<3) ;
+  decomp = (isldm) ? (decomp<<0) : (decomp<<2) ;
   
   return decomp;
 }
@@ -1191,7 +1232,7 @@ uint32_t decompress_compress_econt_PD(uint32_t compressed, bool isldm, uint32_t&
 }
 
 
-int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<daqdata>>& rocarray, int isMSB, map<int,tuple<int,int,int,int>>& tctorocch, unsigned pedestal_adc[][3][2][36], unsigned threshold_adc[][3][2][36], TDirectory*& dir_diff)
+int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<daqdata>>& rocarray, int isMSB, map<int,tuple<int,int,int,int>>& tctorocch, unsigned pedestal_adc[][3][2][36], unsigned threshold_adc[][3][2][36], bool ch_mask[][3][2][36], TDirectory*& dir_diff)
 {
   // ////./emul_econt.exe 1695829026 1695829027
   // //===============================================================================================================================
@@ -1202,6 +1243,8 @@ int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<
   int choffset = get<0>(tctorocch[8]) ; //==36, since there are 16 TC per chip
   cout<<"choffset : "<<choffset<<endl;      
   for(const auto& [eventId, econt] : econtarray){
+
+    if(rocarray[eventId].size()!=222) continue;
     
     if(eventId%1000==0)  cout << "Processing event : "<<eventId<<"  .........."<< endl;
     if(eventId<=10 or (scanMode and eventId==scanEvent)){
@@ -1276,6 +1319,7 @@ int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<
 	  int ch = (roc_half==1)?(roc_channel+choffset):roc_channel;
 	  if(roc_channel>18) ch -= 1;
 	  int pedch = ch%36;
+	  if(ch_mask[isMSB][roc_chip][roc_half][pedch]) continue;
 	  ch += 72*roc_chip;
 	  if(roc_totflag==0 or roc_totflag==1 or roc_totflag==2){
 	    unsigned ped = pedestal_adc[isMSB][roc_chip][roc_half][pedch];
@@ -1291,8 +1335,7 @@ int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<
 	      if(ch==get<3>(tctorocch[itc])) {iscp0hf0ch3adc = true; refadcch3 = roc.adc.to_ulong();}
 	      totadc += adc ;
 	      totadcup += adc ;
-
-	    //   if(adc>0) hasChADC[ch] = true;
+	      if(adc>0) hasChADC[pedch%19] = true;
 	      if(roc.totflag==1) {istot1 = true; istot1STC = true; }
 	      if(roc.totflag==2) {istot2 = true; istot2STC = true; }
 	    //   //if(roc_totflag==0) ((TH1F *) list1->FindObject(Form("hADC_ch_flag0_%d_%d_%d",roc_chip,roc_half,pedch)))->Fill(float(roc.adc.to_ulong()));
@@ -1354,8 +1397,8 @@ int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<
 	
       }//trigger cell for loop
 
-      decompressedSTC += 4;
-      decompressedupSTC += 4;
+      // decompressedSTC += 4;
+      // decompressedupSTC += 4;
       
       if(!istot1STC and !istot2STC){
 	
@@ -1409,15 +1452,17 @@ int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<
 	  if(TMath::Abs(diff)==0){
 	    ((TH1F *) list->FindObject("hCompressDiffMatchedRaw"))->Fill(float(econt.energy_raw[isMSB][istc]));
 	    ((TH1F *) list->FindObject("hCompressDiffMatchedEmul"))->Fill(float(compressed_econt));
-	    for(int ichadc=0;ichadc<17;ichadc++)
-	      if(hasChADC[ichadc])
-		((TH1F *) list->FindObject("hMatchedCh"))->Fill(float(ichadc));
+	    if(istc==9)
+	      for(int ichadc=0;ichadc<17;ichadc++)
+		if(hasChADC[ichadc])
+		  ((TH1F *) list->FindObject("hMatchedCh"))->Fill(float(ichadc));
 	  }else{
 	    ((TH1F *) list->FindObject("hCompressDiffUnMatchedRaw"))->Fill(float(econt.energy_raw[isMSB][istc]));
 	    ((TH1F *) list->FindObject("hCompressDiffUnMatchedEmul"))->Fill(float(compressed_econt));
-	    for(int ichadc=0;ichadc<17;ichadc++)
-	      if(hasChADC[ichadc])
-		((TH1F *) list->FindObject("hUnMatchedCh"))->Fill(float(float(ichadc)));
+	    if(istc==9)
+	      for(int ichadc=0;ichadc<17;ichadc++)
+		if(hasChADC[ichadc])
+		  ((TH1F *) list->FindObject("hUnMatchedCh"))->Fill(float(float(ichadc)));
 	  }
 	  ((TH1F *) list->FindObject(Form("hCompressDiffSTCADC_%d",istc)))->Fill(diff);
 	}
@@ -1503,10 +1548,17 @@ int main(int argc, char** argv){
   //Read adc pedestal and threshold from yaml module file
   //===============================================================================================================================
   unsigned pedestal_adc[2][3][2][36], threshold_adc[2][3][2][36]; //2links,3chips,2halves,38sequences
-  read_Ped_from_yaml(relayNumber, runNumber, 1, pedestal_adc, threshold_adc);
-  read_Ped_from_yaml(relayNumber, runNumber, 2, pedestal_adc, threshold_adc);
-  //===============================================================================================================================  
-  
+  bool ch_mask[2][3][2][36];
+  read_Ped_from_yaml(relayNumber, runNumber, 1, pedestal_adc, threshold_adc, ch_mask);
+  read_Ped_from_yaml(relayNumber, runNumber, 2, pedestal_adc, threshold_adc, ch_mask);
+  //===============================================================================================================================
+
+  // for(int iMSB=0;iMSB<2;iMSB++)
+  //   for(int ichip=0;ichip<3;ichip++)
+  //     for(int ihalf=0;ihalf<2;ihalf++)
+  // 	for(int ich=0;ich<36;ich++)
+  // 	  printf("(%d,%d,%d,%d) : %d\n",iMSB,ichip,ihalf,ich,ch_mask[iMSB][ichip][ihalf][ich]);
+
   //===============================================================================================================================
   //Book histograms
   //===============================================================================================================================
@@ -1677,7 +1729,7 @@ int main(int argc, char** argv){
   uint64_t nofTrigEvents = 0;
   uint64_t nofDAQEvents = 0;
   uint64_t nofMatchedDAQEvents = 0;
-  long double nloopEvent = 2e2 ;
+  long double nloopEvent = 4e5 ;
   int nloop = TMath::CeilNint(maxEvent/nloopEvent) ;
   if(scanMode) nloop = 1;
   cout <<"nloop : " << nloop << endl;
@@ -1769,7 +1821,7 @@ int main(int argc, char** argv){
     nofMatchedDAQEvents += nofECONDEvents;
     //===============================================================================================================================
     
-    CompareSTC4Energies(econtarray, rocarray, isMSB, tctorocch, pedestal_adc, threshold_adc, dir_diff);
+    CompareSTC4Energies(econtarray, rocarray, isMSB, tctorocch, pedestal_adc, threshold_adc, ch_mask, dir_diff);
     
     //===============================================================================================================================
     //Clear Link0, Link1/Link2 files
