@@ -12,3 +12,6 @@ log*
 log_old*
 *.txt
 *.csv
+*.root 
+output*
+output/*
