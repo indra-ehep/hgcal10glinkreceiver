@@ -112,8 +112,8 @@ int main(int argc, char** argv)
   //Read channel mapping
   //===============================================================================================================================
   TPGFEConfiguration::Configuration cfgs;
-  cfgs.setSiChMapFile("input/WaferCellMapTraces.txt");
-  cfgs.setSciChMapFile("input/channels_sipmontile_HDtypes.hgcal.txt");
+  cfgs.setSiChMapFile("cfgmap/WaferCellMapTraces.txt");
+  cfgs.setSciChMapFile("cfgmap/channels_sipmontile_HDtypes.hgcal.txt");
   cfgs.initId();
   cfgs.readSiChMapping();
   cfgs.readSciChMapping();
@@ -132,10 +132,10 @@ int main(int argc, char** argv)
   //===============================================================================================================================
   //Read ECON-D and ECON-T setting
   //===============================================================================================================================
-  cfgs.setEconDFile(Form("dat/Relay%u/init_econd.yaml",relayNumber));
+  cfgs.setEconDFile(Form("cfgmap/init_econd.yaml",relayNumber));
   cfgs.readEconDConfigYaml();
   
-  cfgs.setEconTFile(Form("dat/Relay%u/init_econt.yaml",relayNumber));
+  cfgs.setEconTFile(Form("cfgmap/init_econt.yaml",relayNumber));
   cfgs.readEconTConfigYaml();
   
   //===============================================================================================================================
@@ -165,15 +165,23 @@ int main(int argc, char** argv)
   //===============================================================================================================================
   //Read adc pedestal and threshold from yaml module file
   //===============================================================================================================================
+  uint32_t zside = 0, sector = 0, link = 0, det = 0;
+  uint32_t econt = 0, selTC4 = 1, module = 0;
+
+  TPGFEConfiguration::TPGFEIdPacking pck;
+  uint32_t moduleId = pck.packModId(zside, sector, link, det, econt, selTC4, module);
+  const std::map<std::tuple<uint32_t,uint32_t,uint32_t>,std::string>& modNameMap = cfgs.getModIdxToName();
+  const std::string& modName = modNameMap.at(std::make_tuple(pck.getDetType(),pck.getSelTC4(),pck.getModule()));
+
   if(linkNumber==1){
     cfgs.setRocFile(Form("dat/Relay%u/Run%u_Module00c87fff.yaml",relayNumber, runNumber));
     cfgs.setTrainEWIndices(1, 'e', 0);
-    cfgs.readRocConfigYaml();
+    cfgs.readRocConfigYaml(modName);
   }
   if(linkNumber==2){
     cfgs.setRocFile( Form("dat/Relay%u/Run%u_Module00c43fff.yaml",relayNumber, runNumber));
     cfgs.setTrainEWIndices(0, 'w', 0);
-    cfgs.readRocConfigYaml();
+    cfgs.readRocConfigYaml(modName);
   }
   //===============================================================================================================================
 
@@ -224,7 +232,8 @@ int main(int argc, char** argv)
 		     const std::map<uint64_t,std::vector<std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>>>>&,   //to plot the ECONT ASIC results or compare with the emulation
 		     const std::vector<uint64_t>& /*eventlist*/, const uint32_t& , TDirectory*& /*directory containing the histograms*/, bool /*isSTC4*/);
   
-  std::map<uint32_t,TPGFEDataformat::HalfHgcrocData> rocdata; 
+  std::map<uint32_t,TPGFEDataformat::HalfHgcrocData> rocdata;
+  std::map<uint32_t,TPGFEDataformat::ModuleTcData> moddata;
   for(int ieloop=0;ieloop<nloop;ieloop++){
     
     //===============================================================================================================================
@@ -251,10 +260,7 @@ int main(int argc, char** argv)
     //===============================================================================================================================
     eventList.clear();
     econtarray.clear();
-
-    uint32_t zside = 0, sector = 0, link = 0, det = 0;
-    uint32_t econt = 0, selTC4 = 1, module = 0;
-
+    
     econTReader.init(relayNumber,runNumber,linkNumber);
     std::cout<<"TRIG Before Link"<<trig_linkNumber<<" size : " << econtarray.size() <<std::endl;
     econTReader.getEvents(minEventTrig, maxEventTrig, econtarray, eventList);
@@ -287,7 +293,6 @@ int main(int argc, char** argv)
       if(econtarray.find(event) == econtarray.end()) continue;
       
       std::pair<uint32_t,TPGFEDataformat::ModuleTcData> modTcdata; 
-      std::map<uint32_t,TPGFEDataformat::ModuleTcData> moddata;
       std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>> TcRawdata;
       
       rocdata.clear();
@@ -339,10 +344,19 @@ int main(int argc, char** argv)
     
   }//loop over event group
 
+  moddata.clear();
+  rocdata.clear();
+  eventList.clear();
+  econtarray.clear();
+  econtemularray.clear();
+  modarray.clear();
+  hrocarray.clear();
+  
   fout->cd();
   dir_diff->Write();
   fout->Close();
   delete fout;
+
   
   return true;
 }

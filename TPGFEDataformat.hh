@@ -273,12 +273,13 @@ namespace TPGFEDataformat{
       std::cout << "ModuleTriggerCellData(" << this << ")::print()" << std::endl;
     
       for(unsigned i(0);i<NumberOfTCs;i++) {
-	std::cout << " TC " << std::setw(2) << i << " = cdata "
+	std::cout << " TC " << std::setw(2) << i << ": compressed = "
 		  << std::dec << ::std::setfill(' ')
 		  << std::setw(10) << _data[i].getCdata()
 		  << std::dec << ::std::setfill(' ')
+		  << ", raw-uncompressed "
 		  << std::setw(10) << _data[i].getCharge()
-		  << " = istot "
+		  << ", istot : "
 		  << std::setw(10) << _data[i].isTot()
 		  << std::endl;
       }    

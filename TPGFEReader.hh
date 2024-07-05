@@ -46,7 +46,7 @@ namespace TPGFEReader{
       }
       std::cout << std::endl;
     }
-
+    
     bool is_ffsep_word(const uint64_t word, int& isMSB) {
 
       if( (word & 0xFFFFFFFF) == 0xFFFFFFFF){

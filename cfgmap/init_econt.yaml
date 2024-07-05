@@ -1,0 +1,231 @@
+Aligner:
+  Global:
+    match_mask: 0
+    match_pattern: 11913522215344493909 #0xa555555595555555
+    orbsyn_cnt_load_val: 1
+    orbsyn_cnt_snapshot: 3482
+FCtrl:
+  Global:
+    invert_command_rx: 0
+    edge_sel_t1: 1
+    reset_b_fc_counters: 1
+    # force_fc_error: 0
+    # invert_command_rx: 0
+Mux:
+  00: 3
+  01: 2
+  02: 1
+  03: 0
+  04: 7
+  05: 6
+  06: 5
+  07: 4
+  08: 11
+  09: 10
+  10: 9
+  11: 8
+  12: 15
+  13: 14
+  14: 13
+  15: 12
+  16: 19
+  17: 18
+  18: 17
+  19: 16
+  20: 23
+  21: 22
+  22: 21
+  23: 20
+  24: 27
+  25: 26
+  26: 25
+  27: 24
+  28: 31
+  29: 30
+  30: 29
+  31: 28
+  32: 35
+  33: 34
+  34: 33
+  35: 32
+  36: 39
+  37: 38
+  38: 37
+  39: 36
+  40: 43
+  41: 42
+  42: 41
+  43: 40
+  44: 47
+  45: 46
+  46: 45
+  47: 44
+FmtBuf:
+  Global:
+    eporttx_numen: 2
+    use_sum : 1
+    stc_type: 3
+    buff_t1: 120 #0x78
+    tx_sync_word: 426 #0x1aa
+AlgoDroplsb:
+  Global: 1
+EprxGrpTop:
+  Global:
+    track_mode: 2
+Pll:
+  Global:
+    enable_ser: 1
+    config_p_ff_cdr: 6
+    pll_r_config_wl: 2
+    config_i_pll_wl: 9
+    config_p_pll_wl: 9
+    config_p_ff_cdr_wl: 6
+    config_i_fll_wl: 5
+    vco_cap_select: 27
+    pll_r_config: 2
+    config_i_pll: 9
+    config_p_pll: 9
+    enable_cap_bank_override: 1
+    lf_lock_thr_counter: 3
+    lf_re_lock_thr_counter: 3
+    lf_un_lock_thr_counter: 3
+    toclkgen_dis_des: 1
+    ref_clk_sel: 1
+Algorithm:
+  Global: 
+    select: 1
+    density: 1
+ChAligner:
+  00:
+   patt_sel: 0
+   patt_en:  0
+   force_ch_outputs: 0
+   per_ch_align_en : 1
+  01:
+   patt_sel: 0
+   patt_en:  0
+   force_ch_outputs: 0
+   per_ch_align_en : 1
+  02:
+   patt_sel: 0
+   patt_en:  0
+   force_ch_outputs: 0
+   per_ch_align_en : 1
+  03:
+   patt_sel: 0
+   patt_en:  0
+   force_ch_outputs: 0
+   per_ch_align_en : 1
+  04:
+   patt_sel: 0
+   patt_en:  0
+   force_ch_outputs: 0
+   per_ch_align_en : 1
+  05:
+   patt_sel: 0
+   patt_en:  0
+   force_ch_outputs: 0
+   per_ch_align_en : 1
+  06:
+   patt_sel: 0
+   patt_en:  0
+   force_ch_outputs: 0
+   per_ch_align_en : 1
+  07:
+   patt_sel: 0
+   patt_en:  0
+   force_ch_outputs: 0
+   per_ch_align_en : 1
+  08:
+   patt_sel: 0
+   patt_en:  0
+   force_ch_outputs: 0
+   per_ch_align_en : 1
+  09:
+   patt_sel: 0
+   patt_en:  0
+   force_ch_outputs: 0
+   per_ch_align_en : 1
+  10:
+   patt_sel: 0
+   patt_en:  0
+   force_ch_outputs: 0
+   per_ch_align_en : 1
+  11:
+   patt_sel: 0
+   patt_en:  0
+   force_ch_outputs: 0
+   per_ch_align_en : 1
+ERx:
+  00:
+   ch_set_common_mode: 0
+   ch_ch_equalizer: 0
+   ch_enable_termination: 1
+   ch_invert_data: 1
+   ch_enable: 1
+  01:
+   ch_set_common_mode: 0
+   ch_ch_equalizer: 0
+   ch_enable_termination: 1
+   ch_invert_data: 1
+   ch_enable: 1
+  02:
+   ch_set_common_mode: 0
+   ch_ch_equalizer: 0
+   ch_enable_termination: 1
+   ch_invert_data: 1
+   ch_enable: 1
+  03:
+   ch_set_common_mode: 0
+   ch_ch_equalizer: 0
+   ch_enable_termination: 1
+   ch_invert_data: 1
+   ch_enable: 1
+  04:
+   ch_set_common_mode: 0
+   ch_ch_equalizer: 0
+   ch_enable_termination: 1
+   ch_invert_data: 1
+   ch_enable: 1
+  05:
+   ch_set_common_mode: 0
+   ch_ch_equalizer: 0
+   ch_enable_termination: 1
+   ch_invert_data: 1
+   ch_enable: 1
+  06:
+   ch_set_common_mode: 0
+   ch_ch_equalizer: 0
+   ch_enable_termination: 1
+   ch_invert_data: 1
+   ch_enable: 1
+  07:
+   ch_set_common_mode: 0
+   ch_ch_equalizer: 0
+   ch_enable_termination: 1
+   ch_invert_data: 1
+   ch_enable: 1
+  08:
+   ch_set_common_mode: 0
+   ch_ch_equalizer: 0
+   ch_enable_termination: 1
+   ch_invert_data: 1
+   ch_enable: 1
+  09:
+   ch_set_common_mode: 0
+   ch_ch_equalizer: 0
+   ch_enable_termination: 1
+   ch_invert_data: 1
+   ch_enable: 1
+  10:
+   ch_set_common_mode: 0
+   ch_ch_equalizer: 0
+   ch_enable_termination: 1
+   ch_invert_data: 1
+   ch_enable: 1
+  11:
+   ch_set_common_mode: 0
+   ch_ch_equalizer: 0
+   ch_enable_termination: 1
+   ch_invert_data: 1
+   ch_enable: 1

@@ -289,6 +289,22 @@ namespace TPGFEConfiguration{
     void setRocFile(std::string pedThfile) {PedThfname = pedThfile;}
     void setEconDFile(std::string econdfile) {EconDfname = econdfile;}
     void setEconTFile(std::string econtfile) {EconTfname = econtfile;}
+    void setRocPara(const std::map<uint32_t,TPGFEConfiguration::ConfigHfROC>& cfghroc){
+      for(auto const& hroc : cfghroc)
+	hroccfg[hroc.first] = cfghroc.at(hroc.first);
+    }
+    void setChPara(const std::map<uint64_t,TPGFEConfiguration::ConfigCh>& cfghrocch) {
+      for(auto const& hrocch : cfghrocch)
+	hrocchcfg[hrocch.first] = cfghrocch.at(hrocch.first);
+    }
+    void setEconDPara(const std::map<uint32_t,TPGFEConfiguration::ConfigEconD>& cfgeconD) {
+      for(auto const& econD : cfgeconD)
+	econDcfg[econD.first] = cfgeconD.at(econD.first);
+    }
+    void setEconTPara(const std::map<uint32_t,TPGFEConfiguration::ConfigEconT>& cfgeconT) {
+      for(auto const& econT : cfgeconT)
+	econTcfg[econT.first] = cfgeconT.at(econT.first);
+    }
     
     void setTrainEWIndices(uint32_t tr_index, char ew_c, uint32_t ew_index) { train_idx = tr_index ; ew = ew_c ; ew_idx = ew_index ;}
     //set the module related parameters
@@ -307,11 +323,15 @@ namespace TPGFEConfiguration{
     void loadModIdxToNameMapping();
     
     //Read the ROC/ECOND/ECONT configs from yaml file
-    void readRocConfigYaml();
+    void readRocConfigYaml(const std::string&);
     void readEconDConfigYaml();
     void readEconTConfigYaml();
     
-    //getters    
+    void setPedThZero(); //set the pedestal and thresholds to zero
+    
+    //getters
+    const uint32_t getSiModNhroc(std::string typecode) { return  SiModNhroc[typecode];}
+    const uint32_t getSciModNhroc(std::string typecode) { return  SciModNhroc[typecode];}
     const std::map<std::string,std::vector<uint32_t>>& getSiModTClist() { return  SiModTClst;}
     const std::map<std::string,std::vector<uint32_t>>& getSiModSTClist() { return  SiModSTClst;}
     const std::map<std::string,std::vector<uint32_t>>& getSiModSTC16list() { return  SiModSTC16lst;}
@@ -345,6 +365,7 @@ namespace TPGFEConfiguration{
     //std::map<std::pair<std::string,uint32_t>,uint32_t>  SiROCpinToTC; std::map<std::pair<std::string,uint32_t>,uint32_t>  SiIJToTC;
     //std::map<std::pair<std::string,uint32_t>,uint32_t>  SiTCToSTC;
     std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>  SiSTCToTC; std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>  SiSTC16ToTC;
+    std::map<std::string,uint32_t> SiModNhroc;
     std::map<std::pair<std::string,std::tuple<uint32_t,uint32_t,uint32_t>>,uint32_t>  SiSeqToRocpin;
     
     std::string SciMapfname ;
@@ -353,6 +374,7 @@ namespace TPGFEConfiguration{
     //std::map<std::pair<std::string,uint32_t>,uint32_t>  SciROCpinToTC; std::map<std::pair<std::string,uint32_t>,uint32_t>  SciIJToTC;
     //std::map<std::pair<std::string,uint32_t>,uint32_t>  SciTCToSTC;
     std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>  SciSTCToTC; std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>  SciSTC16ToTC;
+    std::map<std::string,uint32_t> SciModNhroc;
     std::map<std::pair<std::string,std::tuple<uint32_t,uint32_t,uint32_t>>,uint32_t>  SciSeqToRocpin;
 
     std::map<std::tuple<uint32_t,uint32_t,uint32_t>,std::string>  modIdxToName; //detType, LD/HD, modindex
@@ -408,7 +430,9 @@ namespace TPGFEConfiguration{
     
     int isLD = -1;
     TPGFEConfiguration::TPGFEIdPacking pck;  
-    
+
+    uint32_t prevHalfROC = 999;
+    std::string prevTypecode = "";
     while(getline(inwafermap,s)){
       //std::cout << s.size() << std::endl;
       if(s.find("ML")!=std::string::npos or s.find("MH")!=std::string::npos){
@@ -431,7 +455,16 @@ namespace TPGFEConfiguration{
 	  // SiROCpinToTC[std::make_pair(Typecode,rocpin)] = absTC;
 	  // SiIJToTC[std::make_pair(Typecode,iUiV)] = absTC;
 	  SiSeqToRocpin[std::make_pair(Typecode,seqch)] = rocpin;
-	  
+
+	  if(prevHalfROC!=HalfROC or prevTypecode.compare(Typecode)!=0){
+	    if(prevTypecode.compare(Typecode)!=0){
+	      SiModNhroc[Typecode] = 1;
+	    }else{
+	      SiModNhroc[Typecode]++;
+	    }
+	    prevHalfROC = HalfROC;
+	    prevTypecode = Typecode ; 
+	  }
 	  if (std::find(SiModTClst[Typecode].begin(), SiModTClst[Typecode].end(), absTC) == SiModTClst[Typecode].end()) {
 	    SiModTClst[Typecode].push_back(absTC);
 	  }
@@ -474,6 +507,8 @@ namespace TPGFEConfiguration{
     uint32_t ring = 0;
     TPGFEConfiguration::TPGFEIdPacking pck;
     
+    uint32_t prevHalfROC = 999;
+    std::string prevTypecode = "";
     while(getline(inwafermap,s)){
       //std::cout << s.size() << std::endl;
       if(s.find("TM-")!=std::string::npos){
@@ -496,6 +531,15 @@ namespace TPGFEConfiguration{
 	  uint32_t iRiP = pck.packij(ring,uint32_t(iphi));
 	  std::tuple<uint32_t,uint32_t,uint32_t> seqch = std::make_tuple( ROC, HalfROC, uint32_t(Seq));
 	  
+	  if(prevHalfROC!=HalfROC or prevTypecode.compare(Typecode)!=0){
+	    if(prevTypecode.compare(Typecode)!=0){
+	      SciModNhroc[Typecode] = 1;
+	    }else{
+	      SciModNhroc[Typecode]++;
+	    }
+	    prevHalfROC = HalfROC;
+	    prevTypecode = Typecode ; 
+	  }
 	  SciTCToROCpin[std::make_pair(Typecode,absTC)].push_back( rocpin );
 	  SciTCToIJ[std::make_pair(Typecode,absTC)].push_back( iRiP );
 	  // SciROCpinToTC[std::make_pair(Typecode,rocpin)] = absTC;
@@ -524,7 +568,7 @@ namespace TPGFEConfiguration{
     //June/2024 : Proposal1 : 1+2+11+1+3+1+3+3+1 = 1(+/-z) + 2(120deg sector) + 11(link max ~1848) + 1(Si/Sci) + 3(ECONT number max 7) + 1(LD/HD) + 4[(Si type)/(Sci type)] +  3(ROC number) + 1 (Half) = 26 bits
     //detType (Si=0,Sci=1), LD/HD (LD=1,HD=0), modindex
     //(LD: Full (F/0), Top (T/1), Bottom (B/2), Left (L/3), Right (R/4), Five (5/5)=======HD: Full (F/0), Top (T/1) aka Half Minus, Bottom (B/2) aka Chop Two, Left (L/3), Right(R/4))
-
+    
     /////////    //To be confirmed from geometry group modnum<-->modtype
     
     modIdxToName[std::make_tuple(0,1,0)] = "ML-F";
@@ -557,28 +601,15 @@ namespace TPGFEConfiguration{
     modIdxToName[std::make_tuple(1,0,4)] = "TM-J12";
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  void Configuration::readRocConfigYaml()
+  void Configuration::readRocConfigYaml(const std::string& modName)
   {
     std::cout<<"Configuration::readRocConfigYaml:: Module config file : "<<PedThfname<<std::endl;
     YAML::Node node(YAML::LoadFile(PedThfname));
-    //std::string rname = Form("train_%u.roc0_%c%u",train_idx,ew,ew_idx); 
-    //std::cout << node << std::endl;
-    // std::cout<<"============"<<std::endl;
-    // if(link==1){
-    //   std::cout << node["Configuration"]["roc"]["train_1.roc0_e0"]["cfg"]["DigitalHalf"]["0"]["Adc_TH"].as<uint32_t>() << std::endl;
-    //   std::cout << node["Configuration"]["roc"]["train_1.roc0_e0"]["cfg"]["ch"]["0"]["Adc_pedestal"].as<uint32_t>() << std::endl;
-    //   std::cout << node["Configuration"]["roc"]["train_1.roc0_e0"]["cfg"]["ch"]["1"]["Adc_pedestal"].as<uint32_t>() << std::endl;
-    //   std::cout << node["Configuration"]["roc"]["train_1.roc0_e0"]["cfg"]["ch"]["2"]["Adc_pedestal"].as<uint32_t>() << std::endl;
-    //   std::cout << node["Configuration"]["roc"]["train_1.roc0_e0"]["cfg"]["ch"]["3"]["Adc_pedestal"].as<uint32_t>() << std::endl;
-    // }else{
-    //   std::cout << node["Configuration"]["roc"]["train_0.roc0_w0"]["cfg"]["DigitalHalf"]["0"]["Adc_TH"].as<uint32_t>() << std::endl;
-    //   std::cout << node["Configuration"]["roc"]["train_0.roc0_w0"]["cfg"]["ch"]["0"]["Adc_pedestal"].as<uint32_t>() << std::endl;
-    //   std::cout << node["Configuration"]["roc"]["train_0.roc0_w0"]["cfg"]["ch"]["1"]["Adc_pedestal"].as<uint32_t>() << std::endl;
-    //   std::cout << node["Configuration"]["roc"]["train_0.roc0_w0"]["cfg"]["ch"]["2"]["Adc_pedestal"].as<uint32_t>() << std::endl;
-    //   std::cout << node["Configuration"]["roc"]["train_0.roc0_w0"]["cfg"]["ch"]["3"]["Adc_pedestal"].as<uint32_t>() << std::endl;
-    // }
-    // std::cout<<"============"<<std::endl;
-    for(uint32_t iroc=0;iroc<3;iroc++){
+
+    const uint32_t nhfrocs = (pck.getDetType()==0)?getSiModNhroc(modName):getSciModNhroc(modName);
+    const uint32_t nrocs = TMath::CeilNint(nhfrocs/2);
+    const uint32_t nchs = 2*TPGFEDataformat::HalfHgcrocData::NumberOfChannels;
+    for(uint32_t iroc=0;iroc<nrocs;iroc++){
       std::string rocname = Form("train_%u.roc%u_%c%u",train_idx,iroc,ew,ew_idx); //egForm("train_0.roc%d_w0",iroc);
       uint32_t th_0 = node["Configuration"]["roc"][rocname]["cfg"]["DigitalHalf"]["0"]["Adc_TH"].as<uint32_t>();
       uint32_t th_1 = node["Configuration"]["roc"][rocname]["cfg"]["DigitalHalf"]["1"]["Adc_TH"].as<uint32_t>();
@@ -622,9 +653,9 @@ namespace TPGFEConfiguration{
       hroccfg[rocid_0] = hroc_0;
       hroccfg[rocid_1] = hroc_1;
     
-      for(uint32_t ich=0;ich<72;ich++){
-	uint32_t ihalf = (ich<=35)?0:1;
-	uint32_t chnl = ich%36;
+      for(uint32_t ich=0;ich<nchs;ich++){
+	uint32_t ihalf = (ich<TPGFEDataformat::HalfHgcrocData::NumberOfChannels)?0:1;
+	uint32_t chnl = ich%TPGFEDataformat::HalfHgcrocData::NumberOfChannels;
 	uint32_t ped = node["Configuration"]["roc"][rocname]["cfg"]["ch"][Form("%u",ich)]["Adc_pedestal"].as<uint32_t>() ;
 	if(ihalf==0){
 	  TPGFEConfiguration::ConfigCh ch_0;
@@ -646,7 +677,7 @@ namespace TPGFEConfiguration{
     YAML::Node node(YAML::LoadFile(EconDfname));
     
     //something like below should loop over ECON-D config(s) for different modules
-    uint32_t idx = pck.packRocId(zside, sector, link, det, econt, selTC4, module, rocn, half);
+    uint32_t idx = pck.packModId(zside, sector, link, det, econt, selTC4, module); //we assume same ECONT and ECOND number for a given module
     uint32_t pass_thru_mode = node["RocDaqCtrl"]["Global"]["pass_thru_mode"].as<uint32_t>();
     uint32_t active_erxs = node["RocDaqCtrl"]["Global"]["active_erxs"].as<uint32_t>();
     bool passTM = (pass_thru_mode==1) ? true : false ; 
@@ -668,18 +699,35 @@ namespace TPGFEConfiguration{
     ///////////////////////////
     
     //something like below should loop over ECON-T config(s) for different modules
-    uint32_t idx = pck.packRocId(zside, sector, link, det, econt, selTC4, module, rocn, half);
+    uint32_t idx = pck.packModId(zside, sector, link, det, econt, selTC4, module);  
     uint32_t select = node["Algorithm"]["Global"]["select"].as<uint32_t>();
     uint32_t density = node["Algorithm"]["Global"]["density"].as<uint32_t>();
     uint32_t dropLSB = node["AlgoDroplsb"]["Global"].as<uint32_t>();
-    uint32_t stctype = node["FmtBuf"]["Global"]["stc_type"].as<uint32_t>();    
+    uint32_t stctype = node["FmtBuf"]["Global"]["stc_type"].as<uint32_t>();
+    uint32_t eporttx_numen = node["FmtBuf"]["Global"]["eporttx_numen"].as<uint32_t>();
+    
     TPGFEConfiguration::ConfigEconT econt;
     econt.setDensity(density);
     econt.setDropLSB(dropLSB);
     econt.setSelect(select); 
     econt.setSTCType(stctype);
     econt.setCalibration(dummyCalib);
+    econt.setNElinks(eporttx_numen);
     econTcfg[idx] = econt;
+    
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  void Configuration::setPedThZero(){
+    for(auto const& hrocch : hrocchcfg)
+      hrocchcfg[hrocch.first].setAdcpedestal(0);
+    
+    for(auto const& hroc : hroccfg){
+      hroccfg[hroc.first].setAdcTH(0);
+      for(int itot=0;itot<4;itot++){
+	hroccfg[hroc.first].setTotTH(itot, 0);
+	hroccfg[hroc.first].setTotP(itot, 0);
+      }
+    }
     
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

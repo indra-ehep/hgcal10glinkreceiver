@@ -103,10 +103,9 @@ namespace TPGFEModuleEmulation{
 	  const TPGFEConfiguration::ConfigHfROC& rocpara = configs.getRocPara().at(rocid);
 	  if(!chdata.isTot()){
 	    uint32_t ped = configs.getChPara().at(pck.packChId(rocid,rocpin)).getAdcpedestal();
-	    if(ped==255) ped = 0x3FF; //pedestal value 255 has been used for masked channels
 	    unsigned thr = rocpara.getAdcTH();
 	    uint32_t adc = chdata.getAdc();
-	    adc = (adc>(ped+thr) and !(rocpara.isChMasked(rocpin))) ? adc-ped : 0 ;
+	    adc = (adc>(ped+thr) and !(rocpara.isChMasked(rocpin)) and (ped!=0x3FF) ) ? adc-ped : 0 ;
 	    totadc += adc;
 	  }else{
 	    uint32_t tot1 = (chdata.getTot()>rocpara.getTotTH(rocpin)) ? (chdata.getTot()-rocpara.getTotP(rocpin)) : (rocpara.getTotTH(rocpin)-rocpara.getTotP(rocpin)) ;
