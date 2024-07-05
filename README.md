@@ -1,65 +1,95 @@
-# hgcal-tpg-fe
+# Hgcal10gLinkReceiver
 
-## Motivation
-Emulation of the Trigger Primitive Generation (TPG) by HGCAL frontend ASICs.
-
-## Download and Setup
-Run the setup code to download additional dependencies and setup. This setup is prepared for lxplus machines.
-
+## Download
 ```
-./setup.sh
+git clone https://github.com/indra-ehep/hgcal10glinkreceiver
 ```
 
-## Compile and run
+## Compile
 
-### Test-beam data of September 2023
-To process the test-beam binary files for the BC results
 ```
+cd hgcal10glinkreceiver
 ./compile.sh
-./emul_test-beam_Sep23.exe 1695829026 1695829027 1
-```
-The arguments from left to right are relay number, run number and link number, respectively.
-Similarly for the STC4 results
-```
-./emul_test-beam_Sep23.exe 1695733045 1695733046 1 
 ```
 
-### Estimation of maximum energy output of ECONT
-Modify the module setup inside the code,
-```cpp
-  //===============================================================================================================================
-  //input paramaters for testing
-  //===============================================================================================================================
-  uint32_t zside = 0, sector = 0, link = 0, econt = 0;
-  
-  //A combinatin of following three will uniquiely identfy the module type in HGCAL
-  //(outlook : some modification expected for the ECONTs connected to different types of modules, which are not considered in current tests)
-  //det: (0,1) = (Si,Sci)
-  //selTC4: (0,1) = (HD,LD);
-  //module:
-  //Si:==
-  //LD: Full (F/0), Top (T/1), Bottom (B/2), Left (L/3), Right (R/4), Five (5/5)
-  //HD: Full (F/0), Top (T/1) aka Half Minus, Bottom (B/2) aka Chop Two, Left (L/3), Right(R/4)
-  //Sci:==
-  //LD: A5A6(0), B11B12(1), C5(2), D8(3), E8(4), G3(5), G5(6), G7(7), G8(8)
-  //HD: K6(0), K8(1), K11(2), K12(3), J12(4)
-  uint32_t det = 0, selTC4 = 1, module = 0;
-  
-  uint32_t multfactor = 15;//TOT mult factor other values could be 31 or 8
-  uint32_t inputLSB = 1; //lsb at the input TC from ROC
-  uint32_t dropLSB = 1;  //lsb at the output during the packing
-  uint32_t select = 1 ;  //0 = Threshold Sum (TS), 1 = Super Trigger Cell (STC), 2 = Best Choice (BC), 3 = Repeater, 4=Autoencoder (AE).
-  uint32_t stc_type = 0; // 0 = STC4B(5E+4M), 1 = STC16(5E+4M), 3 = STC4A(4E+3M)
-  uint32_t nelinks = 4; //1 = BC1, 2 = BC4, 3 = BC6, 4 = BC9, 5 = BC14..... (see details https://edms.cern.ch/ui/#!master/navigator/document?P:100053490:100430098:subDocs)
-  uint32_t calibration = 0xFFF; //0x400 = 0.5, 0x800 = 1.0, 0xFFF = 1.99951 (max)
-  
-  uint32_t maxADC = 0x3FF ; //10 bit input in TPG path
-  uint32_t maxTOT = 0xFFF ; //12 bit input in TPG path
-  //===============================================================================================================================
+## Execute
+
+```
+[daq@xxxxxxx hgcal10glinkreceiver]$ ./run.sh 
+The relay numbers are : 
+  { 1695548224, 1695548616, 1695548665, 1695550448, 1695552466, 1695553649, 1695558537, 1695558789, 1695559474, 1695559528, 1695560008, 1695562204, 1695562836, 1695563152, 1695563673, 1695564190, 1695564694, 1695565177, 1695565613, 1695566235, 1695568332, 1695573718, 1695573756, 1695587646, 1695587722, 1695592800, 1695593201, 1695656599, 1695657132, 1695658759, }
+Select a relay number 
+1695573756
+
+
+ ============== Relay : 1695573756 Run : 1695573756 ================= 
+FileReader::open()  opening file dat/Relay1695573756/Run1695573756_Link0_File0000000000.bin
+Event : 352781 Event size do not match between trigger RO header and fourth 0xfecafe word
+	Prev :: Event ID :  352780, OC[LSB] : 0, OC[MSB] : 0, BC[LSB] : 16, BC[MSB] : 2304
+	Prev :: Event ID :  352779, OC[LSB] : 0, OC[MSB] : 0, BC[LSB] : 16, BC[MSB] : 2304
+	Prev :: Event ID :  352778, OC[LSB] : 0, OC[MSB] : 0, BC[LSB] : 16, BC[MSB] : 2304
+	Prev :: Event ID :  352777, OC[LSB] : 0, OC[MSB] : 0, BC[LSB] : 16, BC[MSB] : 2304
+	Prev :: Event ID :  352776, OC[LSB] : 0, OC[MSB] : 0, BC[LSB] : 16, BC[MSB] : 2304
+	Prev :: Event ID :  352775, OC[LSB] : 0, OC[MSB] : 0, BC[LSB] : 16, BC[MSB] : 2304
+	Prev :: Event ID :  352774, OC[LSB] : 0, OC[MSB] : 0, BC[LSB] : 16, BC[MSB] : 2304
+	Prev :: Event ID :  352773, OC[LSB] : 0, OC[MSB] : 0, BC[LSB] : 16, BC[MSB] : 2304
+	Prev :: Event ID :  352772, OC[LSB] : 0, OC[MSB] : 0, BC[LSB] : 16, BC[MSB] : 2304
+	Prev :: Event ID :  352771, OC[LSB] : 0, OC[MSB] : 0, BC[LSB] : 16, BC[MSB] : 2304
+	.........................
+
 ```
 
-then compile again and run as,
+Remeber to set the dat softlink path correctly according to your requirment.
+
+## Output summary
+
+The output summary of error will contain,
+
+
 ```
-./compile.sh
-./findEMax.exe
+================================================================================
+Summary of Relay 1695819718 and Run 1695819718
+
+================================================================================
+Relay	 Run	 NofEvts	 NofPhysT	 NofCalT	 NofCoinT	 NofRandT	 NofSoftT	 NofRegT	 RStrtE	 RStpE	 EvtIdE	 1stcafeE	 daqHE	 NbxE	 STCNumE	 STCLocE	 EngE	 EmptyTCs	
+1695819718	1695819718	458638	0	0	0	458638	0	0	0	0	0	0	0	0	0	0	0	3	
+
+================================================================================
+
 ```
+where,
+
+1. Relay : Relay number
+2. Run : Run number
+3. NofEvts : Number of events
+4. PhysT : Number of physics triggers (L1a Trigger types)
+5. CalT : Number of calibration triggers (L1a Trigger types)
+6. CoinT : Number of coincident triggers of Phys and Cal (L1a Trigger types)
+7. CalT : Number of random triggers (L1a Trigger types)
+8. SoftT : Number of software triggers (L1a Trigger types)
+9. RegT : Number of regular triggers (L1a Trigger types)
+10. RStrE : Number of cases where FsmState::Starting validadity fails
+11. RStpE : Number of cases where FsmState::Stopping validadity fails
+12. EvtIdE : Number of cases where Event Id is corrupted 
+13. xecafeE : Number of events where payload has six or more 0xfecafe
+14. 1stcafeE : Number of cases where the location of first 0xfecafe word is wrong (This means either the event header has been expanded or the first is missed)
+15. daqHE : Number of cases where the data volume mentioned in TRG LO header does not match with the last 8-bits of 0xfecafe word
+16. NbxE : Number of cases where the bx mentioned in daq0 info of TRG LO does not match with the one mentioned for daq1
+17. STCNE : Number of cases where STC number does not match with the one mentioned in the 4 MSB bits of unpacked STC address for LSB module
+18. STCLE : Number of cases where STC location mentioned in the 2 LSB bits of unpacked STC address does not match with the one mentioned unpacker input location for LSB module
+19. EngE : Number of cases where STC energy mentioned in the unpacked data does not match with the one in unpacker input for LSB module
+20. BxE : Number of cases with Bx mismatching between unpacker input and output dat for LSB module
+21. BxCE : Number of cases with Bx mismatching between central value stored unpacker input/output and those from 8 modulo bxId of Slink trailer for LSB module
+22. ETCs : Number of empty TCs for LSB trigger data 
+
+23.-28. : Repetition of 17 to 22 for MSB module
+
+29. PV : Serenity software version 
+
+### Acknowledgment
+Main framework :: Paul : https://gitlab.cern.ch/pdauncey/hgcal10glinkreceiver
+
+Additional guidelines :: Charlotte : https://gitlab.cern.ch/mknight/hgcal10glinkreceiver/-/tree/master 
+
+
+
