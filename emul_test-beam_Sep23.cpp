@@ -33,7 +33,20 @@
 #include "TPGFEReader.hh"
 #include "TPGFEModuleEmulation.hh"
 
-const long double maxEvent = 1e5; //6e5
+const long double maxEvent = 1; //6e5
+
+//TC0 upto 4000
+//Event: 183938 has problem for TC channel: 0
+//Event: 248153 has problem for TC channel: 0
+
+// Event: 55291 has problem for TC channel: 1
+// Event: 209256 has problem for TC channel: 1
+// Event: 281077 has problem for TC channel: 1
+// Event: 299500 has problem for TC channel: 1
+// Event: 393930 has problem for TC channel: 1
+
+
+const uint64_t refPrE = 55291 ;
 
 int main(int argc, char** argv)
 {
@@ -177,6 +190,8 @@ int main(int argc, char** argv)
     cfgs.setRocFile(Form("dat/Relay%u/Run%u_Module00c87fff.yaml",relayNumber, runNumber));
     cfgs.setTrainEWIndices(1, 'e', 0);
     cfgs.readRocConfigYaml(modName);
+    //east side link associated with MLFL00041 where low ADC saturation problems were identified
+    //See : https://indico.cern.ch/event/1431875/contributions/6026076/attachments/2887720/5061500/July1_2024_HCAL_DPGrawdata.pdf
   }
   if(linkNumber==2){
     cfgs.setRocFile( Form("dat/Relay%u/Run%u_Module00c43fff.yaml",relayNumber, runNumber));
@@ -314,7 +329,7 @@ int main(int argc, char** argv)
 
       
       //std::cout << "Processing Event : " << event << std::endl;
-      if(event==1){
+      if(event==refPrE){
 
 	const TPGFEDataformat::ModuleTcData& modtcdata = moddata.at(moduleId);
 	modtcdata.print();
@@ -482,8 +497,10 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 	  uint32_t *sorted_idx = new uint32_t[nofBCTcs];
 	  uint32_t *energy = new uint32_t[nofBCTcs];
 	  uint32_t *channel = new uint32_t[nofBCTcs];
-	  uint32_t *emul_energy = new uint32_t[nofBCTcs];
-	  uint32_t *emul_channel = new uint32_t[nofBCTcs];
+	  // uint32_t *emul_energy = new uint32_t[nofBCTcs];
+	  // uint32_t *emul_channel = new uint32_t[nofBCTcs];
+	  uint32_t *emul_energy = new uint32_t[(econtemulTcRawdata.size()-1)];
+	  uint32_t *emul_channel = new uint32_t[(econtemulTcRawdata.size()-1)];
 	  uint32_t ibc = 0;
 	  uint32_t econtmodsum = 0,  econtemulmodsum = 0;
 	  for(const auto& econtdata : econtTcRawdata){
@@ -492,6 +509,9 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 	    }else{
 	      energy[ibc] = uint32_t(econtdata.energy());
 	      channel[ibc] = uint32_t(econtdata.address());
+	      if(event==refPrE){
+		std::cout << "ibc: "<<ibc<<", channel: "<<channel[ibc]<<", energy: "<<energy[ibc]<<std::endl;
+	      }
 	      ibc++;
 	    }
 	  }
@@ -510,14 +530,25 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 	  bool isTotMod = false;
 	  //Now compare
 	  for(uint32_t itc = 0 ; itc<nofBCTcs ; itc++){
-	    bool isTot = modtcdata.getTC(emul_channel[itc]).isTot();
-	    int cdiff =  emul_channel[itc] - channel[sorted_idx[itc]];
+	    uint32_t emch = emul_channel[channel[sorted_idx[itc]]];
+	    uint32_t emen = emul_energy[channel[sorted_idx[itc]]];
+	    
+	    //if(emen==0 or energy[sorted_idx[itc]]==0) continue;
+	    
+	    if(event==refPrE){
+	      std::cout << "ibc: "<<itc<<", emul_channel: "<<emch<<", channel: "<<channel[sorted_idx[itc]]
+			<<", emul_energy: "<< emen << ", energy: "<<energy[sorted_idx[itc]]<<std::endl;
+	    }
+	    bool isTot = modtcdata.getTC(emch).isTot();
+	    int cdiff =  emch - channel[sorted_idx[itc]];
 	    if(cdiff==0){
-	      int ediff =  emul_energy[itc] - energy[sorted_idx[itc]];
+	      int ediff =  emen - energy[sorted_idx[itc]];
+	      if(ediff!=0 and emch==1)
+		std::cerr << "Event: "<<event<<" has problem for TC channel: "<< emch <<std::endl;
 	      if(!isTot)
-		((TH1F *) list->FindObject(Form("hCompressDiffTCADC_%d",emul_channel[itc])))->Fill(float( ediff ));
+		((TH1F *) list->FindObject(Form("hCompressDiffTCADC_%d",emch)))->Fill(float( ediff ));
 	      else
-		((TH1F *) list->FindObject(Form("hCompressDiffTCTOT_%d",emul_channel[itc])))->Fill(float( ediff ));
+		((TH1F *) list->FindObject(Form("hCompressDiffTCTOT_%d",emch)))->Fill(float( ediff ));
 	    }else{
 	      if(!isTot)
 		((TH1F *) list->FindObject("hBC9TCMissedADC"))->Fill(float( channel[sorted_idx[itc]] ));

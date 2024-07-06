@@ -105,7 +105,7 @@ namespace TPGFEModuleEmulation{
 	    uint32_t ped = configs.getChPara().at(pck.packChId(rocid,rocpin)).getAdcpedestal();
 	    unsigned thr = rocpara.getAdcTH();
 	    uint32_t adc = chdata.getAdc();
-	    adc = (adc>(ped+thr) and !(rocpara.isChMasked(rocpin)) and (ped!=0x3FF) ) ? adc-ped : 0 ;
+	    adc = (adc>(ped+thr) and !(rocpara.isChMasked(rocpin)) and (ped<0xFF) ) ? adc-ped : 0 ;
 	    totadc += adc;
 	  }else{
 	    uint32_t tot1 = (chdata.getTot()>rocpara.getTotTH(rocpin)) ? (chdata.getTot()-rocpara.getTotP(rocpin)) : (rocpara.getTotTH(rocpin)-rocpara.getTotP(rocpin)) ;
@@ -424,11 +424,15 @@ namespace TPGFEModuleEmulation{
     bcOut.push_back(TPGFEDataformat::TcRawData(compressed_modsum));
     
     uint32_t nofBCTcs = configs.getEconTPara().at(moduleId).getBCType();
-    TMath::Sort(uint32_t(tclist.size()), energy, sorted_idx);
-    //The following line should be modified when we have access to the BC mode defined for a given ECONT of a motherboard in the config file
-    for(uint32_t itc = 0 ; itc<nofBCTcs ; itc++)
-      bcOut.push_back(TPGFEDataformat::TcRawData(outputType, sorted_idx[itc], energy[sorted_idx[itc]]));
+    // TMath::Sort(uint32_t(tclist.size()), energy, sorted_idx);
+    // //The following line should be modified when we have access to the BC mode defined for a given ECONT of a motherboard in the config file
+    // for(uint32_t itc = 0 ; itc<nofBCTcs ; itc++)
+    //   bcOut.push_back(TPGFEDataformat::TcRawData(outputType, sorted_idx[itc], energy[sorted_idx[itc]]));
     
+    for(uint32_t itc = 0 ; itc<uint32_t(tclist.size()) ; itc++)
+      bcOut.push_back(TPGFEDataformat::TcRawData(outputType, itc, energy[itc]));
+    
+      
     econtOut = std::make_pair(moduleId,bcOut);
     
     delete []energy ;
