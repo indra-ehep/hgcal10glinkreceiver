@@ -306,7 +306,7 @@ namespace TPGFEReader{
 		toaL = wordL & 0x3FF;
 	      }
 	      if(totL>>0x9==1)  totL = (totL & 0x1ff) << 0x3 ; //10-bit to 12-bit conversion
-	  
+	      
 	      const uint16_t trigflagM = (wordM>>30) & 0x3;
 	      if(trigflagM<=1){ //0 or 1
 		adcmM = (wordM>>20) & 0x3FF;
@@ -322,7 +322,7 @@ namespace TPGFEReader{
 		toaM = wordM & 0x3FF;
 	      }
 	      if(totM>>0x9==1)  totM = (totM & 0x1ff) << 0x3 ; //10-bit to 12-bit conversion
-	  
+	      
 	      if ((nEvents < nShowEvents) or (scanMode and boe->eventId()==inspectEvent)){ 
 		if(isMSB[iloc]==0){
 		  std::cout<<"\ti : "<<i<<", index : "<<index<<std::endl;
@@ -344,20 +344,20 @@ namespace TPGFEReader{
 	      if(seqToRocpin.find(std::make_pair(modName,std::make_tuple(rocn,half,seqM)))!=seqToRocpin.end()){
 		uint32_t rocpin = seqToRocpin.at(std::make_pair(modName,std::make_tuple(rocn,half,seqM))) ;
 		ch = rocpin%36 ; //36 for halfroc
-		if(trigflagM==0x3)
-		  chdata[ch].setTot(uint16_t(totM));
-		else if(trigflagM==0)
-		  chdata[ch].setAdc(uint16_t(adcM));
+		if(trigflagM>=0x2)
+		  chdata[ch].setTot(uint16_t(totM),uint16_t(trigflagM));
+		else if(trigflagM<=0x1)
+		  chdata[ch].setAdc(uint16_t(adcM),uint16_t(trigflagM));
 		else
 		  chdata[ch].setZero();
 	      }
 	      if(seqToRocpin.find(std::make_pair(modName,std::make_tuple(rocn,half,seqL)))!=seqToRocpin.end()){
 		uint32_t rocpin = seqToRocpin.at(std::make_pair(modName,std::make_tuple(rocn,half,seqL))) ;
 		ch = rocpin%36 ; //36 for halfroc
-		if(trigflagM==0x3)
-		  chdata[ch].setTot(uint16_t(totL));
-		else if(trigflagM==0)
-		  chdata[ch].setAdc(uint16_t(adcL));
+		if(trigflagL>=0x2)
+		  chdata[ch].setTot(uint16_t(totL),uint16_t(trigflagL));
+		else if(trigflagL<=0x1)
+		  chdata[ch].setAdc(uint16_t(adcL),uint16_t(trigflagL));
 		else
 		  chdata[ch].setZero();
 	      }

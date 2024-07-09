@@ -37,6 +37,35 @@ namespace TPGFEConfiguration{
     void setMultFactor(uint32_t multfactor) { MultFactor = multfactor & 0x1F;}
     void setTotTH(uint32_t tot_idx, uint32_t tot_th) { Tot_TH[tot_idx] = tot_th & 0xFF;}
     void setTotP(uint32_t tot_idx, uint32_t tot_p) { Tot_P[tot_idx] = tot_p & 0x7F;}
+    void print() const {
+      std::cout << std::dec << ::std::setfill(' ')
+		<< "ConfigHfROC(" << this << ")::print(): "
+		<<"Adc_TH = "<< std::setw(4) << getAdcTH()
+		<<", MultFactor = "<< std::setw(3) << getMultFactor()
+		<< std::endl;
+      
+      std::cout << std::dec << ::std::setfill(' ')
+		<< "ConfigHfROC(" << this << ")::print(): "
+		<<"ClrAdcTot_trig = ";
+      for(uint32_t ich=0;ich<36;ich++)
+	std::cout << std::setw(2) << "("<< ich <<": " << isChMasked(ich) <<") ";
+      std::cout << std::endl;
+      
+      std::cout << std::dec << ::std::setfill(' ')
+		<< "ConfigHfROC(" << this << ")::print(): "
+		<<"Tot_P = ";
+      for(uint32_t itotch=0;itotch<4;itotch++)
+	std::cout << std::setw(4) << "("<< itotch <<": " << getTotP(itotch) <<") ";
+      std::cout << std::endl;
+      
+      std::cout << std::dec << ::std::setfill(' ')
+		<< "ConfigHfROC(" << this << ")::print(): "
+		<<"Tot_TH = ";
+      for(uint32_t itotch=0;itotch<4;itotch++)
+	std::cout << std::setw(4) << "("<< itotch <<": " << getTotTH(itotch) <<") ";
+      std::cout << std::endl;
+
+    }
 
   private:    
     //Digital Info
@@ -53,6 +82,18 @@ namespace TPGFEConfiguration{
     ConfigCh() {}
     uint32_t getAdcpedestal() const { return uint32_t(Adc_pedestal);}
     void setAdcpedestal(uint32_t ped) { Adc_pedestal = ped & 0xFF;}
+    void print() {
+      std::cout << std::dec << ::std::setfill(' ')
+		<< "ConfigCh(" << this << ")::print(): "
+		<<"Adc_pedestal = "<< std::setw(4)<< getAdcpedestal()
+		<< std::endl;
+    }
+    void print(uint32_t ich) {
+      std::cout << std::dec << ::std::setfill(' ')
+		<< "ConfigCh(" << this << ")::print(): "
+		<<"ich: "<< ich <<", Adc_pedestal = "<< std::setw(4)<< getAdcpedestal()
+		<< std::endl;
+    }
     
   private:
     uint8_t Adc_pedestal; //8-bits 
@@ -217,7 +258,7 @@ namespace TPGFEConfiguration{
     uint32_t getHalf() const { return uint32_t(packedVal & 0x1);}
     
     uint64_t getChId() const { return (packedVal & 0xFFFFFFFF);}
-    uint32_t getRocChId() const { return uint32_t((packedVal>>6) & 0x3F);}
+    uint32_t getRocChId(uint64_t rocchId) const { return uint32_t(rocchId & 0x3F);}
     
     uint32_t packModId(uint32_t zside, uint32_t sector, uint32_t link, uint32_t det, uint32_t econt, uint32_t selTC4, uint32_t module) {
       assert(zside<=0x1 and sector<=0x3 and link<=0x7FF and det<=0x1 and econt<=0x7 and selTC4<=0x1 and module<=0xF);
@@ -229,6 +270,22 @@ namespace TPGFEConfiguration{
     }
     uint32_t getRocIdFromModId(uint32_t moduleId, uint32_t rocn, uint32_t half){
       packedVal = moduleId | (rocn<<1 | half);
+      return packedVal;
+    }
+    uint32_t getModIdFromRocId(uint32_t rocId){
+      uint32_t rocn = 0, half = 0;
+      uint32_t id = (rocId>>4) ;
+      packedVal = (id<<4) | (rocn<<1 | half);
+      return packedVal;
+    }
+    uint32_t getRocIdFromChId(uint64_t rocchId){
+      packedVal = rocchId >> 6 ;
+      return packedVal;
+    }
+    uint32_t getModIdFromChId(uint64_t rocchId){
+      uint32_t rocn = 0, half = 0;
+      uint32_t id = (rocchId>>10) ;
+      packedVal = (id<<4) | (rocn<<1 | half);
       return packedVal;
     }
     uint32_t packRocId(uint32_t zside, uint32_t sector, uint32_t link, uint32_t det, uint32_t econt, uint32_t selTC4, uint32_t module, uint32_t rocn, uint32_t half) {
@@ -339,6 +396,7 @@ namespace TPGFEConfiguration{
     const std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>& getSiSTCToTC() {return  SiSTCToTC;}
     const std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>& getSiSTC16ToTC() {return  SiSTC16ToTC;}
     const std::map<std::pair<std::string,std::tuple<uint32_t,uint32_t,uint32_t>>,uint32_t>& getSiSeqToROCpin() {return SiSeqToRocpin;}
+    const std::map<std::pair<std::string,uint32_t>,uint32_t>& getSiRocpinToAbsSeq() {return SiRocpinToAbsSeq;}
     
     const std::map<std::string,std::vector<uint32_t>>& getSciModTClist() { return  SciModTClst;}
     const std::map<std::string,std::vector<uint32_t>>& getSciModSTClist() { return  SciModSTClst;}
@@ -347,6 +405,7 @@ namespace TPGFEConfiguration{
     const std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>& getSciSTCToTC() {return  SciSTCToTC;}
     const std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>& getSciSTC16ToTC() {return  SciSTC16ToTC;}
     const std::map<std::pair<std::string,std::tuple<uint32_t,uint32_t,uint32_t>>,uint32_t>& getSciSeqToROCpin() {return SciSeqToRocpin;}
+    const std::map<std::pair<std::string,uint32_t>,uint32_t>& getSciRocpinToAbsSeq() {return SciRocpinToAbsSeq;}
     
     const std::map<std::tuple<uint32_t,uint32_t,uint32_t>,std::string>& getModIdxToName() {return modIdxToName;}
     
@@ -355,6 +414,7 @@ namespace TPGFEConfiguration{
     std::map<uint32_t,TPGFEConfiguration::ConfigEconD>& getEconDPara() { return econDcfg;}
     std::map<uint32_t,TPGFEConfiguration::ConfigEconT>& getEconTPara() { return econTcfg;}
     ////////////////////////////////////////
+    void printCfgPedTh(uint32_t moduleId);
   private:
     ////////////////////////////////////////
     //channel <--> pin mapping and related variables
@@ -367,6 +427,7 @@ namespace TPGFEConfiguration{
     std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>  SiSTCToTC; std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>  SiSTC16ToTC;
     std::map<std::string,uint32_t> SiModNhroc;
     std::map<std::pair<std::string,std::tuple<uint32_t,uint32_t,uint32_t>>,uint32_t>  SiSeqToRocpin;
+    std::map<std::pair<std::string,uint32_t>,uint32_t>  SiRocpinToAbsSeq;
     
     std::string SciMapfname ;
     std::map<std::string,std::vector<uint32_t>>  SciModTClst ; std::map<std::string,std::vector<uint32_t>>  SciModSTClst; std::map<std::string,std::vector<uint32_t>>  SciModSTC16lst;
@@ -376,7 +437,8 @@ namespace TPGFEConfiguration{
     std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>  SciSTCToTC; std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>  SciSTC16ToTC;
     std::map<std::string,uint32_t> SciModNhroc;
     std::map<std::pair<std::string,std::tuple<uint32_t,uint32_t,uint32_t>>,uint32_t>  SciSeqToRocpin;
-
+    std::map<std::pair<std::string,uint32_t>,uint32_t>  SciRocpinToAbsSeq;
+    
     std::map<std::tuple<uint32_t,uint32_t,uint32_t>,std::string>  modIdxToName; //detType, LD/HD, modindex
     ////////////////////////////////////////
     
@@ -449,13 +511,15 @@ namespace TPGFEConfiguration{
 	  uint32_t rocpin = ROC*72 + ROCCH;
 	  uint32_t iUiV = pck.packij(uint32_t(iu),uint32_t(iv)) ;
 	  std::tuple<uint32_t,uint32_t,uint32_t> seqch = std::make_tuple( ROC, HalfROC, Seq);
-
+	  uint32_t absSeq = (2*ROC+HalfROC)*37 + Seq ;
+	  
 	  SiTCToROCpin[std::make_pair(Typecode,absTC)].push_back( rocpin );
 	  SiTCToIJ[std::make_pair(Typecode,absTC)].push_back( iUiV );
 	  // SiROCpinToTC[std::make_pair(Typecode,rocpin)] = absTC;
 	  // SiIJToTC[std::make_pair(Typecode,iUiV)] = absTC;
 	  SiSeqToRocpin[std::make_pair(Typecode,seqch)] = rocpin;
-
+	  SiRocpinToAbsSeq[std::make_pair(Typecode,rocpin)] = absSeq;
+	  
 	  if(prevHalfROC!=HalfROC or prevTypecode.compare(Typecode)!=0){
 	    if(prevTypecode.compare(Typecode)!=0){
 	      SiModNhroc[Typecode] = 1;
@@ -481,6 +545,7 @@ namespace TPGFEConfiguration{
 	  if (std::find(SiSTC16ToTC[std::make_pair(Typecode,absSTC16)].begin(), SiSTC16ToTC[std::make_pair(Typecode,absSTC16)].end(), absTC) == SiSTC16ToTC[std::make_pair(Typecode,absSTC16)].end()) {
 	    SiSTC16ToTC[std::make_pair(Typecode,absSTC16)].push_back( absTC );
 	  }
+
 	  //std::cout <<"\t"<< absSTC << "\t" << absTC  <<"\t"<< rocpin <<"\t"<< iu <<"\t"<< iv << std::endl;
 	}//skip unconnected or calibration cells
       }//check type 
@@ -530,6 +595,7 @@ namespace TPGFEConfiguration{
 	  uint32_t rocpin = ROC*72 + uint32_t(ROCpin);
 	  uint32_t iRiP = pck.packij(ring,uint32_t(iphi));
 	  std::tuple<uint32_t,uint32_t,uint32_t> seqch = std::make_tuple( ROC, HalfROC, uint32_t(Seq));
+	  uint32_t absSeq = (2*ROC+HalfROC)*37 + Seq ;
 	  
 	  if(prevHalfROC!=HalfROC or prevTypecode.compare(Typecode)!=0){
 	    if(prevTypecode.compare(Typecode)!=0){
@@ -545,6 +611,8 @@ namespace TPGFEConfiguration{
 	  // SciROCpinToTC[std::make_pair(Typecode,rocpin)] = absTC;
 	  // SciIJToTC[std::make_pair(Typecode,rocpin)] = absTC;
 	  SiSeqToRocpin[std::make_pair(Typecode,seqch)] = rocpin;
+	  SciRocpinToAbsSeq[std::make_pair(Typecode,rocpin)] = absSeq;
+	  
 	  if (std::find(SciModSTClst[Typecode].begin(), SciModSTClst[Typecode].end(), absTC) == SciModSTClst[Typecode].end()) {
 	    SciModTClst[Typecode].push_back(absTC);
 	  }
@@ -729,6 +797,23 @@ namespace TPGFEConfiguration{
       }
     }
     
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  void Configuration::printCfgPedTh(uint32_t moduleId){
+    
+    for(auto const& hroc : hroccfg){
+      std::cout << "Configuration::printCfgPedTh moduleId: "<< moduleId
+		<<", RocId: " <<  hroc.first << std::endl;
+      if(moduleId==pck.getModIdFromRocId(uint32_t(hroc.first))){
+	hroccfg[hroc.first].print();
+	for(auto const& hrocch : hrocchcfg){
+	  if(hroc.first==pck.getRocIdFromChId(uint64_t(hrocch.first))){
+	    uint32_t ich = pck.getRocChId(hrocch.first) ;
+	    hrocchcfg[hrocch.first].print(ich);
+	  }
+	}
+      }
+    }
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 }

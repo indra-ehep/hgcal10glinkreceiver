@@ -11,6 +11,8 @@ namespace TPGFEDataformat{
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////// Data Formats by Paul Dauncey /////////////////////////////////
+  ///provision for tctp is added by Indra (without altering the existing functionalitites)
+  
   class HalfHgcrocChannelData {
   public:
     HalfHgcrocChannelData() {
@@ -25,26 +27,41 @@ namespace TPGFEDataformat{
       return _data>=0x8000;
     }
 
+    uint16_t getTcTp() const {
+      return (_data>>12)&0x3;
+    }
+
     uint16_t getAdc() const {
       if(isTot()) return 0;
       return _data&0x3ff;
     }
-    
+
     uint16_t getTot() const {
       if(!isTot()) return 0;
       return _data&0xfff;
     }
 
-    void setAdc(uint16_t a) {
-      assert(a<0x400);
-      _data=a;
-    }
-
-    void setTot(uint16_t a) {
-      assert(a<0x1000);
-      _data=a|0x8000;
+    void setAdc(uint16_t a, uint16_t tctp=0x0) {
+      assert(a<0x400 and tctp<0x4);
+      _data=tctp<<12|a;
     }
     
+    void setTot(uint16_t a, uint16_t tctp=0x3) {
+      assert(a<0x1000 and tctp<0x4);
+      _data=tctp<<12|a|0x8000;
+    }
+
+    void print() const {
+      std::cout << "HalfHgcrocChannelData(" << this << ")::print()" << std::endl;
+
+      std::cout << std::dec << ::std::setfill(' ') << ", "
+		<< "TcTp: " << getTcTp() << ", "
+		<< (isTot()?"TOT = ":"ADC = ") << std::setw(4)
+		<< (isTot()?getTot():getAdc())
+		<< std::endl;
+
+    }
+
   private:
     uint16_t _data;
   };
@@ -90,6 +107,7 @@ namespace TPGFEDataformat{
 		  << std::hex << ::std::setfill('0')
 		  << std::setw(4) << p[i]
 		  << std::dec << ::std::setfill(' ') << ", "
+		  << "TcTp: " << _data[i].getTcTp() << ", "
 		  << (_data[i].isTot()?"TOT = ":"ADC = ") << std::setw(4)
 		  << (_data[i].isTot()?_data[i].getTot():_data[i].getAdc())
 		  << std::endl;
@@ -255,7 +273,7 @@ namespace TPGFEDataformat{
       NumberOfTCs=0;
     }
   
-    const unsigned getNofTCs() {return NumberOfTCs;}
+    const uint32_t getNofTCs() const {return uint32_t(NumberOfTCs);}
     const HgcrocTcData* getTCs() const {
       return _data;
     }
@@ -265,14 +283,14 @@ namespace TPGFEDataformat{
   
     void setNofTCs(const unsigned nofTCs) {NumberOfTCs = nofTCs;}
     void setTCs(const HgcrocTcData* data) {
-      for(unsigned i(0);i<=NumberOfTCs;i++)
+      for(uint16_t i(0);i<=NumberOfTCs;i++)
 	_data[i] = data[i];
     }
   
     void print() const {
       std::cout << "ModuleTriggerCellData(" << this << ")::print()" << std::endl;
     
-      for(unsigned i(0);i<NumberOfTCs;i++) {
+      for(uint16_t i(0);i<NumberOfTCs;i++) {
 	std::cout << " TC " << std::setw(2) << i << ": compressed = "
 		  << std::dec << ::std::setfill(' ')
 		  << std::setw(10) << _data[i].getCdata()
@@ -287,7 +305,7 @@ namespace TPGFEDataformat{
   
   private:
     HgcrocTcData _data[48];
-    unsigned NumberOfTCs;
+    uint16_t NumberOfTCs;
   };
 
 
