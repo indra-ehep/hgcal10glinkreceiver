@@ -102,7 +102,7 @@ namespace TPGFEDataformat{
 
       const uint16_t *p((const uint16_t*)_data);
 
-      for(unsigned i(0);i<=NumberOfChannels;i++) {
+      for(unsigned i(0);i<NumberOfChannels;i++) {
 	std::cout << " Channel " << std::setw(2) << i << " = 0x"
 		  << std::hex << ::std::setfill('0')
 		  << std::setw(4) << p[i]

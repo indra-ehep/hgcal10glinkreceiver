@@ -33,11 +33,36 @@
 #include "TPGFEReader.hh"
 #include "TPGFEModuleEmulation.hh"
 
-const long double maxEvent = 7e6; //6e5
+const long double maxEvent = 2e6; //6e5
 
-//1395761; //iloop:3
-//1710962; iloop:4
-const uint64_t refPrE = 1710962; //iloop:3
+
+//////////////////////////////////// Issues with the Relay-1695829026 Run-1695829027 /////////////////////////////////
+//link1 : special case
+//ideally ADC_ped<255 condition should only be restricted for ADC case, however TOT signal triggers in emulation for event 146245 of relay 1695829026 and link 1, which is not that seen by ECONT data
+//146245 has problem for (TOT) modsum emul: 65, econt: 64 //Check for TC 31 and associated  
+
+//link1
+//Event: 4058243 has problem for (TOT) modsum emul: 89, econt: 88     //Why TC 47 is not considered ? Is that a feature of ECONT selection, three TCs 35,41,47 have same energy value 57, the batchers selection only selects the first two and not the last one + 3 TOTs in a single TC
+
+//link2
+// Event: 306428 has problem for (TOT) modsum emul: 116, econt: 118   //three 4088 TOTs
+// Event: 1070919 has problem for (TOT) modsum emul: 94, econt: 96    //four TOTs in a single TC 28
+// Event: 1336798 has problem for (TOT) modsum emul: 116, econt: 118  //three 4088 TOTs
+// Event: 1416793 has problem for (TOT) modsum emul: 95, econt: 94    //four TOTs in a single TC 25
+// Event: 1590644 has problem for (TOT) modsum emul: 115, econt: 117  //four TOTs in TC 25 + one TOT saturation 4088 in same TC + another TOT sat 4088 in TC 29
+// Event: 2587757 has problem in (ADC)modsum emul:57, econt : 56      //No valid reason found all looks normal
+// Event: 2753025 has problem for (TOT) modsum emul: 116, econt: 118  //three TOT saturations
+// Event: 3619913 has problem for (ADC)TC channel: 7, emul: 18, econt: 50 //No valid reason found all looks normal apart from few TcTp==1 in other chip
+// Event: 3987043 has problem for (TOT) modsum emul: 116, econt: 118  //three TOT saturations
+// Event: 5276372 has problem for (ADC)TC channel: 32, emul: 19, econt: 18 //No valid reason found apart from there is limitation in batcher sorting many TC with values near 17,18,19
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////// Issues with the Relay-1695829376 Run-1695829376 /////////////////////////////////
+//link2
+// Event: 1303018 has problem for (TOT)TC channel: 25, emul: 58, econt: 57 // no valid reason found
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool isDebug = false;
+const uint64_t refPrE = 1303018; 
 
 int main(int argc, char** argv)
 {
@@ -177,6 +202,7 @@ int main(int argc, char** argv)
   //Set and Initialize the ECOND reader
   //===============================================================================================================================
   TPGFEReader::ECONDReader econDReader(cfgs);
+  econDReader.setTotUp(0);
   //econDReader.checkEvent(1);
   //econDReader.showFirstEvents(10);
   //===============================================================================================================================
@@ -200,7 +226,7 @@ int main(int argc, char** argv)
   uint64_t nofTrigEvents = 0;
   uint64_t nofDAQEvents = 0;
   uint64_t nofMatchedDAQEvents = 0;
-  long double nloopEvent = 4e5 ;
+  long double nloopEvent = (isDebug) ? 123 : 4e5 ;
   int nloop = TMath::CeilNint(maxEvent/nloopEvent) ;
   //if(econDReader.getCheckMode()) nloop = 1;
   //nloop = 1;
@@ -241,6 +267,8 @@ int main(int argc, char** argv)
       maxEventDAQ =  econDReader.getCheckedEvent() + 10 ;
     }
     
+    if(!(refPrE>=minEventTrig and refPrE<=maxEventTrig) and isDebug) continue;
+    
     printf("iloop : %d, minEventTrig = %lu, maxEventTrig = %lu, minEventDAQ = %lu, maxEventDAQ = %lu\n",ieloop,minEventTrig, maxEventTrig, minEventDAQ, maxEventDAQ);
 
     //if(ieloop!=0) continue;
@@ -277,6 +305,8 @@ int main(int argc, char** argv)
     uint32_t moduleId = pck.packModId(zside, sector, link, det, econt, selTC4, module);    
     std::cout<<"modarray : Before Link"<<linkNumber<<" size : " << modarray.size() << ", modId : "<< moduleId <<std::endl;
     for(const auto& event : eventList){
+
+      if(event!=refPrE and isDebug) continue;
       
       //first check that both econd and econt data has the same eventid otherwise skip the event
       if(econtarray.find(event) == econtarray.end()) continue;
@@ -557,6 +587,7 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
   
   for(const auto& event : eventList){
 
+    if(event!=refPrE and isDebug) continue;
     if(econtarray.find(event) == econtarray.end()) continue;
     
     const std::vector<std::pair<uint32_t,TPGFEDataformat::ModuleTcData>>& modtcs = modarray.at(event);
@@ -682,7 +713,7 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 		  if(TMath::Abs(ediff)>0) std::cerr << "Event: "<<event<<" has problem for (ADC)TC channel: "<< emch << ", emul: "<<emen<<", econt: "<<energy[sorted_idx[itc]]<<std::endl;
 		}else{
 		  ((TH1F *) list->FindObject(Form("hCompressDiffTCTOT_%d",emch)))->Fill(float( ediff ));
-		  if(ediff>=1) std::cerr << "Event: "<<event<<" has problem for (TOT)TC channel: "<< emch << ", emul: "<<emen<<", econt: "<<energy[sorted_idx[itc]]<<std::endl;
+		  if(TMath::Abs(ediff)>0 and ediff!=-1) std::cerr << "Event: "<<event<<" has problem for (TOT)TC channel: "<< emch << ", emul: "<<emen<<", econt: "<<energy[sorted_idx[itc]]<<std::endl;
 		}
 	      }else{
 		if(!isTot)
@@ -716,8 +747,10 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 	      ((TH1F *) list->FindObject("hModSumDiffADC"))->Fill(float( moddiff ));
 	      if(TMath::Abs(moddiff)>0)
 		std::cerr << "Event: "<<event<<" has problem in (ADC)modsum emul:"<<econtemulmodsum<<", econt : "<<econtmodsum<<std::endl;
-	    }else
+	    }else{
 	      ((TH1F *) list->FindObject("hModSumDiffTOT"))->Fill(float( moddiff ));
+	      if(TMath::Abs(moddiff)>0 and moddiff!=-1) std::cerr << "Event: "<<event<<" has problem for (TOT) modsum emul: "<<econtemulmodsum<<", econt: "<<econtmodsum<<std::endl;
+	    }
 	    ((TH1F *) list->FindObject("hEventCount"))->Fill(2);
 	  }else{
 	    ((TH1F *) list->FindObject("hModSumDiffTcTp12"))->Fill(float( moddiff ));

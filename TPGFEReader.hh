@@ -11,7 +11,7 @@ namespace TPGFEReader{
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   class ECONDReader {
   public:    
-    ECONDReader(TPGFEConfiguration::Configuration& cfgs) : configs(cfgs), r(0x0), scanMode(false), inspectEvent(0), nShowEvents(0), eventId(0) { initId();}
+    ECONDReader(TPGFEConfiguration::Configuration& cfgs) : configs(cfgs), r(0x0), scanMode(false), inspectEvent(0), nShowEvents(0), isTOTUP(false), eventId(0) { initId();}
     ~ECONDReader() {terminate();}
     
     void setModulePath(uint32_t zs, uint32_t sect, uint32_t lnk, uint32_t SiorSci, uint32_t econt_index, uint32_t LDorHD, uint32_t mod_index){
@@ -19,6 +19,8 @@ namespace TPGFEReader{
       econt = econt_index; selTC4 = LDorHD; module = mod_index;
     }
     void setConfigs(TPGFEConfiguration::Configuration& cfgs) {configs = cfgs;}
+    void setTotUp(bool totup) {isTOTUP = totup;}
+    
     void initId(){
       zside = 0, sector = 0, link = 0, det = 0;
       econt = 0, selTC4 = 1, module = 0, rocn = 0, half = 0;
@@ -28,6 +30,7 @@ namespace TPGFEReader{
     void showFirstEvents(uint32_t events) {nShowEvents = events;}
     bool getCheckMode() {return scanMode;}
     uint64_t getCheckedEvent() {return inspectEvent;}
+    bool getTotUp() {return isTOTUP;}
     
     void init(uint32_t, uint32_t, uint32_t);
     void getEvents(uint64_t&, uint64_t&, std::map<uint64_t,std::vector<std::pair<uint32_t,TPGFEDataformat::HalfHgcrocData>>>&, std::vector<uint64_t>&);
@@ -131,7 +134,8 @@ namespace TPGFEReader{
     bool scanMode;
     uint64_t inspectEvent;
     uint32_t nShowEvents;
-
+    bool isTOTUP;
+    
     ////////////////////////////////////////
     //access configs
     ////////////////////////////////////////
@@ -306,6 +310,7 @@ namespace TPGFEReader{
 		toaL = wordL & 0x3FF;
 	      }
 	      if(totL>>0x9==1)  totL = (totL & 0x1ff) << 0x3 ; //10-bit to 12-bit conversion
+	      if(isTOTUP) totL += 0x7;
 	      
 	      const uint16_t trigflagM = (wordM>>30) & 0x3;
 	      if(trigflagM<=1){ //0 or 1
@@ -322,6 +327,7 @@ namespace TPGFEReader{
 		toaM = wordM & 0x3FF;
 	      }
 	      if(totM>>0x9==1)  totM = (totM & 0x1ff) << 0x3 ; //10-bit to 12-bit conversion
+	      if(isTOTUP) totM += 0x7;
 	      
 	      if ((nEvents < nShowEvents) or (scanMode and boe->eventId()==inspectEvent)){ 
 		if(isMSB[iloc]==0){

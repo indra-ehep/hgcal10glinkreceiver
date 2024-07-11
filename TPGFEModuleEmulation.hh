@@ -101,17 +101,18 @@ namespace TPGFEModuleEmulation{
 	if(ievent==refEvent) chdata.print();
 	if(!isSim){ //if not simulation, assumed beamtest data
 	  const TPGFEConfiguration::ConfigHfROC& rocpara = configs.getRocPara().at(rocid);
+	  uint32_t ped = configs.getChPara().at(pck.packChId(rocid,rocpin)).getAdcpedestal();
 	  if(ievent==refEvent) rocpara.print();
 	  if(!chdata.isTot()){
-	    uint32_t ped = configs.getChPara().at(pck.packChId(rocid,rocpin)).getAdcpedestal();
 	    unsigned thr = rocpara.getAdcTH();
 	    uint32_t adc = chdata.getAdc();
-	    adc = (adc>(ped+thr) and !(rocpara.isChMasked(rocpin)) and (ped<0xFF) ) ? adc-ped : 0 ;
+	    adc = (adc>(ped+thr) and !(rocpara.isChMasked(rocpin)) and (ped<0xFF)) ? adc-ped : 0 ;
 	    totadc += adc;
 	    if(ievent==refEvent) std::cout<<"\t ped: " << ped << ", thr: " << thr <<", adc : "<<adc<<", rocpara.isChMasked(rocpin): "<< rocpara.isChMasked(rocpin) <<std::endl;
 	  }else{
 	    uint32_t tot1 = (chdata.getTot()>rocpara.getTotTH(rocpin)) ? (chdata.getTot()-rocpara.getTotP(rocpin)) : (rocpara.getTotTH(rocpin)-rocpara.getTotP(rocpin)) ;
-	    uint32_t totlin = (!(rocpara.isChMasked(rocpin)))?tot1*rocpara.getMultFactor():0;
+	    //ideally ped<255 condition should only be restricted for ADC case, however TOT signal triggers in emulation for event 146245 of relay 1695829026 and link 1, which is not that seen by ECONT data
+	    uint32_t totlin = (!(rocpara.isChMasked(rocpin)) and (ped<0xFF))?tot1*rocpara.getMultFactor():0; 
 	    totadc += totlin;
 	    isTot = true;
 	    if(ievent==refEvent) std::cout<<"\t tot1: " << tot1 << ", tot: " << chdata.getTot() <<", thr : "<< rocpara.getTotTH(rocpin) <<", ped: "<< rocpara.getTotP(rocpin) << ", totlin : "<< totlin <<std::endl;
