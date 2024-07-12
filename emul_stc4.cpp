@@ -1464,7 +1464,7 @@ int CompareSTC4Energies(map<uint64_t,stc4data>& econtarray, map<uint64_t,vector<
 		if(hasChADC[ichadc])
 		  ((TH1F *) list->FindObject("hUnMatchedCh"))->Fill(float(float(ichadc)));
 	  }
-	  ((TH1F *) list->FindObject(Form("hCompressDiffSTCADC_%d",istc)))->Fill(diff);
+	  ((TH1F *) list->FindObject(Form("hCompressDiffSTCADC_%d",istc)))->Filldiff);
 	}
 	if(noftot3STC!=0 and !isZero){
 	  ((TH1F *) list->FindObject("hCompressDiffTOTECONT"))->Fill(diff);
