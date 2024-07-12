@@ -26,7 +26,6 @@
 
 #include "TPGFEDataformat.hh"
 #include "TPGFEConfiguration.hh"
-#include "TPGFEReader.hh"
 #include "TPGFEModuleEmulation.hh"
 
 int main(int argc, char** argv)

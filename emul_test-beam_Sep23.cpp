@@ -30,7 +30,7 @@
 
 #include "TPGFEDataformat.hh"
 #include "TPGFEConfiguration.hh"
-#include "TPGFEReader.hh"
+#include "TPGFEReader2023.hh"
 #include "TPGFEModuleEmulation.hh"
 
 const long double maxEvent = 2e6; //6e5
@@ -54,7 +54,8 @@ const long double maxEvent = 2e6; //6e5
 //link2
 // Event: 1303018 has problem for (TOT)TC channel: 25, emul: 58, econt: 57 // no valid reason found
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool isDebug = 0;
+
+bool isDebug = 1;
 const uint64_t refPrE = 10; 
 
 int main(int argc, char** argv)
@@ -219,7 +220,7 @@ int main(int argc, char** argv)
   uint64_t nofTrigEvents = 0;
   uint64_t nofDAQEvents = 0;
   uint64_t nofMatchedDAQEvents = 0;
-  long double nloopEvent = (isDebug) ? 123 : 4e3 ;
+  long double nloopEvent = (isDebug) ? 123 : 4e5 ;
   int nloop = TMath::CeilNint(maxEvent/nloopEvent) ;
   //if(econDReader.getCheckMode()) nloop = 1;
   //nloop = 1;
@@ -261,10 +262,11 @@ int main(int argc, char** argv)
     }
     
     if(!(refPrE>=minEventTrig and refPrE<=maxEventTrig) and isDebug) continue;
+    //if(ieloop!=0) continue;
     
     printf("iloop : %d, minEventTrig = %lu, maxEventTrig = %lu, minEventDAQ = %lu, maxEventDAQ = %lu\n",ieloop,minEventTrig, maxEventTrig, minEventDAQ, maxEventDAQ);
 
-    if(ieloop!=0) continue;
+    
     //===============================================================================================================================
     //Read Link0, Link1/Link2 files
     //===============================================================================================================================
@@ -789,22 +791,25 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 	    uint32_t econt_loc = uint32_t(econtTcRawdata.at(istc).address());
  	    uint32_t emul_energy = uint32_t(econtemulTcRawdata.at(istc).energy());
 	    uint32_t emul_loc = uint32_t(econtemulTcRawdata.at(istc).address());
-	    //int cdiff = emul_loc - econt_loc;
+	    //int cdiff = emul_loc - econt_loc; //for the moment not checking the TC with maximum energy
 	    int cdiff = 0;
 	    int ediff =  emul_energy - econt_energy;
 	    bool isTot = false ;
+	    bool isTcTp1or2 = false;
 	    const std::vector<uint32_t>& tclist = stcTcMap.at(std::make_pair(modName,istc));
-	    for (const auto& itc : tclist)
-	      if(modtcdata.getTC(itc).isTot())
-		isTot = true ;
+	    for (const auto& itc : tclist){
+	      if(modtcdata.getTC(itc).isTot()) isTot = true ;
+	      if(nofTcTp1[itc]>0 or nofTcTp1[itc]>0) isTcTp1or2 = true;
+	    }
+	    if(isTcTp1or2) continue;
 	    
-	    if(cdiff==0){
+	    if(cdiff==0 and (emul_energy!=0 and econt_energy!=0)){
 	      if(!isTot){
 		((TH1F *) list->FindObject(Form("hCompressDiffSTCADC_%d",istc)))->Fill(float( ediff ));
-		if(TMath::Abs(ediff)>0) std::cerr << "Event: "<<event<<" has problem for (ADC)STC channel: "<< istc << ", emul: "<<emul_energy<<", econt: "<<econt_energy<<std::endl;
+		//if(TMath::Abs(ediff)>0) std::cerr << "Event: "<<event<<" has problem for (ADC)STC channel: "<< istc << ", emul: "<<emul_energy<<", econt: "<<econt_energy<<std::endl;
 	      }else{
 		((TH1F *) list->FindObject(Form("hCompressDiffSTCTOT_%d",istc)))->Fill(float( ediff ));
-		if(TMath::Abs(ediff)>0 and ediff!=-1) std::cerr << "Event: "<<event<<" has problem for (TOT)STC channel: "<< istc << ", emul: "<<emul_energy<<", econt: "<<econt_energy<<std::endl;
+		//if(TMath::Abs(ediff)>0 and ediff!=-1) std::cerr << "Event: "<<event<<" has problem for (TOT)STC channel: "<< istc << ", emul: "<<emul_energy<<", econt: "<<econt_energy<<std::endl;
 	      }
 	    }else{
 	      if(!isTot)
