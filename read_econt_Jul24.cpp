@@ -135,7 +135,7 @@ int main(int argc, char** argv)
   for(const auto& modpair : vecont){
     const uint32_t& modnum = modpair.first;
     const std::vector<TPGFEDataformat::TcRawData>& econtlist = modpair.second;
-    std::cout <<"\t2: Module " << modnum << ", size : " << econtlist.size() << std::endl;
+    std::cout <<"Event: "<< event << ", Module: " << modnum << ", size: " << econtlist.size() << std::endl;
     for(size_t itc=0 ; itc < econtlist.size() ; itc++){
       const TPGFEDataformat::TcRawData& tcedata = econtlist.at(itc);
       tcedata.print();
