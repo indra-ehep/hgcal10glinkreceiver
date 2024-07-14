@@ -352,8 +352,10 @@ namespace TPGFEReader{
 		ch = rocpin%36 ; //36 for halfroc
 		if(trigflagM>=0x2)
 		  chdata[ch].setTot(uint16_t(totM),uint16_t(trigflagM));
-		else if(trigflagM<=0x1)
+		else if(trigflagM==0)
 		  chdata[ch].setAdc(uint16_t(adcM),uint16_t(trigflagM));
+		else if(trigflagM==0x1)
+		  chdata[ch].setAdc(0,uint16_t(trigflagM)); //uint16_t(adcM)
 		else
 		  chdata[ch].setZero();
 	      }
@@ -362,8 +364,10 @@ namespace TPGFEReader{
 		ch = rocpin%36 ; //36 for halfroc
 		if(trigflagL>=0x2)
 		  chdata[ch].setTot(uint16_t(totL),uint16_t(trigflagL));
-		else if(trigflagL<=0x1)
+		else if(trigflagL==0)
 		  chdata[ch].setAdc(uint16_t(adcL),uint16_t(trigflagL));
+		else if(trigflagL==0x1)
+		  chdata[ch].setAdc(0,uint16_t(trigflagL)); //uint16_t(adcL)
 		else
 		  chdata[ch].setZero();
 	      }

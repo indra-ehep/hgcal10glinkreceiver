@@ -33,7 +33,7 @@
 #include "TPGFEReader2023.hh"
 #include "TPGFEModuleEmulation.hh"
 
-const long double maxEvent = 2e6; //6e5
+const long double maxEvent = 8e6; //6e5
 
 
 //////////////////////////////////// Issues with the Relay-1695829026 Run-1695829027 /////////////////////////////////
@@ -53,10 +53,49 @@ const long double maxEvent = 2e6; //6e5
 //////////////////////////////////// Issues with the Relay-1695829376 Run-1695829376 /////////////////////////////////
 //link2
 // Event: 1303018 has problem for (TOT)TC channel: 25, emul: 58, econt: 57 // no valid reason found
+
+//========================================
+//link1 (TcTp==1) [ADC set to zero]
+//undershoot energy > 0 and nofTcTp==1
+// Event: 40 has Undershoot with channel: 11, emul: 27, econt: 47
+// Event: 53 has Undershoot with channel: 35, emul: 48, econt: 54
+// Event: 70 has Undershoot with channel: 37, emul: 41, econt: 50
+// Event: 85 has Undershoot with channel: 35, emul: 43, econt: 52
+// Event: 115 has Undershoot with channel: 11, emul: 32, econt: 44
+// Event: 125 has Undershoot with channel: 35, emul: 44, econt: 52
+// Event: 210 has Undershoot with channel: 34, emul: 48, econt: 54
+// Event: 219 has Undershoot with channel: 35, emul: 44, econt: 52
+// Event: 228 has Undershoot with channel: 40, emul: 44, econt: 50
+// Event: 260 has Undershoot with channel: 11, emul: 36, econt: 51
+
+//undershoot energy > 40 [see all four channels are zero]
+// Event: 962 has Undershoot with channel: 35, emul: 0, econt: 43
+// Event: 1262 has Undershoot with channel: 40, emul: 0, econt: 49
+// Event: 2030 has Undershoot with channel: 13, emul: 0, econt: 49
+// Event: 2878 has Undershoot with channel: 35, emul: 0, econt: 41
+// Event: 3023 has Undershoot with channel: 11, emul: 0, econt: 50
+// Event: 3299 has Undershoot with channel: 35, emul: 0, econt: 49
+// Event: 5362 has Undershoot with channel: 40, emul: 0, econt: 49
+// Event: 5927 has Undershoot with channel: 35, emul: 0, econt: 42
+// Event: 6154 has Undershoot with channel: 35, emul: 0, econt: 46
+// Event: 6593 has Undershoot with channel: 35, emul: 0, econt: 47
+//=======================================
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool isDebug = 1;
-const uint64_t refPrE = 10; 
+///////////////////////////////////////////////////STC4 1695733045 ///////////////////////////////////////////////////////
+//link1
+// Event: 6217 has problem for (ADC)STC channel: 9, emul: 29, econt: 31
+// Event: 21331 has problem for (ADC)STC channel: 9, emul: 21, econt: 23
+// Event: 23456 has problem for (ADC)STC channel: 10, emul: 43, econt: 107
+// Event: 24754 has problem for (ADC)STC channel: 9, emul: 29, econt: 31
+// Event: 26829 has problem for (ADC)STC channel: 10, emul: 43, econt: 107
+// Event: 27744 has problem for (ADC)STC channel: 9, emul: 9, econt: 11
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool isDebug = 0;
+const uint64_t refPrE = 6217; 
 
 int main(int argc, char** argv)
 {
@@ -300,7 +339,7 @@ int main(int argc, char** argv)
     uint32_t moduleId = pck.packModId(zside, sector, link, det, econt, selTC4, module);    
     std::cout<<"modarray : Before Link"<<linkNumber<<" size : " << modarray.size() << ", modId : "<< moduleId <<std::endl;
     for(const auto& event : eventList){
-
+      
       if(event!=refPrE and isDebug) continue;
       
       //first check that both econd and econt data has the same eventid otherwise skip the event
@@ -364,6 +403,9 @@ int main(int argc, char** argv)
     std::cout<<"modarray : After Link"<<linkNumber<<" size : " << modarray.size() <<std::endl;
     
   }//loop over event group
+
+  void FillSummaryHistogram(TFile*&,TDirectory*&, TDirectory*&, bool);
+  FillSummaryHistogram(fout,dir_diff, dir_charge, isSTC4);
   
   moddata.clear();
   rocdata.clear();
@@ -373,18 +415,14 @@ int main(int argc, char** argv)
   modarray.clear();
   hrocarray.clear();
   
-  fout->cd();
-  dir_diff->Write();
-  dir_charge->Write();
-  fout->Close();
   delete fout;
   
   return true;
 }
 
+
 void BookChHistograms(TDirectory*& dir_charge){
-
-
+  
   TH1F *hADCTcTp0[6][2][36],*hADCTcTp1[6][2][36];//,*hChTOT[3][2][36];
   for(int iroc=0;iroc<3;iroc++){
     for(int ihroc=0;ihroc<2;ihroc++){
@@ -406,27 +444,108 @@ void BookChHistograms(TDirectory*& dir_charge){
       }//ich loop
     }//hroc loop
   }//iroc
+  
 }
 
 void BookHistograms(TDirectory*& dir_diff, bool isSTC4){
 
   
   if(!isSTC4){ //is BC9
-    
+
     TH1F *hCompressDiffTCADC[48],*hCompressDiffTCTOT[48];
     for(int itc=0;itc<48;itc++){
-      hCompressDiffTCADC[itc] = new TH1F(Form("hCompressDiffTCADC_%d",itc),Form("Difference in (Emulator - ECONT) compression for TC : %d with totflag==0",itc), 200, -99, 101);
+      hCompressDiffTCADC[itc] = new TH1F(Form("hCompressDiffTCADC_%d",itc),Form("Difference in (Emulator - ECONT) compression for TC : %d with all totflag==0",itc), 200, -99, 101);
       hCompressDiffTCADC[itc]->SetMinimum(1.e-1);
       hCompressDiffTCADC[itc]->GetXaxis()->SetTitle("Difference in (Emulator - ECONT)");
       hCompressDiffTCADC[itc]->SetLineColor(kRed);
       hCompressDiffTCADC[itc]->SetDirectory(dir_diff);
     }
     for(int itc=0;itc<48;itc++){
-      hCompressDiffTCTOT[itc] = new TH1F(Form("hCompressDiffTCTOT_%d",itc),Form("Difference in (Emulator - ECONT) compression for TC : %d with totflag==3",itc), 200, -99, 101);
+      hCompressDiffTCTOT[itc] = new TH1F(Form("hCompressDiffTCTOT_%d",itc),Form("Difference in (Emulator - ECONT) compression for TC : %d with atleast one totflag==3",itc), 200, -99, 101);
       hCompressDiffTCTOT[itc]->SetMinimum(1.e-1);
       hCompressDiffTCTOT[itc]->GetXaxis()->SetTitle("Difference in (Emulator - ECONT)");
       hCompressDiffTCTOT[itc]->SetLineColor(kBlue);
       hCompressDiffTCTOT[itc]->SetDirectory(dir_diff);
+    }
+    TH1F *hCompressDiffTCTcTp1[48],*hCompressDiffTCTcTp2[48];
+    for(int itc=0;itc<48;itc++){
+      hCompressDiffTCTcTp1[itc] = new TH1F(Form("hCompressDiffTCTcTp1_%d",itc),Form("Difference in (Emulator - ECONT) compression for TC : %d with atleast one totflag==1",itc), 200, -99, 101);
+      hCompressDiffTCTcTp1[itc]->SetMinimum(1.e-1);
+      hCompressDiffTCTcTp1[itc]->GetXaxis()->SetTitle("Difference in (Emulator - ECONT)");
+      hCompressDiffTCTcTp1[itc]->SetLineColor(kRed);
+      hCompressDiffTCTcTp1[itc]->SetDirectory(dir_diff);
+    }
+    for(int itc=0;itc<48;itc++){
+      hCompressDiffTCTcTp2[itc] = new TH1F(Form("hCompressDiffTCTcTp2_%d",itc),Form("Difference in (Emulator - ECONT) compression for TC : %d with atleast one totflag==2",itc), 200, -99, 101);
+      hCompressDiffTCTcTp2[itc]->SetMinimum(1.e-1);
+      hCompressDiffTCTcTp2[itc]->GetXaxis()->SetTitle("Difference in (Emulator - ECONT)");
+      hCompressDiffTCTcTp2[itc]->SetLineColor(kBlue);
+      hCompressDiffTCTcTp2[itc]->SetDirectory(dir_diff);
+    }
+    TH1F *hECONTTcTp0[48],*hEmulTcTp0[48],*hECONTTcTp3[48],*hEmulTcTp3[48],*hECONTTcTp1[48],*hEmulTcTp1[48],*hECONTTcTp2[48],*hEmulTcTp2[48];
+    for(int itc=0;itc<48;itc++){
+      hECONTTcTp0[itc] = new TH1F(Form("hECONTTcTp0_%d",itc),Form("ECONT compressed energy for TC : %d with totflag==0 for all sensors",itc), 200, -99, 101);
+      hECONTTcTp0[itc]->SetMinimum(1.e-1);
+      hECONTTcTp0[itc]->GetXaxis()->SetTitle("Compressed energy");
+      hECONTTcTp0[itc]->SetLineColor(kMagenta);
+      hECONTTcTp0[itc]->SetLineWidth(4);
+      hECONTTcTp0[itc]->SetDirectory(dir_diff);
+    }
+    for(int itc=0;itc<48;itc++){
+      hEmulTcTp0[itc] = new TH1F(Form("hEmulTcTp0_%d",itc),Form("Emulated compressed energy for TC : %d with totflag==0 for all sensors",itc), 200, -99, 101);
+      hEmulTcTp0[itc]->SetMinimum(1.e-1);
+      hEmulTcTp0[itc]->GetXaxis()->SetTitle("Compressed energy");
+      hEmulTcTp0[itc]->SetLineColor(kBlack);
+      hEmulTcTp0[itc]->SetLineWidth(2);
+      hEmulTcTp0[itc]->SetDirectory(dir_diff);
+    }
+    for(int itc=0;itc<48;itc++){
+      hECONTTcTp3[itc] = new TH1F(Form("hECONTTcTp3_%d",itc),Form("ECONT compressed energy for TC : %d with totflag==3 for atleast one sensor",itc), 200, -99, 101);
+      hECONTTcTp3[itc]->SetMinimum(1.e-1);
+      hECONTTcTp3[itc]->GetXaxis()->SetTitle("Compressed energy");
+      hECONTTcTp3[itc]->SetLineColor(kMagenta);
+      hECONTTcTp3[itc]->SetLineWidth(4);
+      hECONTTcTp3[itc]->SetDirectory(dir_diff);
+    }
+    for(int itc=0;itc<48;itc++){
+      hEmulTcTp3[itc] = new TH1F(Form("hEmulTcTp3_%d",itc),Form("Emulated compressed energy for TC : %d with totflag==3 for atleast one sensor",itc), 200, -99, 101);
+      hEmulTcTp3[itc]->SetMinimum(1.e-1);
+      hEmulTcTp3[itc]->GetXaxis()->SetTitle("Compressed energy");
+      hEmulTcTp3[itc]->SetLineColor(kBlack);
+      hEmulTcTp3[itc]->SetLineWidth(2);
+      hEmulTcTp3[itc]->SetDirectory(dir_diff);
+    }
+    for(int itc=0;itc<48;itc++){
+      hECONTTcTp1[itc] = new TH1F(Form("hECONTTcTp1_%d",itc),Form("ECONT compressed energy for TC : %d with totflag==1 for atleast one sensor",itc), 200, -99, 101);
+      hECONTTcTp1[itc]->SetMinimum(1.e-1);
+      hECONTTcTp1[itc]->GetXaxis()->SetTitle("Compressed energy");
+      hECONTTcTp1[itc]->SetLineColor(kMagenta);
+      hECONTTcTp1[itc]->SetLineWidth(4);
+      hECONTTcTp1[itc]->SetDirectory(dir_diff);
+    }
+    for(int itc=0;itc<48;itc++){
+      hEmulTcTp1[itc] = new TH1F(Form("hEmulTcTp1_%d",itc),Form("Emulated compressed energy for TC : %d with totflag==1 for atleast one sensor",itc), 200, -99, 101);
+      hEmulTcTp1[itc]->SetMinimum(1.e-1);
+      hEmulTcTp1[itc]->GetXaxis()->SetTitle("Compressed energy");
+      hEmulTcTp1[itc]->SetLineColor(kBlack);
+      hEmulTcTp1[itc]->SetLineWidth(2);
+      hEmulTcTp1[itc]->SetDirectory(dir_diff);
+    }
+    for(int itc=0;itc<48;itc++){
+      hECONTTcTp2[itc] = new TH1F(Form("hECONTTcTp2_%d",itc),Form("ECONT compressed energy for TC : %d with totflag==2 for atleast one sensor",itc), 200, -99, 101);
+      hECONTTcTp2[itc]->SetMinimum(1.e-1);
+      hECONTTcTp2[itc]->GetXaxis()->SetTitle("Compressed energy");
+      hECONTTcTp2[itc]->SetLineColor(kMagenta);
+      hECONTTcTp2[itc]->SetLineWidth(4);
+      hECONTTcTp2[itc]->SetDirectory(dir_diff);
+    }
+    for(int itc=0;itc<48;itc++){
+      hEmulTcTp2[itc] = new TH1F(Form("hEmulTcTp2_%d",itc),Form("Emulated compressed energy for TC : %d with totflag==2 for atleast one sensor",itc), 200, -99, 101);
+      hEmulTcTp2[itc]->SetMinimum(1.e-1);
+      hEmulTcTp2[itc]->GetXaxis()->SetTitle("Compressed energy");
+      hEmulTcTp2[itc]->SetLineColor(kBlack);
+      hEmulTcTp2[itc]->SetLineWidth(2);
+      hEmulTcTp2[itc]->SetDirectory(dir_diff);
     }
     TH1F *hModSumDiffADC = new TH1F("hModSumDiffADC","Difference in (Emulator - ECONT) modsum compression with totflag==0 (5E+3M)", 200, -99, 101);
     hModSumDiffADC->SetMinimum(1.e-1);
@@ -453,10 +572,100 @@ void BookHistograms(TDirectory*& dir_diff, bool isSTC4){
     hBC9TCMissedTOT->GetXaxis()->SetTitle("Missed TCs in emulation");
     hBC9TCMissedTOT->SetLineColor(kAzure);
     hBC9TCMissedTOT->SetDirectory(dir_diff);
+    TH1F *hEventCount = new TH1F("hEventCount","Event count", 13, -0.5, 12.5);
+    hEventCount->SetMinimum(1.e-1);
+    hEventCount->SetLineColor(kRed);
+    hEventCount->GetXaxis()->SetBinLabel(2,"Total");
+    hEventCount->GetXaxis()->SetBinLabel(3,"passed TcTp=0/3 (excl)");
+    hEventCount->GetXaxis()->SetBinLabel(4,"passed TcTp=1/2 (excl)");
+    hEventCount->GetXaxis()->SetBinLabel(5,"atleast a TcTp=1");
+    hEventCount->GetXaxis()->SetBinLabel(6,"passed TcTp=1 (excl)");
+    hEventCount->GetXaxis()->SetBinLabel(7,"TcTp=1/2");
+    hEventCount->GetXaxis()->SetBinLabel(8,"atleast a TcTp=2");
+    hEventCount->GetXaxis()->SetBinLabel(9,"passed TcTp=2 (excl)");
+    hEventCount->GetXaxis()->SetBinLabel(10,"passed TcTp=1 (excl) Sat");
+    hEventCount->GetXaxis()->SetBinLabel(11,"passed TcTp=1 (excl) Ushoot");
+    hEventCount->GetXaxis()->SetBinLabel(12,"passed TcTp=1 (excl) NoSatUshoot");
+    hEventCount->SetDirectory(dir_diff);
+    TH2F *hTCvsTcTp0 = new TH2F("hTCvsTcTp0","TC vs (Emulator - ECONT) for TcTp==0 ", 50, -1.5, 48.5, 200, -99, 101);
+    hTCvsTcTp0->GetXaxis()->SetTitle("TC");
+    hTCvsTcTp0->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hTCvsTcTp0->SetLineColor(kRed);
+    hTCvsTcTp0->SetOption("scat");
+    hTCvsTcTp0->SetMarkerStyle(7);
+    hTCvsTcTp0->SetMarkerColor(kRed);
+    hTCvsTcTp0->SetDirectory(dir_diff);
+    TH2F *hTCvsTcTp3 = new TH2F("hTCvsTcTp3","TC vs (Emulator - ECONT) for TcTp==3 ", 50, -1.5, 48.5, 200, -99, 101);
+    hTCvsTcTp3->GetXaxis()->SetTitle("TC");
+    hTCvsTcTp3->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hTCvsTcTp3->SetLineColor(kBlue);
+    hTCvsTcTp3->SetOption("scat");
+    hTCvsTcTp3->SetMarkerStyle(7);
+    hTCvsTcTp3->SetMarkerColor(kBlue);
+    hTCvsTcTp3->SetDirectory(dir_diff);
+    TH2F *hTCvsTcTp1 = new TH2F("hTCvsTcTp1","TC vs (Emulator - ECONT) for TcTp==1 ", 50, -1.5, 48.5, 200, -99, 101);
+    hTCvsTcTp1->GetXaxis()->SetTitle("TC");
+    hTCvsTcTp1->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hTCvsTcTp1->SetLineColor(kRed);
+    hTCvsTcTp1->SetOption("scat");
+    hTCvsTcTp1->SetMarkerStyle(7);
+    hTCvsTcTp1->SetMarkerColor(kRed);
+    hTCvsTcTp1->SetDirectory(dir_diff);
+    TH2F *hTCvsTcTp2 = new TH2F("hTCvsTcTp2","TC vs (Emulator - ECONT) for TcTp==2 ", 50, -1.5, 48.5, 200, -99, 101);
+    hTCvsTcTp2->GetXaxis()->SetTitle("TC");
+    hTCvsTcTp2->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hTCvsTcTp2->SetLineColor(kBlue);
+    hTCvsTcTp2->SetOption("scat");
+    hTCvsTcTp2->SetMarkerStyle(7);
+    hTCvsTcTp2->SetMarkerColor(kBlue);
+    hTCvsTcTp2->SetDirectory(dir_diff);
+    TH2F *hTCvsTcTp1et2 = new TH2F("hTCvsTcTp1et2","TC vs (Emulator - ECONT) for (TcTp==1 and TcTp==2)", 50, -1.5, 48.5, 200, -99, 101);
+    hTCvsTcTp1et2->GetXaxis()->SetTitle("TC");
+    hTCvsTcTp1et2->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hTCvsTcTp1et2->SetLineColor(kMagenta);
+    hTCvsTcTp1et2->SetOption("scat");
+    hTCvsTcTp1et2->SetMarkerStyle(7);
+    hTCvsTcTp1et2->SetMarkerColor(kMagenta);
+    hTCvsTcTp1et2->SetDirectory(dir_diff);
+    TH2F *hTCvsTcTp1S = new TH2F("hTCvsTcTp1S","TC vs (Emulator - ECONT) for single TcTp==1 ", 50, -1.5, 48.5, 200, -99, 101);
+    hTCvsTcTp1S->GetXaxis()->SetTitle("TC");
+    hTCvsTcTp1S->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hTCvsTcTp1S->SetLineColor(kRed);
+    hTCvsTcTp1S->SetOption("scat");
+    hTCvsTcTp1S->SetMarkerStyle(7);
+    hTCvsTcTp1S->SetDirectory(dir_diff);
+    TH2F *hTCvsTcTp1D = new TH2F("hTCvsTcTp1D","TC vs (Emulator - ECONT) for double TcTp==1 ", 50, -1.5, 48.5, 200, -99, 101);
+    hTCvsTcTp1D->GetXaxis()->SetTitle("TC");
+    hTCvsTcTp1D->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hTCvsTcTp1D->SetLineColor(kRed);
+    hTCvsTcTp1D->SetOption("scat");
+    hTCvsTcTp1D->SetMarkerStyle(7);
+    hTCvsTcTp1D->SetDirectory(dir_diff);
+    TH2F *hTCvsTcTp1Sat = new TH2F("hTCvsTcTp1Sat","TC vs (Emulator - ECONT) for TcTp==1 (excl) and saturated ADC ", 50, -1.5, 48.5, 200, -99, 101);
+    hTCvsTcTp1Sat->GetXaxis()->SetTitle("TC");
+    hTCvsTcTp1Sat->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hTCvsTcTp1Sat->SetLineColor(kRed);
+    hTCvsTcTp1Sat->SetOption("scat");
+    hTCvsTcTp1Sat->SetMarkerStyle(7);
+    hTCvsTcTp1Sat->SetDirectory(dir_diff);
+    TH2F *hTCvsTcTp1Ushoot = new TH2F("hTCvsTcTp1Ushoot","TC vs (Emulator - ECONT) for TcTp==1 (excl) and undershoot ADC ", 50, -1.5, 48.5, 200, -99, 101);
+    hTCvsTcTp1Ushoot->GetXaxis()->SetTitle("TC");
+    hTCvsTcTp1Ushoot->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hTCvsTcTp1Ushoot->SetLineColor(kRed);
+    hTCvsTcTp1Ushoot->SetOption("scat");
+    hTCvsTcTp1Ushoot->SetMarkerStyle(7);
+    hTCvsTcTp1Ushoot->SetDirectory(dir_diff);
+    TH2F *hTCvsTcTp1NoSatUshoot = new TH2F("hTCvsTcTp1NoSatUshoot","TC vs (Emulator - ECONT) for TcTp==1 (excl) and NO saturated/undershoot ADC ", 50, -1.5, 48.5, 200, -99, 101);
+    hTCvsTcTp1NoSatUshoot->GetXaxis()->SetTitle("TC");
+    hTCvsTcTp1NoSatUshoot->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hTCvsTcTp1NoSatUshoot->SetLineColor(kRed);
+    hTCvsTcTp1NoSatUshoot->SetOption("scat");
+    hTCvsTcTp1NoSatUshoot->SetMarkerStyle(7);
+    hTCvsTcTp1NoSatUshoot->SetDirectory(dir_diff);    
     
   }else{
     
-    TH1F *hCompressDiffSTCADC[48],*hCompressDiffSTCTOT[48];
+    TH1F *hCompressDiffSTCADC[12],*hCompressDiffSTCTOT[12];
     for(int istc=0;istc<12;istc++){
       hCompressDiffSTCADC[istc] = new TH1F(Form("hCompressDiffSTCADC_%d",istc),Form("Difference in (Emulator - ECONT) compression for STC4A : %d with totflag==0",istc), 200, -99, 101);
       hCompressDiffSTCADC[istc]->SetMinimum(1.e-1);
@@ -465,12 +674,93 @@ void BookHistograms(TDirectory*& dir_diff, bool isSTC4){
       hCompressDiffSTCADC[istc]->SetDirectory(dir_diff);
     }
     for(int istc=0;istc<12;istc++){
-      hCompressDiffSTCTOT[istc] = new TH1F(Form("hCompressDiffSTCTOT_%d",istc),Form("Difference in (Emulator - ECONT) compression for STC4A : %d with totflag==3",istc), 200, -99, 101);
+      hCompressDiffSTCTOT[istc] = new TH1F(Form("hCompressDiffSTCTOT_%d",istc),Form("Difference in (Emulator - ECONT) compression for STC4A : %d with atleats one totflag==3",istc), 200, -99, 101);
       hCompressDiffSTCTOT[istc]->SetMinimum(1.e-1);
       hCompressDiffSTCTOT[istc]->GetXaxis()->SetTitle("Difference in (Emulator - ECONT)");
       hCompressDiffSTCTOT[istc]->SetLineColor(kBlue);
       hCompressDiffSTCTOT[istc]->SetDirectory(dir_diff);
     }
+    TH1F *hCompressDiffSTCTcTp1[12],*hCompressDiffSTCTcTp2[12];
+    for(int istc=0;istc<12;istc++){
+      hCompressDiffSTCTcTp1[istc] = new TH1F(Form("hCompressDiffSTCTcTp1_%d",istc),Form("Difference in (Emulator - ECONT) compression for STC4A : %d with atleast one totflag==1",istc), 200, -99, 101);
+      hCompressDiffSTCTcTp1[istc]->SetMinimum(1.e-1);
+      hCompressDiffSTCTcTp1[istc]->GetXaxis()->SetTitle("Difference in (Emulator - ECONT)");
+      hCompressDiffSTCTcTp1[istc]->SetLineColor(kRed);
+      hCompressDiffSTCTcTp1[istc]->SetDirectory(dir_diff);
+    }
+    for(int istc=0;istc<12;istc++){
+      hCompressDiffSTCTcTp2[istc] = new TH1F(Form("hCompressDiffSTCTcTp2_%d",istc),Form("Difference in (Emulator - ECONT) compression for STC4A : %d with atleast one totflag==2",istc), 200, -99, 101);
+      hCompressDiffSTCTcTp2[istc]->SetMinimum(1.e-1);
+      hCompressDiffSTCTcTp2[istc]->GetXaxis()->SetTitle("Difference in (Emulator - ECONT)");
+      hCompressDiffSTCTcTp2[istc]->SetLineColor(kBlue);
+      hCompressDiffSTCTcTp2[istc]->SetDirectory(dir_diff);
+    }
+    TH1F *hECONTTcTp0[12],*hEmulTcTp0[12],*hECONTTcTp3[12],*hEmulTcTp3[12],*hECONTTcTp1[12],*hEmulTcTp1[12],*hECONTTcTp2[12],*hEmulTcTp2[12];
+    for(int istc=0;istc<12;istc++){
+      hECONTTcTp0[istc] = new TH1F(Form("hECONTTcTp0_%d",istc),Form("ECONT compressed energy for STC : %d with totflag==0 for all sensors",istc), 200, -99, 101);
+      hECONTTcTp0[istc]->SetMinimum(1.e-1);
+      hECONTTcTp0[istc]->GetXaxis()->SetTitle("Compressed energy");
+      hECONTTcTp0[istc]->SetLineColor(kMagenta);
+      hECONTTcTp0[istc]->SetLineWidth(4);
+      hECONTTcTp0[istc]->SetDirectory(dir_diff);
+    }
+    for(int istc=0;istc<12;istc++){
+      hEmulTcTp0[istc] = new TH1F(Form("hEmulTcTp0_%d",istc),Form("Emulated compressed energy for STC : %d with totflag==0 for all sensors",istc), 200, -99, 101);
+      hEmulTcTp0[istc]->SetMinimum(1.e-1);
+      hEmulTcTp0[istc]->GetXaxis()->SetTitle("Compressed energy");
+      hEmulTcTp0[istc]->SetLineColor(kBlack);
+      hEmulTcTp0[istc]->SetLineWidth(2);
+      hEmulTcTp0[istc]->SetDirectory(dir_diff);
+    }
+    for(int istc=0;istc<12;istc++){
+      hECONTTcTp3[istc] = new TH1F(Form("hECONTTcTp3_%d",istc),Form("ECONT compressed energy for STC : %d with totflag==3 for atleast one sensor",istc), 200, -99, 101);
+      hECONTTcTp3[istc]->SetMinimum(1.e-1);
+      hECONTTcTp3[istc]->GetXaxis()->SetTitle("Compressed energy");
+      hECONTTcTp3[istc]->SetLineColor(kMagenta);
+      hECONTTcTp3[istc]->SetLineWidth(4);
+      hECONTTcTp3[istc]->SetDirectory(dir_diff);
+    }
+    for(int istc=0;istc<12;istc++){
+      hEmulTcTp3[istc] = new TH1F(Form("hEmulTcTp3_%d",istc),Form("Emulated compressed energy for STC : %d with totflag==3 for atleast one sensor",istc), 200, -99, 101);
+      hEmulTcTp3[istc]->SetMinimum(1.e-1);
+      hEmulTcTp3[istc]->GetXaxis()->SetTitle("Compressed energy");
+      hEmulTcTp3[istc]->SetLineColor(kBlack);
+      hEmulTcTp3[istc]->SetLineWidth(2);
+      hEmulTcTp3[istc]->SetDirectory(dir_diff);
+    }
+    for(int istc=0;istc<12;istc++){
+      hECONTTcTp1[istc] = new TH1F(Form("hECONTTcTp1_%d",istc),Form("ECONT compressed energy for STC : %d with totflag==1 for atleast one sensor",istc), 200, -99, 101);
+      hECONTTcTp1[istc]->SetMinimum(1.e-1);
+      hECONTTcTp1[istc]->GetXaxis()->SetTitle("Compressed energy");
+      hECONTTcTp1[istc]->SetLineColor(kMagenta);
+      hECONTTcTp1[istc]->SetLineWidth(4);
+      hECONTTcTp1[istc]->SetDirectory(dir_diff);
+    }
+    for(int istc=0;istc<12;istc++){
+      hEmulTcTp1[istc] = new TH1F(Form("hEmulTcTp1_%d",istc),Form("Emulated compressed energy for STC : %d with totflag==1 for atleast one sensor",istc), 200, -99, 101);
+      hEmulTcTp1[istc]->SetMinimum(1.e-1);
+      hEmulTcTp1[istc]->GetXaxis()->SetTitle("Compressed energy");
+      hEmulTcTp1[istc]->SetLineColor(kBlack);
+      hEmulTcTp1[istc]->SetLineWidth(2);
+      hEmulTcTp1[istc]->SetDirectory(dir_diff);
+    }
+    for(int istc=0;istc<12;istc++){
+      hECONTTcTp2[istc] = new TH1F(Form("hECONTTcTp2_%d",istc),Form("ECONT compressed energy for STC : %d with totflag==2 for atleast one sensor",istc), 200, -99, 101);
+      hECONTTcTp2[istc]->SetMinimum(1.e-1);
+      hECONTTcTp2[istc]->GetXaxis()->SetTitle("Compressed energy");
+      hECONTTcTp2[istc]->SetLineColor(kMagenta);
+      hECONTTcTp2[istc]->SetLineWidth(4);
+      hECONTTcTp2[istc]->SetDirectory(dir_diff);
+    }
+    for(int istc=0;istc<12;istc++){
+      hEmulTcTp2[istc] = new TH1F(Form("hEmulTcTp2_%d",istc),Form("Emulated compressed energy for STC : %d with totflag==2 for atleast one sensor",istc), 200, -99, 101);
+      hEmulTcTp2[istc]->SetMinimum(1.e-1);
+      hEmulTcTp2[istc]->GetXaxis()->SetTitle("Compressed energy");
+      hEmulTcTp2[istc]->SetLineColor(kBlack);
+      hEmulTcTp2[istc]->SetLineWidth(2);
+      hEmulTcTp2[istc]->SetDirectory(dir_diff);
+    }
+    
     TH1F *hSTC4TCMissedADC = new TH1F("hSTC4TCMissedADC","Channels not present in emulation but in ECONT for STC4A (4E+3M) with totflag==0", 52, -2, 50);
     hSTC4TCMissedADC->SetMinimum(1.e-1);
     hSTC4TCMissedADC->GetXaxis()->SetTitle("Missed TCs in emulation");
@@ -481,78 +771,88 @@ void BookHistograms(TDirectory*& dir_diff, bool isSTC4){
     hSTC4TCMissedTOT->GetXaxis()->SetTitle("Missed TCs in emulation");
     hSTC4TCMissedTOT->SetLineColor(kAzure);
     hSTC4TCMissedTOT->SetDirectory(dir_diff);
-    
-  }
-
-      TH1F *hEventCount = new TH1F("hEventCount","Event count", 11, -0.5, 10.5);
+ 
+    TH1F *hEventCount = new TH1F("hEventCount","Event count", 13, -0.5, 12.5);
     hEventCount->SetMinimum(1.e-1);
     hEventCount->SetLineColor(kRed);
     hEventCount->GetXaxis()->SetBinLabel(2,"Total");
     hEventCount->GetXaxis()->SetBinLabel(3,"passed TcTp=0/3 (excl)");
-    hEventCount->GetXaxis()->SetBinLabel(4,"atleast a TcTp=1");
-    hEventCount->GetXaxis()->SetBinLabel(5,"passed TcTp=1 (excl)");
-    hEventCount->GetXaxis()->SetBinLabel(6,"TcTp=1/2");
-    hEventCount->GetXaxis()->SetBinLabel(7,"atleast a TcTp=2");
-    hEventCount->GetXaxis()->SetBinLabel(8,"passed TcTp=2 (excl)");
+    hEventCount->GetXaxis()->SetBinLabel(4,"passed TcTp=1/2 (excl)");
+    hEventCount->GetXaxis()->SetBinLabel(5,"atleast a TcTp=1");
+    hEventCount->GetXaxis()->SetBinLabel(6,"passed TcTp=1 (excl)");
+    hEventCount->GetXaxis()->SetBinLabel(7,"TcTp=1/2");
+    hEventCount->GetXaxis()->SetBinLabel(8,"atleast a TcTp=2");
+    hEventCount->GetXaxis()->SetBinLabel(9,"passed TcTp=2 (excl)");
+    hEventCount->GetXaxis()->SetBinLabel(10,"passed TcTp=1 (excl) Sat");
+    hEventCount->GetXaxis()->SetBinLabel(11,"passed TcTp=1 (excl) Ushoot");
+    hEventCount->GetXaxis()->SetBinLabel(12,"passed TcTp=1 (excl) NoSatUshoot");
     hEventCount->SetDirectory(dir_diff);
-    TH2F *hTCvsTcTp1 = new TH2F("hTCvsTcTp1","TC vs (Emulator - ECONT) for TcTp==1 (excl)", 50, -1.5, 48.5, 200, -99, 101);
-    hTCvsTcTp1->GetXaxis()->SetTitle("TC");
-    hTCvsTcTp1->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
-    hTCvsTcTp1->SetLineColor(kRed);
-    hTCvsTcTp1->SetOption("box");
-    hTCvsTcTp1->SetDirectory(dir_diff);
-    TH2F *hTCvsTcTp2 = new TH2F("hTCvsTcTp2","TC vs (Emulator - ECONT) for TcTp==2 (excl)", 50, -1.5, 48.5, 200, -99, 101);
-    hTCvsTcTp2->GetXaxis()->SetTitle("TC");
-    hTCvsTcTp2->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
-    hTCvsTcTp2->SetLineColor(kBlue);
-    hTCvsTcTp2->SetOption("box");
-    hTCvsTcTp2->SetDirectory(dir_diff);
-    TH2F *hTCvsTcTp1et2 = new TH2F("hTCvsTcTp1et2","TC vs (Emulator - ECONT) for (TcTp==1 and TcTp==2)", 50, -1.5, 48.5, 200, -99, 101);
-    hTCvsTcTp1et2->GetXaxis()->SetTitle("TC");
-    hTCvsTcTp1et2->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
-    hTCvsTcTp1et2->SetLineColor(kMagenta);
-    hTCvsTcTp1et2->SetOption("box");
-    hTCvsTcTp1et2->SetDirectory(dir_diff);
-    TH2F *hTCvsTcTp1S = new TH2F("hTCvsTcTp1S","TC vs (Emulator - ECONT) for single TcTp==1 (excl)", 50, -1.5, 48.5, 200, -99, 101);
-    hTCvsTcTp1S->GetXaxis()->SetTitle("TC");
-    hTCvsTcTp1S->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
-    hTCvsTcTp1S->SetLineColor(kRed);
-    hTCvsTcTp1S->SetOption("box");
-    hTCvsTcTp1S->SetDirectory(dir_diff);
-    TH2F *hTCvsTcTp1D = new TH2F("hTCvsTcTp1D","TC vs (Emulator - ECONT) for double TcTp==1 (excl)", 50, -1.5, 48.5, 200, -99, 101);
-    hTCvsTcTp1D->GetXaxis()->SetTitle("TC");
-    hTCvsTcTp1D->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
-    hTCvsTcTp1D->SetLineColor(kRed);
-    hTCvsTcTp1D->SetOption("box");
-    hTCvsTcTp1D->SetDirectory(dir_diff);
-    TH2F *hTCvsTcTp1Sat = new TH2F("hTCvsTcTp1Sat","TC vs (Emulator - ECONT) for TcTp==1 (excl) and saturated ADC (excl)", 50, -1.5, 48.5, 200, -99, 101);
-    hTCvsTcTp1Sat->GetXaxis()->SetTitle("TC");
-    hTCvsTcTp1Sat->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
-    hTCvsTcTp1Sat->SetLineColor(kRed);
-    hTCvsTcTp1Sat->SetOption("box");
-    hTCvsTcTp1Sat->SetDirectory(dir_diff);
-    TH2F *hTCvsTcTp1Ushoot = new TH2F("hTCvsTcTp1Ushoot","TC vs (Emulator - ECONT) for TcTp==1 (excl) and undershoot ADC (excl)", 50, -1.5, 48.5, 200, -99, 101);
-    hTCvsTcTp1Ushoot->GetXaxis()->SetTitle("TC");
-    hTCvsTcTp1Ushoot->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
-    hTCvsTcTp1Ushoot->SetLineColor(kRed);
-    hTCvsTcTp1Ushoot->SetOption("box");
-    hTCvsTcTp1Ushoot->SetDirectory(dir_diff);
-    TH2F *hTCvsTcTp1NoSatUshoot = new TH2F("hTCvsTcTp1NoSatUshoot","TC vs (Emulator - ECONT) for TcTp==1 (excl) and NO saturated/undershoot ADC (excl)", 50, -1.5, 48.5, 200, -99, 101);
-    hTCvsTcTp1NoSatUshoot->GetXaxis()->SetTitle("TC");
-    hTCvsTcTp1NoSatUshoot->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
-    hTCvsTcTp1NoSatUshoot->SetLineColor(kRed);
-    hTCvsTcTp1NoSatUshoot->SetOption("box");
-    hTCvsTcTp1NoSatUshoot->SetDirectory(dir_diff);    
-    TH1F *hSeqTcTp1 = new TH1F("hSeqTcTp1","Seq distribution with totflag==1", 230, -0.5, 229.5);
-    hSeqTcTp1->SetMinimum(1.e-1);
-    hSeqTcTp1->GetXaxis()->SetTitle("Seq with TcTp==1");
-    hSeqTcTp1->SetLineColor(kAzure);
-    hSeqTcTp1->SetDirectory(dir_diff);
-    TH1F *hAbsRocpinTcTp1 = new TH1F("hAbsRocpinTcTp1","AbsRocpin distribution with totflag==1", 230, -0.5, 229.5);
-    hAbsRocpinTcTp1->SetMinimum(1.e-1);
-    hAbsRocpinTcTp1->GetXaxis()->SetTitle("AbsRocpin with TcTp==1");
-    hAbsRocpinTcTp1->SetLineColor(kAzure);
-    hAbsRocpinTcTp1->SetDirectory(dir_diff);
+    TH2F *hSTCvsTcTp0 = new TH2F("hSTCvsTcTp0","STC vs (Emulator - ECONT) for TcTp==0 ", 15, -1.5, 13.5, 200, -99, 101);
+    hSTCvsTcTp0->GetXaxis()->SetTitle("STC");
+    hSTCvsTcTp0->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hSTCvsTcTp0->SetLineColor(kRed);
+    hSTCvsTcTp0->SetOption("scat");
+    hSTCvsTcTp0->SetMarkerStyle(7);
+    hSTCvsTcTp0->SetMarkerColor(kRed);
+    hSTCvsTcTp0->SetDirectory(dir_diff);
+    TH2F *hSTCvsTcTp3 = new TH2F("hSTCvsTcTp3","STC vs (Emulator - ECONT) for TcTp==3 ", 15, -1.5, 13.5, 200, -99, 101);
+    hSTCvsTcTp3->GetXaxis()->SetTitle("STC");
+    hSTCvsTcTp3->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hSTCvsTcTp3->SetLineColor(kBlue);
+    hSTCvsTcTp3->SetOption("scat");
+    hSTCvsTcTp3->SetMarkerStyle(7);
+    hSTCvsTcTp3->SetMarkerColor(kBlue);
+    hSTCvsTcTp3->SetDirectory(dir_diff);
+    TH2F *hSTCvsTcTp1 = new TH2F("hSTCvsTcTp1","STC vs (Emulator - ECONT) for TcTp==1 ", 15, -1.5, 13.5, 200, -99, 101);
+    hSTCvsTcTp1->GetXaxis()->SetTitle("STC");
+    hSTCvsTcTp1->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hSTCvsTcTp1->SetLineColor(kRed);
+    hSTCvsTcTp1->SetOption("scat");
+    hSTCvsTcTp1->SetMarkerStyle(7);
+    hSTCvsTcTp1->SetMarkerColor(kRed);
+    hSTCvsTcTp1->SetDirectory(dir_diff);
+    TH2F *hSTCvsTcTp2 = new TH2F("hSTCvsTcTp2","STC vs (Emulator - ECONT) for TcTp==2 ", 15, -1.5, 13.5, 200, -99, 101);
+    hSTCvsTcTp2->GetXaxis()->SetTitle("STC");
+    hSTCvsTcTp2->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hSTCvsTcTp2->SetLineColor(kBlue);
+    hSTCvsTcTp2->SetOption("scat");
+    hSTCvsTcTp2->SetMarkerStyle(7);
+    hSTCvsTcTp2->SetMarkerColor(kBlue);
+    hSTCvsTcTp2->SetDirectory(dir_diff);
+    TH2F *hSTCvsTcTp1Sat = new TH2F("hSTCvsTcTp1Sat","STC vs (Emulator - ECONT) for TcTp==1 (excl) and saturated ADC ", 15, -1.5, 13.5, 200, -99, 101);
+    hSTCvsTcTp1Sat->GetXaxis()->SetTitle("STC");
+    hSTCvsTcTp1Sat->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hSTCvsTcTp1Sat->SetLineColor(kRed);
+    hSTCvsTcTp1Sat->SetOption("scat");
+    hSTCvsTcTp1Sat->SetMarkerStyle(7);
+    hSTCvsTcTp1Sat->SetDirectory(dir_diff);
+    TH2F *hSTCvsTcTp1Ushoot = new TH2F("hSTCvsTcTp1Ushoot","STC vs (Emulator - ECONT) for TcTp==1 (excl) and undershoot ADC ", 15, -1.5, 13.5, 200, -99, 101);
+    hSTCvsTcTp1Ushoot->GetXaxis()->SetTitle("STC");
+    hSTCvsTcTp1Ushoot->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hSTCvsTcTp1Ushoot->SetLineColor(kRed);
+    hSTCvsTcTp1Ushoot->SetOption("scat");
+    hSTCvsTcTp1Ushoot->SetMarkerStyle(7);
+    hSTCvsTcTp1Ushoot->SetDirectory(dir_diff);
+    TH2F *hSTCvsTcTp1NoSatUshoot = new TH2F("hSTCvsTcTp1NoSatUshoot","STC vs (Emulator - ECONT) for TcTp==1 (excl) and NO saturated/undershoot ADC ", 15, -1.5, 13.5, 200, -99, 101);
+    hSTCvsTcTp1NoSatUshoot->GetXaxis()->SetTitle("STC");
+    hSTCvsTcTp1NoSatUshoot->GetYaxis()->SetTitle("Difference in (Emulator - ECONT) compression");
+    hSTCvsTcTp1NoSatUshoot->SetLineColor(kRed);
+    hSTCvsTcTp1NoSatUshoot->SetOption("scat");
+    hSTCvsTcTp1NoSatUshoot->SetMarkerStyle(7);
+    hSTCvsTcTp1NoSatUshoot->SetDirectory(dir_diff);    
+
+  }
+  
+  TH1F *hSeqTcTp1 = new TH1F("hSeqTcTp1","Seq distribution with totflag==1", 230, -0.5, 229.5);
+  hSeqTcTp1->SetMinimum(1.e-1);
+  hSeqTcTp1->GetXaxis()->SetTitle("Seq with TcTp==1");
+  hSeqTcTp1->SetLineColor(kAzure);
+  hSeqTcTp1->SetDirectory(dir_diff);
+  TH1F *hAbsRocpinTcTp1 = new TH1F("hAbsRocpinTcTp1","AbsRocpin distribution with totflag==1", 230, -0.5, 229.5);
+  hAbsRocpinTcTp1->SetMinimum(1.e-1);
+  hAbsRocpinTcTp1->GetXaxis()->SetTitle("AbsRocpin with TcTp==1");
+  hAbsRocpinTcTp1->SetLineColor(kAzure);
+  hAbsRocpinTcTp1->SetDirectory(dir_diff);
 
 }
 
@@ -612,6 +912,9 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 	const uint32_t nofTcs = modtcdata.getNofTCs();
 	uint32_t nofTcTp1[nofTcs], nofTcTp2[nofTcs], nofSat[nofTcs], nofUndsht[nofTcs];
 	for(uint32_t itc=0;itc<modtcdata.getNofTCs();itc++) nofTcTp1[itc] =  nofTcTp2[itc] =  nofSat[itc] =  nofUndsht[itc] = 0;
+	const uint32_t nofSTCs = stclist.size();
+	uint32_t nofSTCTcTp1[nofSTCs], nofSTCTcTp2[nofSTCs], nofSTCSat[nofSTCs], nofSTCUndsht[nofSTCs];
+	for(uint32_t istc=0;istc<nofSTCs;istc++) nofSTCTcTp1[istc] =  nofSTCTcTp2[istc] =  nofSTCSat[istc] =  nofSTCUndsht[istc] = 0;
 	uint32_t nofTcTp1_evt = 0, nofTcTp2_evt = 0, nofSat_evt = 0, nofUndsht_evt = 0;
 	bool *isTcTp12 = new bool[modtcdata.getNofTCs()];
 	///////////////////// Fill the ADC/TOT ////////////////////////////////////////////
@@ -624,6 +927,7 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 	    uint32_t rocn = TMath::Floor(tcch/72);
 	    uint32_t half = (int(TMath::Floor(tcch/36))%2==0)?0:1;
 	    uint32_t rocid = pck.getRocIdFromModId(moduleId,rocn,half);
+	    uint32_t istc = uint32_t(TMath::FloorNint(itc/4));
 	    const TPGFEDataformat::HalfHgcrocChannelData& chdata = rocdata.at(rocid).getChannelData(rocpin);
 	    if(chdata.getTcTp()==1 or chdata.getTcTp()==2){
 	      isTcTp12[itc] = true;
@@ -631,11 +935,13 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 	      if(chdata.getTcTp()==1){
 	       	((TH1F *) list->FindObject("hAbsRocpinTcTp1"))->Fill(float( tcch ));
 	       	((TH1F *) list->FindObject("hSeqTcTp1"))->Fill(float( absseq ));
-		if(!chdata.isTot() and chdata.getAdc()>1020) {nofSat[itc]++; nofSat_evt++;}
-		if(!chdata.isTot() and chdata.getAdc()<4) {nofUndsht[itc]++; nofUndsht_evt++;}
+		if(!chdata.isTot() and chdata.getAdc()>1020) {nofSTCSat[istc]++; nofSat[itc]++; nofSat_evt++;}
+		if(!chdata.isTot() and chdata.getAdc()<4) {nofSTCUndsht[istc]++; nofUndsht[itc]++; nofUndsht_evt++;}
+		nofSTCTcTp1[istc]++;
 		nofTcTp1[itc]++;
 		nofTcTp1_evt++;
 	      }else{
+		nofSTCTcTp2[istc]++;
 		nofTcTp2[itc]++;
 		nofTcTp2_evt++;
 	      }
@@ -693,7 +999,7 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 	  }
 	  //Now compare
 	  for(uint32_t itc = 0 ; itc<nofBCTcs ; itc++){
-
+	    
 	    uint32_t emch = emul_channel[channel[sorted_idx[itc]]];
 	    uint32_t emen = emul_energy[channel[sorted_idx[itc]]];
 	    int cdiff =  emch - channel[sorted_idx[itc]];
@@ -710,9 +1016,15 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 	      if(cdiff==0){
 		if(!isTot){
 		  ((TH1F *) list->FindObject(Form("hCompressDiffTCADC_%d",emch)))->Fill(float( ediff ));
+		  ((TH2F *) list->FindObject("hTCvsTcTp0"))->Fill(emch, ediff);
+		  ((TH1F *) list->FindObject(Form("hEmulTcTp0_%d",emch)))->Fill(float( emen ));
+		  ((TH1F *) list->FindObject(Form("hECONTTcTp0_%d",emch)))->Fill(float( energy[sorted_idx[itc]] ));
 		  if(TMath::Abs(ediff)>0) std::cerr << "Event: "<<event<<" has problem for (ADC)TC channel: "<< emch << ", emul: "<<emen<<", econt: "<<energy[sorted_idx[itc]]<<std::endl;
 		}else{
 		  ((TH1F *) list->FindObject(Form("hCompressDiffTCTOT_%d",emch)))->Fill(float( ediff ));
+		  ((TH2F *) list->FindObject("hTCvsTcTp3"))->Fill(emch, ediff);
+		  ((TH1F *) list->FindObject(Form("hEmulTcTp3_%d",emch)))->Fill(float( emen ));
+		  ((TH1F *) list->FindObject(Form("hECONTTcTp3_%d",emch)))->Fill(float( energy[sorted_idx[itc]] ));
 		  if(TMath::Abs(ediff)>0 and ediff!=-1) std::cerr << "Event: "<<event<<" has problem for (TOT)TC channel: "<< emch << ", emul: "<<emen<<", econt: "<<energy[sorted_idx[itc]]<<std::endl;
 		}
 	      }else{
@@ -725,28 +1037,43 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 	      //TcTp=1/2
 	      if(nofTcTp1[emch]>0){
 		if(nofTcTp2[emch]==0){
-		  ((TH1F *) list->FindObject("hTCvsTcTp1"))->Fill(emch, ediff);
-		  if(nofSat[emch]>0 and nofUndsht[emch]==0) ((TH1F *) list->FindObject("hTCvsTcTp1Sat"))->Fill(emch, ediff);
-		  if(nofSat[emch]==0 and nofUndsht[emch]>0) ((TH1F *) list->FindObject("hTCvsTcTp1Ushoot"))->Fill(emch, ediff);
-		  if(nofSat[emch]==0 and nofUndsht[emch]==0) {
-		    ((TH1F *) list->FindObject("hTCvsTcTp1NoSatUshoot"))->Fill(emch, ediff);
-		    //std::cerr << "Event: "<<event<<" has NoSatUshoot with channel: "<< emch << ", emul: "<<emen<<", econt: "<<energy[sorted_idx[itc]]<<std::endl;
+		  ((TH1F *) list->FindObject(Form("hCompressDiffTCTcTp1_%d",emch)))->Fill(float( ediff ));
+		  ((TH2F *) list->FindObject("hTCvsTcTp1"))->Fill(emch, ediff);
+		  ((TH1F *) list->FindObject(Form("hEmulTcTp1_%d",emch)))->Fill(float( emen ));
+		  ((TH1F *) list->FindObject(Form("hECONTTcTp1_%d",emch)))->Fill(float( energy[sorted_idx[itc]] ));
+		  if(nofSat[emch]>0 and nofUndsht[emch]==0) {
+		    ((TH2F *) list->FindObject("hTCvsTcTp1Sat"))->Fill(emch, ediff);
+		    //if(TMath::Abs(ediff)>0) std::cerr << "Event: "<<event<<" has Saturation with channel: "<< emch << ", emul: "<<emen<<", econt: "<<energy[sorted_idx[itc]]<<std::endl;
 		  }
-		  if(nofTcTp1[emch]==1) ((TH1F *) list->FindObject("hTCvsTcTp1S"))->Fill(emch, ediff);
-		  if(nofTcTp1[emch]==2) ((TH1F *) list->FindObject("hTCvsTcTp1D"))->Fill(emch, ediff);
+		  if(nofSat[emch]==0 and nofUndsht[emch]>0) {
+		    ((TH2F *) list->FindObject("hTCvsTcTp1Ushoot"))->Fill(emch, ediff);
+		    //if(TMath::Abs(ediff)>0) std::cerr << "Event: "<<event<<" has Undershoot with channel: "<< emch << ", emul: "<<emen<<", econt: "<<energy[sorted_idx[itc]]<<std::endl;
+		    //if(TMath::Abs(ediff)>5 and nofUndsht[emch]==1) std::cerr << "Event: "<<event<<" has Undershoot with channel: "<< emch << ", emul: "<<emen<<", econt: "<<energy[sorted_idx[itc]]<<std::endl;
+		  }
+		  if(nofSat[emch]==0 and nofUndsht[emch]==0) {
+		    ((TH2F *) list->FindObject("hTCvsTcTp1NoSatUshoot"))->Fill(emch, ediff);
+		    //if(TMath::Abs(ediff)>0) std::cerr << "Event: "<<event<<" has NoSatUshoot with channel: "<< emch << ", emul: "<<emen<<", econt: "<<energy[sorted_idx[itc]]<<std::endl;
+		  }
+		  if(nofTcTp1[emch]==1) ((TH2F *) list->FindObject("hTCvsTcTp1S"))->Fill(emch, ediff);
+		  if(nofTcTp1[emch]==2) ((TH2F *) list->FindObject("hTCvsTcTp1D"))->Fill(emch, ediff);
 		}else
-		  ((TH1F *) list->FindObject("hTCvsTcTp1et2"))->Fill(emch, ediff);	
-	      }//TcTp > 0
-	      if(nofTcTp1[emch]==0 and nofTcTp2[emch]>0) ((TH1F *) list->FindObject("hTCvsTcTp2"))->Fill(emch, ediff);	
+		  ((TH2F *) list->FindObject("hTCvsTcTp1et2"))->Fill(emch, ediff);	
+	      }//TcTp1 > 0
+	      if(nofTcTp1[emch]==0 and nofTcTp2[emch]>0) {
+		((TH1F *) list->FindObject(Form("hCompressDiffTCTcTp2_%d",emch)))->Fill(float( ediff ));
+		((TH2F *) list->FindObject("hTCvsTcTp2"))->Fill(emch, ediff);
+		((TH1F *) list->FindObject(Form("hEmulTcTp2_%d",emch)))->Fill(float( emen ));
+		((TH1F *) list->FindObject(Form("hECONTTcTp2_%d",emch)))->Fill(float( energy[sorted_idx[itc]] ));
+	      }//TcTp2 > 0
 	    }//TcTp condition
 	  }//tc loop
+	  
 	  int moddiff = econtemulmodsum - econtmodsum;
 	  ((TH1F *) list->FindObject("hEventCount"))->Fill(1);
 	  if(!isModTcTp12){
 	    if(!isTotMod){
 	      ((TH1F *) list->FindObject("hModSumDiffADC"))->Fill(float( moddiff ));
-	      if(TMath::Abs(moddiff)>0)
-		std::cerr << "Event: "<<event<<" has problem in (ADC)modsum emul:"<<econtemulmodsum<<", econt : "<<econtmodsum<<std::endl;
+	      if(TMath::Abs(moddiff)>0) std::cerr << "Event: "<<event<<" has problem in (ADC)modsum emul:"<<econtemulmodsum<<", econt : "<<econtmodsum<<std::endl;
 	    }else{
 	      ((TH1F *) list->FindObject("hModSumDiffTOT"))->Fill(float( moddiff ));
 	      if(TMath::Abs(moddiff)>0 and moddiff!=-1) std::cerr << "Event: "<<event<<" has problem for (TOT) modsum emul: "<<econtemulmodsum<<", econt: "<<econtmodsum<<std::endl;
@@ -755,26 +1082,35 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 	  }else{
 	    ((TH1F *) list->FindObject("hModSumDiffTcTp12"))->Fill(float( moddiff ));
 	    if(nofTcTp1_evt>0){
-	      ((TH1F *) list->FindObject("hEventCount"))->Fill(3);
-	      if(nofTcTp2_evt==0)
-		((TH1F *) list->FindObject("hEventCount"))->Fill(4);
-	      else
+	      ((TH1F *) list->FindObject("hEventCount"))->Fill(4);
+	      if(nofTcTp2_evt==0){
 		((TH1F *) list->FindObject("hEventCount"))->Fill(5);
+		if(nofUndsht_evt==0 and nofSat_evt>0) ((TH1F *) list->FindObject("hEventCount"))->Fill(9);
+		if(nofUndsht_evt>0 and nofSat_evt==0) ((TH1F *) list->FindObject("hEventCount"))->Fill(10);
+		if(nofUndsht_evt==0 and nofSat_evt==0) ((TH1F *) list->FindObject("hEventCount"))->Fill(11);
+	      }else
+		((TH1F *) list->FindObject("hEventCount"))->Fill(6);
 	    }
 	    if(nofTcTp2_evt>0){
-	      ((TH1F *) list->FindObject("hEventCount"))->Fill(6);
-	      if(nofTcTp1_evt==0)
-		((TH1F *) list->FindObject("hEventCount"))->Fill(7);
-	      else
-		((TH1F *) list->FindObject("hEventCount"))->Fill(8);
+	      ((TH1F *) list->FindObject("hEventCount"))->Fill(7);
+	      if(nofTcTp1_evt==0) ((TH1F *) list->FindObject("hEventCount"))->Fill(8);
+	      // else
+	      // 	((TH1F *) list->FindObject("hEventCount"))->Fill(9);
 	    }
-	    // hEventCount->GetXaxis()->SetBinLabel(3,"passed TcTp=0/3 (excl)");
-	    // hEventCount->GetXaxis()->SetBinLabel(4,"atleast a TcTp=1");
-	    // hEventCount->GetXaxis()->SetBinLabel(5,"passed TcTp=1 (excl)");
-	    // hEventCount->GetXaxis()->SetBinLabel(6,"TcTp=1/2");
-	    // hEventCount->GetXaxis()->SetBinLabel(7,"atleast a TcTp=2");
-	    // hEventCount->GetXaxis()->SetBinLabel(8,"passed TcTp=2 (excl)");
+	    ((TH1F *) list->FindObject("hEventCount"))->Fill(3);
 	  }
+	  // hEventCount->GetXaxis()->SetBinLabel(2,"Total");
+	  // hEventCount->GetXaxis()->SetBinLabel(3,"passed TcTp=0/3 (excl)");
+	  // hEventCount->GetXaxis()->SetBinLabel(4,"passed TcTp=1/2 (excl)");
+	  // hEventCount->GetXaxis()->SetBinLabel(5,"atleast a TcTp=1");
+	  // hEventCount->GetXaxis()->SetBinLabel(6,"passed TcTp=1 (excl)");
+	  // hEventCount->GetXaxis()->SetBinLabel(7,"TcTp=1/2");
+	  // hEventCount->GetXaxis()->SetBinLabel(8,"atleast a TcTp=2");
+	  // hEventCount->GetXaxis()->SetBinLabel(9,"passed TcTp=2 (excl)");
+	  // hEventCount->GetXaxis()->SetBinLabel(10,"passed TcTp=1 (excl) Sat");
+	  // hEventCount->GetXaxis()->SetBinLabel(11,"passed TcTp=1 (excl) Ushoot");
+	  // hEventCount->GetXaxis()->SetBinLabel(12,"passed TcTp=1 (excl) NoSatUshoot");
+
 	  delete []emul_channel ;
 	  delete []emul_energy ;
 	  delete []channel ;
@@ -792,7 +1128,7 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
  	    uint32_t emul_energy = uint32_t(econtemulTcRawdata.at(istc).energy());
 	    uint32_t emul_loc = uint32_t(econtemulTcRawdata.at(istc).address());
 	    //int cdiff = emul_loc - econt_loc; //for the moment not checking the TC with maximum energy
-	    int cdiff = 0;
+	    int cdiff = 0; //only for current test with energy values
 	    int ediff =  emul_energy - econt_energy;
 	    bool isTot = false ;
 	    bool isTcTp1or2 = false;
@@ -801,24 +1137,74 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 	      if(modtcdata.getTC(itc).isTot()) isTot = true ;
 	      if(nofTcTp1[itc]>0 or nofTcTp1[itc]>0) isTcTp1or2 = true;
 	    }
-	    if(isTcTp1or2) continue;
-	    
-	    if(cdiff==0 and (emul_energy!=0 and econt_energy!=0)){
-	      if(!isTot){
-		((TH1F *) list->FindObject(Form("hCompressDiffSTCADC_%d",istc)))->Fill(float( ediff ));
-		//if(TMath::Abs(ediff)>0) std::cerr << "Event: "<<event<<" has problem for (ADC)STC channel: "<< istc << ", emul: "<<emul_energy<<", econt: "<<econt_energy<<std::endl;
+	    if(!isTcTp1or2){	    
+	      if(cdiff==0 and (emul_energy!=0 and econt_energy!=0)){
+		if(!isTot){
+		  ((TH1F *) list->FindObject(Form("hCompressDiffSTCADC_%d",istc)))->Fill(float( ediff ));
+		  ((TH2F *) list->FindObject("hSTCvsTcTp0"))->Fill(istc, ediff);
+		  ((TH1F *) list->FindObject(Form("hEmulTcTp0_%d",istc)))->Fill(float( emul_energy ));
+		  ((TH1F *) list->FindObject(Form("hECONTTcTp0_%d",istc)))->Fill(float( econt_energy ));
+		  if(TMath::Abs(ediff)>0) std::cerr << "Event: "<<event<<" has problem for (ADC)STC channel: "<< istc << ", emul: "<<emul_energy<<", econt: "<<econt_energy<<std::endl;
+		}else{
+		  ((TH1F *) list->FindObject(Form("hCompressDiffSTCTOT_%d",istc)))->Fill(float( ediff ));
+		  ((TH2F *) list->FindObject("hSTCvsTcTp3"))->Fill(istc, ediff);
+		  ((TH1F *) list->FindObject(Form("hEmulTcTp3_%d",istc)))->Fill(float( emul_energy ));
+		  ((TH1F *) list->FindObject(Form("hECONTTcTp3_%d",istc)))->Fill(float( econt_energy ));
+		  if(TMath::Abs(ediff)>0 and ediff!=-1) std::cerr << "Event: "<<event<<" has problem for (TOT)STC channel: "<< istc << ", emul: "<<emul_energy<<", econt: "<<econt_energy<<std::endl;
+		}
 	      }else{
-		((TH1F *) list->FindObject(Form("hCompressDiffSTCTOT_%d",istc)))->Fill(float( ediff ));
-		//if(TMath::Abs(ediff)>0 and ediff!=-1) std::cerr << "Event: "<<event<<" has problem for (TOT)STC channel: "<< istc << ", emul: "<<emul_energy<<", econt: "<<econt_energy<<std::endl;
+		if(!isTot)
+		  ((TH1F *) list->FindObject("hSTC4TCMissedADC"))->Fill(float( econt_loc ));
+		else
+		  ((TH1F *) list->FindObject("hSTC4TCMissedADC"))->Fill(float( econt_loc ));
 	      }
 	    }else{
-	      if(!isTot)
-		((TH1F *) list->FindObject("hSTC4TCMissedADC"))->Fill(float( econt_loc ));
-	      else
-		((TH1F *) list->FindObject("hSTC4TCMissedADC"))->Fill(float( econt_loc ));
-	    }
 
+	      if(nofSTCTcTp1[istc]>0 and nofSTCTcTp2[istc]==0){
+		((TH1F *) list->FindObject(Form("hCompressDiffSTCTcTp1_%d",istc)))->Fill(float( ediff ));
+		((TH2F *) list->FindObject("hSTCvsTcTp1"))->Fill(istc, ediff);
+		((TH1F *) list->FindObject(Form("hEmulTcTp1_%d",istc)))->Fill(float( emul_energy ));
+		((TH1F *) list->FindObject(Form("hECONTTcTp1_%d",istc)))->Fill(float( econt_energy ));	      
+		if(nofSTCSat[istc]>0 and nofSTCUndsht[istc]==0){
+		  ((TH2F *) list->FindObject("hSTCvsTcTp1Sat"))->Fill(istc, ediff);
+		}
+		if(nofSTCSat[istc]==0 and nofSTCUndsht[istc]>0){
+		  ((TH2F *) list->FindObject("hSTCvsTcTp1Ushoot"))->Fill(istc, ediff);
+		}
+		if(nofSTCSat[istc]==0 and nofSTCUndsht[istc]==0){
+		  ((TH2F *) list->FindObject("hSTCvsTcTp1NoSatUshoot"))->Fill(istc, ediff);
+		}
+	      }//if TcTp == 1
+	      if(nofSTCTcTp1[istc]==0 and nofSTCTcTp2[istc]>0){
+		((TH1F *) list->FindObject(Form("hCompressDiffSTCTcTp2_%d",istc)))->Fill(float( ediff ));
+		((TH2F *) list->FindObject("hSTCvsTcTp2"))->Fill(istc, ediff);
+		((TH1F *) list->FindObject(Form("hEmulTcTp2_%d",istc)))->Fill(float( emul_energy ));
+		((TH1F *) list->FindObject(Form("hECONTTcTp2_%d",istc)))->Fill(float( econt_energy ));
+	      }//exclusive TcTp == 2
+	    }//if TcTp == 1 or 2
 	  }//stc loop
+
+	  ((TH1F *) list->FindObject("hEventCount"))->Fill(1);
+	  if(!isModTcTp12){
+	    ((TH1F *) list->FindObject("hEventCount"))->Fill(2);
+	  }else{
+	    if(nofTcTp1_evt>0){
+	      ((TH1F *) list->FindObject("hEventCount"))->Fill(4);
+	      if(nofTcTp2_evt==0){
+		((TH1F *) list->FindObject("hEventCount"))->Fill(5);
+		if(nofUndsht_evt==0 and nofSat_evt>0) ((TH1F *) list->FindObject("hEventCount"))->Fill(9);
+		if(nofUndsht_evt>0 and nofSat_evt==0) ((TH1F *) list->FindObject("hEventCount"))->Fill(10);
+		if(nofUndsht_evt==0 and nofSat_evt==0) ((TH1F *) list->FindObject("hEventCount"))->Fill(11);
+	      }else
+		((TH1F *) list->FindObject("hEventCount"))->Fill(6);
+	    }
+	    if(nofTcTp2_evt>0){
+	      ((TH1F *) list->FindObject("hEventCount"))->Fill(7);
+	      if(nofTcTp1_evt==0) ((TH1F *) list->FindObject("hEventCount"))->Fill(8);
+	    }
+	    ((TH1F *) list->FindObject("hEventCount"))->Fill(3); //TcTp == 1 or 2
+	  }
+	  
 	  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	}//isSTC
 	delete []isTcTp12;
@@ -826,4 +1212,301 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
     }//econt data loop
     
   }//event loop
+}
+
+void FillSummaryHistogram(TFile*& fout, TDirectory*& dir_diff, TDirectory*& dir_charge, bool isSTC4)
+{
+  TList *list = (TList *)dir_diff->GetList();
+  if(!isSTC4){ //is BC9
+
+    //===============================================================================================================================
+    //Diff canvases
+    //===============================================================================================================================
+    TCanvas *c1_Diff_ADC[3], *c1_Diff_TOT[3], *c1_Diff_TcTp1[3], *c1_Diff_TcTp2[3];
+    for(int ichip=0;ichip<3;ichip++){
+      c1_Diff_ADC[ichip] = new TCanvas(Form("c1_Diff_Comp_ADC_chip_%d",ichip),Form("c1_Diff_Comp_ADC_chip_%d",ichip));
+      c1_Diff_ADC[ichip]->Divide(4,4);
+      for(int ipad=0;ipad<16;ipad++){
+	c1_Diff_ADC[ichip]->cd(ipad+1)->SetLogy();
+	int ihist = 16*ichip + ipad;
+	((TH1F *) list->FindObject(Form("hCompressDiffTCADC_%d",ihist)))->Draw();
+      }
+    }
+    for(int ichip=0;ichip<3;ichip++){
+      c1_Diff_TOT[ichip] = new TCanvas(Form("c1_Diff_Comp_TOT_chip_%d",ichip),Form("c1_Diff_Comp_TOT_chip_%d",ichip));
+      c1_Diff_TOT[ichip]->Divide(4,4);
+      for(int ipad=0;ipad<16;ipad++){
+	c1_Diff_TOT[ichip]->cd(ipad+1)->SetLogy();
+	int ihist = 16*ichip + ipad;
+	((TH1F *) list->FindObject(Form("hCompressDiffTCTOT_%d",ihist)))->Draw();
+      }
+    }
+    for(int ichip=0;ichip<3;ichip++){
+      c1_Diff_TcTp1[ichip] = new TCanvas(Form("c1_Diff_Comp_TcTp1_chip_%d",ichip),Form("c1_Diff_Comp_TcTp1_chip_%d",ichip));
+      c1_Diff_TcTp1[ichip]->Divide(4,4);
+      for(int ipad=0;ipad<16;ipad++){
+	c1_Diff_TcTp1[ichip]->cd(ipad+1)->SetLogy();
+	int ihist = 16*ichip + ipad;
+	((TH1F *) list->FindObject(Form("hCompressDiffTCTcTp1_%d",ihist)))->Draw();
+      }
+    }
+    for(int ichip=0;ichip<3;ichip++){
+      c1_Diff_TcTp2[ichip] = new TCanvas(Form("c1_Diff_Comp_TcTp2_chip_%d",ichip),Form("c1_Diff_Comp_TcTp2_chip_%d",ichip));
+      c1_Diff_TcTp2[ichip]->Divide(4,4);
+      for(int ipad=0;ipad<16;ipad++){
+	c1_Diff_TcTp2[ichip]->cd(ipad+1)->SetLogy();
+	int ihist = 16*ichip + ipad;
+	((TH1F *) list->FindObject(Form("hCompressDiffTCTcTp1_%d",ihist)))->Draw();
+      }
+    }
+
+        TCanvas *c1_CompE_ADC[3], *c1_CompE_TOT[3], *c1_CompE_TcTp1[3], *c1_CompE_TcTp2[3];
+    for(int ichip=0;ichip<3;ichip++){
+      c1_CompE_ADC[ichip] = new TCanvas(Form("c1_CompE_ADC_chip_%d",ichip),Form("c1_CompE_ADC_chip_%d",ichip));
+      c1_CompE_ADC[ichip]->Divide(4,4);
+      for(int ipad=0;ipad<16;ipad++){
+	c1_CompE_ADC[ichip]->cd(ipad+1)->SetLogy();
+	int ihist = 16*ichip + ipad;
+	((TH1F *) list->FindObject(Form("hECONTTcTp0_%d",ihist)))->Draw();
+	((TH1F *) list->FindObject(Form("hEmulTcTp0_%d",ihist)))->Draw("sames");
+      }
+    }
+    for(int ichip=0;ichip<3;ichip++){
+      c1_CompE_TOT[ichip] = new TCanvas(Form("c1_CompE_TOT_chip_%d",ichip),Form("c1_CompE_TOT_chip_%d",ichip));
+      c1_CompE_TOT[ichip]->Divide(4,4);
+      for(int ipad=0;ipad<16;ipad++){
+	c1_CompE_TOT[ichip]->cd(ipad+1)->SetLogy();
+	int ihist = 16*ichip + ipad;
+	((TH1F *) list->FindObject(Form("hECONTTcTp3_%d",ihist)))->Draw();
+	((TH1F *) list->FindObject(Form("hEmulTcTp3_%d",ihist)))->Draw("sames");
+      }
+    }
+    for(int ichip=0;ichip<3;ichip++){
+      c1_CompE_TcTp1[ichip] = new TCanvas(Form("c1_CompE_TcTp1_chip_%d",ichip),Form("c1_CompE_TcTp1_chip_%d",ichip));
+      c1_CompE_TcTp1[ichip]->Divide(4,4);
+      for(int ipad=0;ipad<16;ipad++){
+	c1_CompE_TcTp1[ichip]->cd(ipad+1)->SetLogy();
+	int ihist = 16*ichip + ipad;
+	((TH1F *) list->FindObject(Form("hECONTTcTp1_%d",ihist)))->Draw();
+	((TH1F *) list->FindObject(Form("hEmulTcTp1_%d",ihist)))->Draw("sames");
+      }
+    }
+    for(int ichip=0;ichip<3;ichip++){
+      c1_CompE_TcTp2[ichip] = new TCanvas(Form("c1_CompE_TcTp2_chip_%d",ichip),Form("c1_CompE_TcTp2_chip_%d",ichip));
+      c1_CompE_TcTp2[ichip]->Divide(4,4);
+      for(int ipad=0;ipad<16;ipad++){
+	c1_CompE_TcTp2[ichip]->cd(ipad+1)->SetLogy();
+	int ihist = 16*ichip + ipad;
+	((TH1F *) list->FindObject(Form("hECONTTcTp2_%d",ihist)))->Draw();
+	((TH1F *) list->FindObject(Form("hEmulTcTp2_%d",ihist)))->Draw("sames");
+      }
+    }
+    
+    int ref1TC = 35;
+    TCanvas *c1_Diff_TC_ref1 = new TCanvas("c1_Diff_TC_ref1",Form("c1_Diff_TC_%d",ref1TC));
+    c1_Diff_TC_ref1->Divide(2,2);
+    c1_Diff_TC_ref1->cd(1)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffTCADC_%d",ref1TC)))->Draw();
+    c1_Diff_TC_ref1->cd(2)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffTCTOT_%d",ref1TC)))->Draw();
+    c1_Diff_TC_ref1->cd(3)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffTCTcTp1_%d",ref1TC)))->Draw();
+    c1_Diff_TC_ref1->cd(4)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffTCTcTp2_%d",ref1TC)))->Draw();
+    
+    TCanvas *c1_Energy_TC_ref1 = new TCanvas("c1_Energy_TC_ref1",Form("c1_Energy_TC_%d",ref1TC));
+    c1_Energy_TC_ref1->Divide(2,2);
+    c1_Energy_TC_ref1->cd(1)->SetLogy();
+    ((TH1F *) list->FindObject(Form("hECONTTcTp0_%d",ref1TC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp0_%d",ref1TC)))->Draw("sames");
+    c1_Energy_TC_ref1->cd(2)->SetLogy(); 
+    ((TH1F *) list->FindObject(Form("hECONTTcTp3_%d",ref1TC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp3_%d",ref1TC)))->Draw("sames");
+    c1_Energy_TC_ref1->cd(3)->SetLogy();
+    ((TH1F *) list->FindObject(Form("hECONTTcTp1_%d",ref1TC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp1_%d",ref1TC)))->Draw("sames");
+    c1_Energy_TC_ref1->cd(4)->SetLogy(); 
+    ((TH1F *) list->FindObject(Form("hECONTTcTp2_%d",ref1TC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp2_%d",ref1TC)))->Draw("sames");
+
+    int ref2TC = 0;
+    TCanvas *c1_Diff_TC_ref2 = new TCanvas("c1_Diff_TC_ref2",Form("c1_Diff_TC_%d",ref2TC));
+    c1_Diff_TC_ref2->Divide(2,2);
+    c1_Diff_TC_ref2->cd(1)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffTCADC_%d",ref2TC)))->Draw();
+    c1_Diff_TC_ref2->cd(2)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffTCTOT_%d",ref2TC)))->Draw();
+    c1_Diff_TC_ref2->cd(3)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffTCTcTp1_%d",ref2TC)))->Draw();
+    c1_Diff_TC_ref2->cd(4)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffTCTcTp2_%d",ref2TC)))->Draw();
+    
+    TCanvas *c1_Energy_TC_ref2 = new TCanvas("c1_Energy_TC_ref2",Form("c1_Energy_TC_%d",ref2TC));
+    c1_Energy_TC_ref2->Divide(2,2);
+    c1_Energy_TC_ref2->cd(1)->SetLogy();
+    ((TH1F *) list->FindObject(Form("hECONTTcTp0_%d",ref2TC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp0_%d",ref2TC)))->Draw("sames");
+    c1_Energy_TC_ref2->cd(2)->SetLogy(); 
+    ((TH1F *) list->FindObject(Form("hECONTTcTp3_%d",ref2TC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp3_%d",ref2TC)))->Draw("sames");
+    c1_Energy_TC_ref2->cd(3)->SetLogy();
+    ((TH1F *) list->FindObject(Form("hECONTTcTp1_%d",ref2TC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp1_%d",ref2TC)))->Draw("sames");
+    c1_Energy_TC_ref2->cd(4)->SetLogy(); 
+    ((TH1F *) list->FindObject(Form("hECONTTcTp2_%d",ref2TC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp2_%d",ref2TC)))->Draw("sames");
+
+
+    //===============================================================================================================================
+    //Save histograms
+    //===============================================================================================================================
+    fout->cd();
+    dir_diff->Write();
+    c1_Energy_TC_ref1->Write();
+    c1_Diff_TC_ref1->Write();
+    c1_Energy_TC_ref2->Write();
+    c1_Diff_TC_ref2->Write();
+    c1_Energy_TC_ref2->Write();
+    c1_Diff_TC_ref2->Write();
+    for(int ichip=0;ichip<3;ichip++) c1_CompE_ADC[ichip]->Write();
+    for(int ichip=0;ichip<3;ichip++) c1_CompE_TOT[ichip]->Write();
+    for(int ichip=0;ichip<3;ichip++) c1_CompE_TcTp1[ichip]->Write();
+    for(int ichip=0;ichip<3;ichip++) c1_CompE_TcTp2[ichip]->Write();
+    for(int ichip=0;ichip<3;ichip++) c1_Diff_ADC[ichip]->Write();
+    for(int ichip=0;ichip<3;ichip++) c1_Diff_TOT[ichip]->Write();
+    for(int ichip=0;ichip<3;ichip++) c1_Diff_TcTp1[ichip]->Write();
+    for(int ichip=0;ichip<3;ichip++) c1_Diff_TcTp2[ichip]->Write();
+    dir_charge->Write();
+    fout->Close();
+    //===============================================================================================================================
+
+  }else{
+
+    //===============================================================================================================================
+    //Diff canvases
+    //===============================================================================================================================
+    
+    TCanvas *c1_Diff_ADC = new TCanvas(Form("c1_Diff_Comp_ADC"),Form("c1_Diff_Comp_ADC"));
+    c1_Diff_ADC->Divide(4,3);
+    for(int istc=0;istc<12;istc++){
+      c1_Diff_ADC->cd(istc+1)->SetLogy();
+      ((TH1F *) list->FindObject(Form("hCompressDiffSTCADC_%d",istc)))->Draw();
+    }
+    TCanvas *c1_Diff_TOT = new TCanvas(Form("c1_Diff_Comp_TOT"),Form("c1_Diff_Comp_TOT"));
+    c1_Diff_TOT->Divide(4,3);
+    for(int istc=0;istc<12;istc++){
+      c1_Diff_TOT->cd(istc+1)->SetLogy();
+      ((TH1F *) list->FindObject(Form("hCompressDiffSTCTOT_%d",istc)))->Draw();
+    }    
+    TCanvas *c1_Diff_TcTp1 = new TCanvas(Form("c1_Diff_Comp_TcTp1"),Form("c1_Diff_Comp_TcTp1"));
+    c1_Diff_TcTp1->Divide(4,3);
+    for(int istc=0;istc<12;istc++){
+      c1_Diff_TcTp1->cd(istc+1)->SetLogy();
+      ((TH1F *) list->FindObject(Form("hCompressDiffSTCTcTp1_%d",istc)))->Draw();
+    }
+    TCanvas *c1_Diff_TcTp2 = new TCanvas(Form("c1_Diff_Comp_TcTp2"),Form("c1_Diff_Comp_TcTp2"));
+    c1_Diff_TcTp2->Divide(4,3);
+    for(int istc=0;istc<12;istc++){
+      c1_Diff_TcTp2->cd(istc+1)->SetLogy();
+      ((TH1F *) list->FindObject(Form("hCompressDiffSTCTcTp2_%d",istc)))->Draw();
+    }    
+
+    TCanvas *c1_CompE_ADC = new TCanvas(Form("c1_CompE_ADC"),Form("c1_CompE_ADC"));
+    c1_CompE_ADC->Divide(4,3);
+    for(int istc=0;istc<12;istc++){
+      c1_CompE_ADC->cd(istc+1)->SetLogy();
+      ((TH1F *) list->FindObject(Form("hECONTTcTp0_%d",istc)))->Draw();
+      ((TH1F *) list->FindObject(Form("hEmulTcTp0_%d",istc)))->Draw("sames");
+    }
+    TCanvas *c1_CompE_TOT = new TCanvas(Form("c1_CompE_TOT"),Form("c1_CompE_TOT"));
+    c1_CompE_TOT->Divide(4,3);
+    for(int istc=0;istc<12;istc++){
+      c1_CompE_TOT->cd(istc+1)->SetLogy();
+      ((TH1F *) list->FindObject(Form("hECONTTcTp0_%d",istc)))->Draw();
+      ((TH1F *) list->FindObject(Form("hEmulTcTp0_%d",istc)))->Draw("sames");
+    }    
+    TCanvas *c1_CompE_TcTp1 = new TCanvas(Form("c1_CompE_TcTp1"),Form("c1_CompE_TcTp1"));
+    c1_CompE_TcTp1->Divide(4,3);
+    for(int istc=0;istc<12;istc++){
+      c1_CompE_TcTp1->cd(istc+1)->SetLogy();
+      ((TH1F *) list->FindObject(Form("hECONTTcTp0_%d",istc)))->Draw();
+      ((TH1F *) list->FindObject(Form("hEmulTcTp0_%d",istc)))->Draw("sames");
+    }
+    TCanvas *c1_CompE_TcTp2 = new TCanvas(Form("c1_CompE_TcTp2"),Form("c1_CompE_TcTp2"));
+    c1_CompE_TcTp2->Divide(4,3);
+    for(int istc=0;istc<12;istc++){
+      c1_CompE_TcTp2->cd(istc+1)->SetLogy();
+      ((TH1F *) list->FindObject(Form("hECONTTcTp0_%d",istc)))->Draw();
+      ((TH1F *) list->FindObject(Form("hEmulTcTp0_%d",istc)))->Draw("sames");
+    }    
+
+    int ref1STC = 6;
+    TCanvas *c1_Diff_STC_ref1 = new TCanvas("c1_Diff_STC_ref1",Form("c1_Diff_STC_%d",ref1STC));
+    c1_Diff_STC_ref1->Divide(2,2);
+    c1_Diff_STC_ref1->cd(1)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffSTCADC_%d",ref1STC)))->Draw();
+    c1_Diff_STC_ref1->cd(2)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffSTCTOT_%d",ref1STC)))->Draw();
+    c1_Diff_STC_ref1->cd(3)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffSTCTcTp1_%d",ref1STC)))->Draw();
+    c1_Diff_STC_ref1->cd(4)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffSTCTcTp2_%d",ref1STC)))->Draw();
+    
+    TCanvas *c1_Energy_STC_ref1 = new TCanvas("c1_Energy_STC_ref1",Form("c1_Energy_STC_%d",ref1STC));
+    c1_Energy_STC_ref1->Divide(2,2);
+    c1_Energy_STC_ref1->cd(1)->SetLogy();
+    ((TH1F *) list->FindObject(Form("hECONTTcTp0_%d",ref1STC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp0_%d",ref1STC)))->Draw("sames");
+    c1_Energy_STC_ref1->cd(2)->SetLogy(); 
+    ((TH1F *) list->FindObject(Form("hECONTTcTp3_%d",ref1STC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp3_%d",ref1STC)))->Draw("sames");
+    c1_Energy_STC_ref1->cd(3)->SetLogy();
+    ((TH1F *) list->FindObject(Form("hECONTTcTp1_%d",ref1STC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp1_%d",ref1STC)))->Draw("sames");
+    c1_Energy_STC_ref1->cd(4)->SetLogy(); 
+    ((TH1F *) list->FindObject(Form("hECONTTcTp2_%d",ref1STC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp2_%d",ref1STC)))->Draw("sames");
+
+    int ref2STC = 0;
+    TCanvas *c1_Diff_STC_ref2 = new TCanvas("c1_Diff_STC_ref2",Form("c1_Diff_STC_%d",ref2STC));
+    c1_Diff_STC_ref2->Divide(2,2);
+    c1_Diff_STC_ref2->cd(1)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffSTCADC_%d",ref2STC)))->Draw();
+    c1_Diff_STC_ref2->cd(2)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffSTCTOT_%d",ref2STC)))->Draw();
+    c1_Diff_STC_ref2->cd(3)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffSTCTcTp1_%d",ref2STC)))->Draw();
+    c1_Diff_STC_ref2->cd(4)->SetLogy(); ((TH1F *) list->FindObject(Form("hCompressDiffSTCTcTp2_%d",ref2STC)))->Draw();
+    
+    TCanvas *c1_Energy_STC_ref2 = new TCanvas("c1_Energy_STC_ref2",Form("c1_Energy_STC_%d",ref2STC));
+    c1_Energy_STC_ref2->Divide(2,2);
+    c1_Energy_STC_ref2->cd(1)->SetLogy();
+    ((TH1F *) list->FindObject(Form("hECONTTcTp0_%d",ref2STC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp0_%d",ref2STC)))->Draw("sames");
+    c1_Energy_STC_ref2->cd(2)->SetLogy(); 
+    ((TH1F *) list->FindObject(Form("hECONTTcTp3_%d",ref2STC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp3_%d",ref2STC)))->Draw("sames");
+    c1_Energy_STC_ref2->cd(3)->SetLogy();
+    ((TH1F *) list->FindObject(Form("hECONTTcTp1_%d",ref2STC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp1_%d",ref2STC)))->Draw("sames");
+    c1_Energy_STC_ref2->cd(4)->SetLogy(); 
+    ((TH1F *) list->FindObject(Form("hECONTTcTp2_%d",ref2STC)))->Draw();
+    ((TH1F *) list->FindObject(Form("hEmulTcTp2_%d",ref2STC)))->Draw("sames");
+
+    //===============================================================================================================================
+
+    //===============================================================================================================================
+    //Save histograms
+    //===============================================================================================================================
+    fout->cd();
+    dir_diff->Write();
+
+    c1_Energy_STC_ref1->Write();
+    c1_Diff_STC_ref1->Write();
+    c1_Energy_STC_ref2->Write();
+    c1_Diff_STC_ref2->Write();
+    c1_Energy_STC_ref2->Write();
+    c1_Diff_STC_ref2->Write();
+
+    c1_CompE_ADC->Write();
+    c1_CompE_TOT->Write();
+    c1_CompE_TcTp1->Write();
+    c1_CompE_TcTp2->Write();
+
+    c1_Diff_ADC->Write();
+    c1_Diff_TOT->Write();
+    c1_Diff_TcTp1->Write();
+    c1_Diff_TcTp2->Write();
+
+    dir_charge->Write();
+    fout->Close();
+    //===============================================================================================================================
+
+  }//isSTC4
+  
 }
