@@ -352,8 +352,10 @@ namespace TPGFEReader{
 		ch = rocpin%36 ; //36 for halfroc
 		if(trigflagM>=0x2)
 		  chdata[ch].setTot(uint16_t(totM),uint16_t(trigflagM));
-		else if(trigflagM<=0x1)
+		else if(trigflagM==0)
 		  chdata[ch].setAdc(uint16_t(adcM),uint16_t(trigflagM));
+		else if(trigflagM==0x1)
+		  chdata[ch].setAdc(0,uint16_t(trigflagM)); //uint16_t(adcM)
 		else
 		  chdata[ch].setZero();
 	      }
@@ -362,8 +364,10 @@ namespace TPGFEReader{
 		ch = rocpin%36 ; //36 for halfroc
 		if(trigflagL>=0x2)
 		  chdata[ch].setTot(uint16_t(totL),uint16_t(trigflagL));
-		else if(trigflagL<=0x1)
+		else if(trigflagL==0)
 		  chdata[ch].setAdc(uint16_t(adcL),uint16_t(trigflagL));
+		else if(trigflagL==0x1)
+		  chdata[ch].setAdc(0,uint16_t(trigflagL)); //uint16_t(adcL)
 		else
 		  chdata[ch].setZero();
 	      }
@@ -413,6 +417,10 @@ namespace TPGFEReader{
     uint64_t getCheckedEvent() {return inspectEvent;}
     
     void init(uint32_t, uint32_t, uint32_t);
+    void getEvents(uint64_t& ievent, std::map<uint64_t,std::vector<std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>>>>& econtarray){
+      std::vector<uint64_t> events; uint64_t maxevent = ievent+1;
+      getEvents(ievent, maxevent, econtarray, events);
+    }
     void getEvents(uint64_t& minEventTrig, uint64_t& maxEventTrig, std::map<uint64_t,std::vector<std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>>>>& econtarray, std::vector<uint64_t>& events){
       moduleId = pck.packModId(zside, sector, link, det, econt, selTC4, module);
       const TPGFEDataformat::TcRawData::Type& outputType = configs.getEconTPara().at(moduleId).getOutType();
