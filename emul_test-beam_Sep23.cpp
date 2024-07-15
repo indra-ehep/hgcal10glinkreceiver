@@ -94,7 +94,7 @@ const long double maxEvent = 8e6; //6e5
 // Event: 27744 has problem for (ADC)STC channel: 9, emul: 9, econt: 11
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool isDebug = 0;
+bool isDebug = 1;
 const uint64_t refPrE = 6217; 
 
 int main(int argc, char** argv)
@@ -1477,7 +1477,7 @@ void FillSummaryHistogram(TFile*& fout, TDirectory*& dir_diff, TDirectory*& dir_
     c1_Energy_STC_ref2->cd(4)->SetLogy(); 
     ((TH1F *) list->FindObject(Form("hECONTTcTp2_%d",ref2STC)))->Draw();
     ((TH1F *) list->FindObject(Form("hEmulTcTp2_%d",ref2STC)))->Draw("sames");
-
+    
     //===============================================================================================================================
 
     //===============================================================================================================================
