@@ -1256,7 +1256,7 @@ void FillSummaryHistogram(TFile*& fout, TDirectory*& dir_diff, TDirectory*& dir_
       for(int ipad=0;ipad<16;ipad++){
 	c1_Diff_TcTp2[ichip]->cd(ipad+1)->SetLogy();
 	int ihist = 16*ichip + ipad;
-	((TH1F *) list->FindObject(Form("hCompressDiffTCTcTp1_%d",ihist)))->Draw();
+	((TH1F *) list->FindObject(Form("hCompressDiffTCTcTp2_%d",ihist)))->Draw();
       }
     }
 
