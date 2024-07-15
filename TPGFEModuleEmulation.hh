@@ -141,10 +141,15 @@ namespace TPGFEModuleEmulation{
   class ECONTEmulation{
   public:
     ECONTEmulation(TPGFEConfiguration::Configuration& cfgs) : configs(cfgs) {}
+    ~ECONTEmulation() {tcrawlist.clear();}
     //The following emulation function performs 1) decompression, 2) calibration, 3) compression
-    void Emulate(bool isSim, uint64_t ievent, uint32_t& moduleId, const std::map<uint32_t,TPGFEDataformat::ModuleTcData>&, std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>>& );
-    void EmulateSTC(bool isSim, uint64_t ievent, uint32_t& moduleId, const std::map<uint32_t,TPGFEDataformat::ModuleTcData>&, std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>>&);
-    void EmulateBC(bool isSim, uint64_t ievent, uint32_t& moduleId, const std::map<uint32_t,TPGFEDataformat::ModuleTcData>&, std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>>&);
+    void Emulate(bool isSim, uint64_t ievent, uint32_t& moduleId, const std::map<uint32_t,TPGFEDataformat::ModuleTcData>&, TPGFEDataformat::TcRawDataPacket& );
+    void EmulateSTC(bool isSim, uint64_t ievent, uint32_t& moduleId, const std::map<uint32_t,TPGFEDataformat::ModuleTcData>&, TPGFEDataformat::TcRawDataPacket&);
+    void EmulateBC(bool isSim, uint64_t ievent, uint32_t& moduleId, const std::map<uint32_t,TPGFEDataformat::ModuleTcData>&, TPGFEDataformat::TcRawDataPacket&);
+
+    void Emulate(bool isSim, uint64_t ievent, uint32_t& moduleId, const std::map<uint32_t,TPGFEDataformat::ModuleTcData>&);
+    const TPGFEDataformat::TcRawDataPacket& getTcRawDataPacket() {return emulOut;}
+    const std::vector<TPGFEDataformat::TcRawData>& getTcRawDataList() {return tcrawlist;}
     
   private:
     
@@ -334,9 +339,16 @@ namespace TPGFEModuleEmulation{
 
     TPGFEConfiguration::Configuration& configs;
     TPGFEConfiguration::TPGFEIdPacking pck;
+    std::vector<TPGFEDataformat::TcRawData> tcrawlist;
+    TPGFEDataformat::TcRawDataPacket emulOut;
   };
-
-  void ECONTEmulation::Emulate(bool isSim, uint64_t ievent, uint32_t& moduleId, const std::map<uint32_t,TPGFEDataformat::ModuleTcData>& moddata, std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>>& econtOut){
+  
+  void ECONTEmulation::Emulate(bool isSim, uint64_t ievent, uint32_t& moduleId, const std::map<uint32_t,TPGFEDataformat::ModuleTcData>& moddata){
+    TPGFEDataformat::TcRawDataPacket dummyEcontOut;
+    Emulate(isSim, ievent, moduleId, moddata, dummyEcontOut);
+  }
+  
+  void ECONTEmulation::Emulate(bool isSim, uint64_t ievent, uint32_t& moduleId, const std::map<uint32_t,TPGFEDataformat::ModuleTcData>& moddata, TPGFEDataformat::TcRawDataPacket& econtOut){
 
     const TPGFEDataformat::TcRawData::Type& outputType = configs.getEconTPara().at(moduleId).getOutType();
     if(outputType==TPGFEDataformat::TcRawData::BestC)
@@ -349,7 +361,7 @@ namespace TPGFEModuleEmulation{
     }
     
   }
-  void ECONTEmulation::EmulateSTC(bool isSim, uint64_t ievent, uint32_t& moduleId, const std::map<uint32_t,TPGFEDataformat::ModuleTcData>& moddata, std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>>& econtOut){
+  void ECONTEmulation::EmulateSTC(bool isSim, uint64_t ievent, uint32_t& moduleId, const std::map<uint32_t,TPGFEDataformat::ModuleTcData>& moddata, TPGFEDataformat::TcRawDataPacket& econtOut){
     
     pck.setModId(moduleId);    
     const std::map<std::tuple<uint32_t,uint32_t,uint32_t>,std::string>& modNameMap = configs.getModIdxToName();
@@ -362,7 +374,8 @@ namespace TPGFEModuleEmulation{
       const std::map<std::string,std::vector<uint32_t>>& modSTClist = (pck.getDetType()==0)?configs.getSiModSTClist():configs.getSciModSTClist();
       const std::vector<uint32_t>& stclist = modSTClist.at(modName) ;
       const std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>& stcTcMap = (pck.getDetType()==0)?configs.getSiSTCToTC():configs.getSciSTCToTC();
-      std::vector<TPGFEDataformat::TcRawData> stcOut;
+      //std::vector<TPGFEDataformat::TcRawData> stcOut;
+      tcrawlist.resize(0);
       
       for(const auto& istc : stclist){
 	const std::vector<uint32_t>& tclist = stcTcMap.at(std::make_pair(modName,istc));
@@ -381,10 +394,12 @@ namespace TPGFEModuleEmulation{
 	}
 	uint8_t max_loc = uint8_t(TMath::LocMax(tclist.size(),energy)) & 0x3; //This line need to be modified to take into account the case with two TCs of same energy
 	uint16_t compressed_stc = (outputType==TPGFEDataformat::TcRawData::STC4A)? CompressEcontStc4E3M(decompressedSTC,pck.getSelTC4()) : CompressEcontStc5E4M(decompressedSTC,pck.getSelTC4());
-	stcOut.push_back(TPGFEDataformat::TcRawData(outputType, max_loc, compressed_stc));
+	tcrawlist.push_back(TPGFEDataformat::TcRawData(outputType, max_loc, compressed_stc));
 	delete []energy ;
       }//stc loop
-      econtOut = std::make_pair(moduleId,stcOut);
+      //econtOut = std::make_pair(moduleId,tcrawlist);
+      emulOut = std::make_pair(moduleId,tcrawlist);
+      econtOut = emulOut ;
     }
     
     if(outputType==TPGFEDataformat::TcRawData::STC16){
@@ -392,7 +407,8 @@ namespace TPGFEModuleEmulation{
       const std::map<std::string,std::vector<uint32_t>>& modSTC16list = (pck.getDetType()==0)?configs.getSiModSTC16list():configs.getSciModSTC16list();
       const std::vector<uint32_t>& stc16list = modSTC16list.at(modName) ;
       const std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>& stc16TcMap = (pck.getDetType()==0)?configs.getSiSTC16ToTC():configs.getSciSTC16ToTC();
-      std::vector<TPGFEDataformat::TcRawData> stc16Out;
+      //std::vector<TPGFEDataformat::TcRawData> stc16Out;
+      tcrawlist.resize(0);
       
       for(const auto& istc16 : stc16list){
 	const std::vector<uint32_t>& tclist = stc16TcMap.at(std::make_pair(modName,istc16));
@@ -409,15 +425,17 @@ namespace TPGFEModuleEmulation{
 	}
 	uint8_t max_loc = uint8_t(TMath::LocMax(tclist.size(),energy16)) & 0xF; //This line need to be modified to take into account the case with two TCs of same energy
 	uint16_t compressed_stc = CompressEcontStc5E4M(decompressedSTC16,pck.getSelTC4());
-	stc16Out.push_back(TPGFEDataformat::TcRawData(outputType, max_loc, compressed_stc));
+	tcrawlist.push_back(TPGFEDataformat::TcRawData(outputType, max_loc, compressed_stc));
 	delete []energy16 ;
       }
-      econtOut = std::make_pair(moduleId,stc16Out);
+      //econtOut = std::make_pair(moduleId,tcrawlist);
+      emulOut = std::make_pair(moduleId,tcrawlist);
+      econtOut = emulOut;
     }
     
   }//Emulate STC
   
-  void ECONTEmulation::EmulateBC(bool isSim, uint64_t ievent, uint32_t& moduleId, const std::map<uint32_t,TPGFEDataformat::ModuleTcData>& moddata, std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>>& econtOut){
+  void ECONTEmulation::EmulateBC(bool isSim, uint64_t ievent, uint32_t& moduleId, const std::map<uint32_t,TPGFEDataformat::ModuleTcData>& moddata, TPGFEDataformat::TcRawDataPacket& econtOut){
     
     pck.setModId(moduleId);    
     const std::map<std::tuple<uint32_t,uint32_t,uint32_t>,std::string>& modNameMap = configs.getModIdxToName();
@@ -427,7 +445,9 @@ namespace TPGFEModuleEmulation{
     
     const TPGFEDataformat::TcRawData::Type& outputType = configs.getEconTPara().at(moduleId).getOutType();
     const TPGFEDataformat::ModuleTcData& mdata = moddata.at(moduleId);
-    std::vector<TPGFEDataformat::TcRawData> bcOut;    
+    //std::vector<TPGFEDataformat::TcRawData> bcOut;
+    tcrawlist.resize(0);
+    
     uint32_t decompressedMS = 0;
     
     uint32_t *sorted_idx = new uint32_t[tclist.size()];
@@ -439,23 +459,25 @@ namespace TPGFEModuleEmulation{
       decompressed =  decompressed >> 11;
       decompressedMS += decompressed ;
       uint16_t compressed_bc = CompressEcontBc(decompressed,pck.getSelTC4());
-      //bcOut.push_back(TPGFEDataformat::TcRawData(outputType, itc, compressed_bc));
+      //tcrawlist.push_back(TPGFEDataformat::TcRawData(outputType, itc, compressed_bc));
       energy[itc] = compressed_bc;
     }
     uint16_t compressed_modsum = CompressEcontModsum(decompressedMS,pck.getSelTC4());
-    bcOut.push_back(TPGFEDataformat::TcRawData(compressed_modsum));
+    tcrawlist.push_back(TPGFEDataformat::TcRawData(compressed_modsum));
     
     uint32_t nofBCTcs = configs.getEconTPara().at(moduleId).getBCType();
     // TMath::Sort(uint32_t(tclist.size()), energy, sorted_idx);
     // //The following line should be modified when we have access to the BC mode defined for a given ECONT of a motherboard in the config file
     // for(uint32_t itc = 0 ; itc<nofBCTcs ; itc++)
-    //   bcOut.push_back(TPGFEDataformat::TcRawData(outputType, sorted_idx[itc], energy[sorted_idx[itc]]));
+    //   tcrawlist.push_back(TPGFEDataformat::TcRawData(outputType, sorted_idx[itc], energy[sorted_idx[itc]]));
     
     for(uint32_t itc = 0 ; itc<uint32_t(tclist.size()) ; itc++)
-      bcOut.push_back(TPGFEDataformat::TcRawData(outputType, itc, energy[itc]));
+      tcrawlist.push_back(TPGFEDataformat::TcRawData(outputType, itc, energy[itc]));
     
       
-    econtOut = std::make_pair(moduleId,bcOut);
+    //econtOut = std::make_pair(moduleId,tcrawlist);
+    emulOut = std::make_pair(moduleId,tcrawlist);
+    econtOut = emulOut;
     
     delete []energy ;
     delete []sorted_idx ;

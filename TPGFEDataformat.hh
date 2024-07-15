@@ -211,7 +211,7 @@ namespace TPGFEDataformat{
 
   std::string TcRawData::_typeName[4]={"BestC","STC4A","STC4B","STC16"};
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+  typedef std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>> TcRawDataPacket;
   
   class HgcrocTcData {
   public:
