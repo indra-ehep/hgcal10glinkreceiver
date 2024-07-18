@@ -35,7 +35,6 @@
 
 const long double maxEvent = 3e6; //6e5
 
-
 //////////////////////////////////// Issues with the Relay-1695829026 Run-1695829027 /////////////////////////////////
 //link1 : special case
 //ideally ADC_ped<255 condition should only be restricted for ADC case, however TOT signal triggers in emulation for event 146245 of relay 1695829026 and link 1, which is not that seen by ECONT data
@@ -96,7 +95,7 @@ const long double maxEvent = 3e6; //6e5
 // Event: 27744 has problem for (ADC)STC channel: 9, emul: 9, econt: 11
 //.................
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool isDebug = 1;
+bool isDebug = 0;
 const uint64_t refPrE = 40; 
 bool isEcontEmulNew = 1;
 
@@ -304,7 +303,7 @@ int main(int argc, char** argv)
     }
     
     if(!(refPrE>=minEventTrig and refPrE<=maxEventTrig) and isDebug) continue;
-    //if(ieloop!=0) continue;
+    if(ieloop!=0) continue;
     
     printf("iloop : %d, minEventTrig = %lu, maxEventTrig = %lu, minEventDAQ = %lu, maxEventDAQ = %lu\n",ieloop,minEventTrig, maxEventTrig, minEventDAQ, maxEventDAQ);
 
