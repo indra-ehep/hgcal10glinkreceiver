@@ -59,13 +59,6 @@ const long double maxEvent = 3e6; //6e5
 // Event: 40 has Undershoot with channel: 11, emul: 27, econt: 47
 // Event: 53 has Undershoot with channel: 35, emul: 48, econt: 54
 // Event: 70 has Undershoot with channel: 37, emul: 41, econt: 50
-// Event: 85 has Undershoot with channel: 35, emul: 43, econt: 52
-// Event: 115 has Undershoot with channel: 11, emul: 32, econt: 44
-// Event: 125 has Undershoot with channel: 35, emul: 44, econt: 52
-// Event: 210 has Undershoot with channel: 34, emul: 48, econt: 54
-// Event: 219 has Undershoot with channel: 35, emul: 44, econt: 52
-// Event: 228 has Undershoot with channel: 40, emul: 44, econt: 50
-// Event: 260 has Undershoot with channel: 11, emul: 36, econt: 51
 //......
 
 //undershoot energy > 40 [see all four channels are zero]
@@ -73,13 +66,47 @@ const long double maxEvent = 3e6; //6e5
 // Event: 1262 has Undershoot with channel: 40, emul: 0, econt: 49
 // Event: 2030 has Undershoot with channel: 13, emul: 0, econt: 49
 // Event: 2878 has Undershoot with channel: 35, emul: 0, econt: 41
-// Event: 3023 has Undershoot with channel: 11, emul: 0, econt: 50
-// Event: 3299 has Undershoot with channel: 35, emul: 0, econt: 49
-// Event: 5362 has Undershoot with channel: 40, emul: 0, econt: 49
-// Event: 5927 has Undershoot with channel: 35, emul: 0, econt: 42
-// Event: 6154 has Undershoot with channel: 35, emul: 0, econt: 46
-// Event: 6593 has Undershoot with channel: 35, emul: 0, econt: 47
 //..........
+
+// Event: 100 has problem with channel: 40, emul: 63, econt: 66
+// Event: 172 has problem with channel: 41, emul: 72, econt: 73
+// Event: 218 has problem with channel: 40, emul: 58, econt: 63
+// ....
+
+// Event: 262 has problem with channel: 40, emul: 66, econt: 61
+// Event: 273 has problem with channel: 41, emul: 51, econt: 58
+// Event: 305 has problem with channel: 40, emul: 51, econt: 58
+// ....
+
+// Event: 305 has problem with channel: 40, emul: 51, econt: 58
+// Event: 526 has problem with channel: 40, emul: 44, econt: 55
+// Event: 592 has problem with channel: 40, emul: 48, econt: 56
+//....
+
+// Event: 240 has problem with channel: 40, emul: 58, econt: 56
+// Event: 361 has problem with channel: 40, emul: 54, econt: 50
+// Event: 361 has problem with channel: 41, emul: 48, econt: 43
+//....
+
+// Event: 592 has problem with channel: 40, emul: 48, econt: 56
+// Event: 661 has problem with channel: 40, emul: 57, econt: 51
+// Event: 661 has problem with channel: 41, emul: 58, econt: 51
+//...
+
+// Event: 318 has problem with channel: 11, emul: 34, econt: 51
+// Event: 327 has problem with channel: 11, emul: 38, econt: 50
+// Event: 329 has problem with channel: 11, emul: 33, econt: 50
+// Event: 403 has problem with channel: 11, emul: 37, econt: 49
+// Event: 567 has problem with channel: 11, emul: 46, econt: 56
+// Event: 572 has problem with channel: 11, emul: 43, econt: 54
+//....
+
+// Event: 327 has problem with channel: 11, emul: 38, econt: 50
+// Event: 329 has problem with channel: 11, emul: 33, econt: 50
+// Event: 344 has problem with channel: 11, emul: 43, econt: 40
+// Event: 403 has problem with channel: 11, emul: 37, econt: 49
+// Event: 473 has problem with channel: 11, emul: 56, econt: 40
+//....
 //=======================================
 
 
@@ -95,13 +122,12 @@ const long double maxEvent = 3e6; //6e5
 // Event: 27744 has problem for (ADC)STC channel: 9, emul: 9, econt: 11
 //.................
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool isDebug = 0;
-const uint64_t refPrE = 40; 
+bool isDebug = 1;
 bool isEcontEmulNew = 1;
 
 int main(int argc, char** argv)
 {
-  
+  uint64_t refPrE = 218; 
   //===============================================================================================================================
   // ./emul_econt.exe $Relay $rname $link_number
   //===============================================================================================================================  
@@ -134,6 +160,11 @@ int main(int argc, char** argv)
   uint32_t trig_linkNumber = TMath::FloorNint((linkNumber-1)/2);
   int isMSB = 1;
   if(linkNumber==1) isMSB = 0;
+  if(argc == 5){
+    std::istringstream isRefEventNum(argv[4]);
+    isRefEventNum >> refPrE;
+  }
+
   //===============================================================================================================================
 
 
@@ -172,7 +203,7 @@ int main(int argc, char** argv)
   cfgs.readSciChMapping();
   cfgs.loadModIdxToNameMapping();
   //===============================================================================================================================
-
+  
   
   //===============================================================================================================================
   
@@ -261,7 +292,7 @@ int main(int argc, char** argv)
   uint64_t nofTrigEvents = 0;
   uint64_t nofDAQEvents = 0;
   uint64_t nofMatchedDAQEvents = 0;
-  long double nloopEvent = (isDebug) ? 123 : 4e5 ;
+  long double nloopEvent = (isDebug) ? 123 : 4e3 ;
   int nloop = TMath::CeilNint(maxEvent/nloopEvent) ;
   //if(econDReader.getCheckMode()) nloop = 1;
   //nloop = 1;
@@ -279,7 +310,7 @@ int main(int argc, char** argv)
 		     const std::map<uint64_t,std::vector<std::pair<uint32_t,TPGFEDataformat::ModuleTcData>>>&,             //to plot HGROC emulation results
 		     const std::map<uint64_t,std::vector<std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>>>>&,   //to plot the ECONT emulation results
 		     const std::map<uint64_t,std::vector<std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>>>>&,   //to plot the ECONT ASIC results or compare with the emulation
-		     const std::vector<uint64_t>& /*eventlist*/, const uint32_t& , TDirectory*& /*directory containing the histograms*/, TDirectory*& /*directory containing the histograms*/, bool /*isSTC4*/);
+		     const std::vector<uint64_t>& /*eventlist*/, const uint32_t& , TDirectory*& /*directory containing the histograms*/, TDirectory*& /*directory containing the histograms*/, bool /*isSTC4*/, uint64_t /*refPrE*/);
   
   std::map<uint32_t,TPGFEDataformat::HalfHgcrocData> rocdata;
   std::map<uint32_t,TPGFEDataformat::ModuleTcData> moddata;
@@ -303,10 +334,10 @@ int main(int argc, char** argv)
     }
     
     if(!(refPrE>=minEventTrig and refPrE<=maxEventTrig) and isDebug) continue;
-    if(ieloop!=0) continue;
+    if(ieloop!=0 and !isDebug) continue;
     
     printf("iloop : %d, minEventTrig = %lu, maxEventTrig = %lu, minEventDAQ = %lu, maxEventDAQ = %lu\n",ieloop,minEventTrig, maxEventTrig, minEventDAQ, maxEventDAQ);
-
+    
     
     //===============================================================================================================================
     //Read Link0, Link1/Link2 files
@@ -356,7 +387,8 @@ int main(int argc, char** argv)
       }
       
       bool isSim = false; //true for CMSSW simulation and false for beam-test analysis
-      rocTPGEmul.Emulate(isSim, event, moduleId, rocdata, modTcdata);
+      //rocTPGEmul.Emulate(isSim, event, moduleId, rocdata, modTcdata);
+      rocTPGEmul.Emulate(isSim, event, moduleId, rocdata, modTcdata, refPrE);
       
       modarray[event].push_back(modTcdata);
 
@@ -407,7 +439,7 @@ int main(int argc, char** argv)
       }//event==reference Event
       
     }//event loop
-    FillHistogram(cfgs, hrocarray, modarray, econtemularray, econtarray, eventList, moduleId, dir_diff, dir_charge, isSTC4);
+    FillHistogram(cfgs, hrocarray, modarray, econtemularray, econtarray, eventList, moduleId, dir_diff, dir_charge, isSTC4, refPrE);
     std::cout<<"modarray : After Link"<<linkNumber<<" size : " << modarray.size() <<std::endl;
     
   }//loop over event group
@@ -870,7 +902,7 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 		   const std::map<uint64_t,std::vector<std::pair<uint32_t,TPGFEDataformat::ModuleTcData>>>& modarray,             //to plot HGROC emulation results
 		   const std::map<uint64_t,std::vector<std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>>>>& econtemularray,   //to plot the ECONT emulation results
 		   const std::map<uint64_t,std::vector<std::pair<uint32_t,std::vector<TPGFEDataformat::TcRawData>>>>& econtarray,   //to plot the ECONT ASIC results or compare with the emulation
-		   const std::vector<uint64_t>& eventList, const uint32_t& moduleId, TDirectory*& dir_diff, TDirectory*& dir_charge, bool isSTC4){
+		   const std::vector<uint64_t>& eventList, const uint32_t& moduleId, TDirectory*& dir_diff, TDirectory*& dir_charge, bool isSTC4, uint64_t refPrE){
   
   const TPGFEDataformat::TcRawData::Type& outputType = cfgs.getEconTPara().at(moduleId).getOutType();
   TPGFEConfiguration::TPGFEIdPacking pck;
@@ -1048,6 +1080,7 @@ void FillHistogram(TPGFEConfiguration::Configuration& cfgs,                     
 		  ((TH2F *) list->FindObject("hTCvsTcTp1"))->Fill(emch, ediff);
 		  ((TH1F *) list->FindObject(Form("hEmulTcTp1_%d",emch)))->Fill(float( emen ));
 		  ((TH1F *) list->FindObject(Form("hECONTTcTp1_%d",emch)))->Fill(float( energy[sorted_idx[itc]] ));
+		  if(TMath::Abs(ediff)>0 and emch==11) std::cerr << "Event: "<<event<<" has problem with channel: "<< emch << ", emul: "<<emen<<", econt: "<<energy[sorted_idx[itc]]<<std::endl;
 		  if(nofSat[emch]>0 and nofUndsht[emch]==0) {
 		    ((TH2F *) list->FindObject("hTCvsTcTp1Sat"))->Fill(emch, ediff);
 		    //if(TMath::Abs(ediff)>0) std::cerr << "Event: "<<event<<" has Saturation with channel: "<< emch << ", emul: "<<emen<<", econt: "<<energy[sorted_idx[itc]]<<std::endl;

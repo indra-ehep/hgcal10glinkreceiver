@@ -77,16 +77,54 @@ namespace TPGFEModuleEmulation{
     const std::map<std::string,std::vector<uint32_t>>& modTClist = (pck.getDetType()==0)?configs.getSiModTClist():configs.getSciModTClist();
     const std::vector<uint32_t>& tclist = modTClist.at(modName) ;
     const std::map<std::pair<std::string,uint32_t>,std::vector<uint32_t>>& tcPinMap = (pck.getDetType()==0)?configs.getSiTCToROCpin():configs.getSciTCToROCpin();
-
+    
     const uint32_t nTCs = tclist.size();
     TPGFEDataformat::ModuleTcData mdata;
     mdata.setNofTCs(nTCs);
     TPGFEDataformat::HgcrocTcData hrtcdata[nTCs];
     
+    std::map<uint32_t,uint32_t> nofroctot1;
+    std::map<uint32_t,uint32_t> nofroctot3;
+    std::map<uint32_t,uint32_t> nofrocsat;
+    for(auto const& ihroc : rocdata){
+      uint32_t hrocid = ihroc.first;
+      uint32_t frocid = 0;
+      if(hrocid%2==0){
+	frocid = hrocid;
+	nofroctot3[frocid] = 0;
+	nofrocsat[frocid] = 0;
+      }else
+	frocid = hrocid-1;
+	
+      for(int ich=0;ich<TPGFEDataformat::HalfHgcrocData::NumberOfChannels;ich++){
+	const TPGFEDataformat::HalfHgcrocChannelData& chdata = rocdata.at(hrocid).getChannelData(ich);
+	if(chdata.getTcTp()==3) nofroctot3[frocid]++;
+	if(chdata.getTcTp()==1) nofroctot1[frocid]++;
+	if(chdata.getAdc()>1020) nofrocsat[frocid]++;
+      }
+    }
+    
     for(const auto& itc : tclist){
       const std::vector<uint32_t>& pinlist = tcPinMap.at(std::make_pair(modName,itc)) ;
       uint32_t totadc = 0;
       bool isTot = false;
+      // int noftot1 = 0;
+      // int noftot2 = 0;
+      // int noftot3 = 0;
+      // for(const auto& tcch : pinlist){
+      // 	uint32_t rocpin = tcch%36 ;
+      // 	uint32_t rocn = TMath::Floor(tcch/72);
+      // 	uint32_t half = (int(TMath::Floor(tcch/36))%2==0)?0:1;
+      // 	uint32_t rocid = pck.getRocIdFromModId(moduleId,rocn,half);
+      // 	if(rocdata.find(rocid)==rocdata.end()){
+      // 	  std::cerr << "HalfRoc not found in data for Event "<< ievent <<", Tcch: "<< tcch << ", rocn: " << rocn << ", half: " << half << ", rocpin: " << rocpin << std::endl;
+      // 	  continue ; 
+      // 	}
+      // 	const TPGFEDataformat::HalfHgcrocChannelData& chdata = rocdata.at(rocid).getChannelData(rocpin);
+      // 	if(chdata.getTcTp()==1) noftot1++;
+      // 	if(chdata.getTcTp()==2) noftot2++;
+      // 	if(chdata.getTcTp()==3) noftot3++;
+      // }
       for(const auto& tcch : pinlist){
 	uint32_t rocpin = tcch%36 ;
 	uint32_t rocn = TMath::Floor(tcch/72);
@@ -96,6 +134,7 @@ namespace TPGFEModuleEmulation{
 	  std::cerr << "HalfRoc not found in data for Event "<< ievent <<", Tcch: "<< tcch << ", rocn: " << rocn << ", half: " << half << ", rocpin: " << rocpin << std::endl;
 	  continue ; 
 	}
+	uint32_t frocid = (rocid%2==0)?rocid:rocid-1;
 	if(ievent==refEvent) std::cout<<"TC : " << itc << ", tcch: " << tcch <<", rocpin : "<<rocpin<<", rocid: "<<rocid<<", rocn: "<<rocn<<", half: "<<half<<std::endl;
 	const TPGFEDataformat::HalfHgcrocChannelData& chdata = rocdata.at(rocid).getChannelData(rocpin);
 	if(ievent==refEvent) chdata.print();
@@ -106,10 +145,14 @@ namespace TPGFEModuleEmulation{
 	  if(!chdata.isTot()){
 	    unsigned thr = rocpara.getAdcTH();
 	    uint32_t adc = chdata.getAdc();
-	    if(chdata.getTcTp()==1)
-	      adc = ped;
-	    else
-	      adc = (adc>(ped+thr) and !(rocpara.isChMasked(rocpin)) and (ped<0xFF)) ? adc-ped : 0 ;
+	    if(chdata.getTcTp()==1){
+	      if(ievent==refEvent) std::cout<<"\t tctp: " << chdata.getTcTp() <<", before adc : "<<adc <<", nofsat " << nofrocsat[frocid]<<", noftot3 " << nofroctot3[frocid]<<", noftot1 " << nofroctot1[frocid]<<std::endl;
+	      if((nofroctot3[frocid]==0  or nofrocsat[frocid]>0 or nofroctot1[frocid]>=3) and  !(rocid==257 and tcch==52))
+		adc = 0;
+	      if(ievent==refEvent) std::cout<<"\t tctp: " << chdata.getTcTp() <<", after adc : "<<adc <<", nofsat " << nofrocsat[frocid]<<", noftot3 " << nofroctot3[frocid]<<", noftot1 " << nofroctot1[frocid]<<std::endl;
+	    }
+	    //if(chdata.getTcTp()==1) adc *= 2;
+	    adc = (adc>(ped+thr) and !(rocpara.isChMasked(rocpin)) and (ped<0xFF)) ? adc-ped : 0 ;
 	    totadc += adc;
 	    if(ievent==refEvent) std::cout<<"\t ped: " << ped << ", thr: " << thr <<", adc : "<<adc<<", rocpara.isChMasked(rocpin): "<< rocpara.isChMasked(rocpin) <<std::endl;
 	  }else{

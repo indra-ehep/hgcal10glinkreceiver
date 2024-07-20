@@ -355,7 +355,7 @@ namespace TPGFEReader{
 		else if(trigflagM==0)
 		  chdata[ch].setAdc(uint16_t(adcM),uint16_t(trigflagM));
 		else if(trigflagM==0x1)
-		  chdata[ch].setAdc(0,uint16_t(trigflagM)); //uint16_t(adcM)
+		  chdata[ch].setAdc(uint16_t(adcM),uint16_t(trigflagM)); //uint16_t(adcM)
 		else
 		  chdata[ch].setZero();
 	      }
@@ -367,7 +367,7 @@ namespace TPGFEReader{
 		else if(trigflagL==0)
 		  chdata[ch].setAdc(uint16_t(adcL),uint16_t(trigflagL));
 		else if(trigflagL==0x1)
-		  chdata[ch].setAdc(0,uint16_t(trigflagL)); //uint16_t(adcL)
+		  chdata[ch].setAdc(uint16_t(adcL),uint16_t(trigflagL)); //uint16_t(adcL)
 		else
 		  chdata[ch].setZero();
 	      }
