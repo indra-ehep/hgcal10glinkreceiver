@@ -1,6 +1,8 @@
-// Collected the Batcher odd-even mergesort cpp code from: https://gist.github.com/stbuehler (https://gist.github.com/stbuehler/883635) by
-// Author : Stefan Bühler
-// then modified for custom class by
+//Comparison bather sorting for method explained in
+//1. Wikipedia https://en.wikipedia.org/wiki/Batcher_odd%E2%80%93even_mergesort
+//2. Stefan Bühler: https://gist.github.com/stbuehler/883635
+//3. Danny Noonan: https://github.com/dnoonan08/ECONT_Emulator
+
 // Author : Indranil Das
 
 #include <vector>
@@ -170,9 +172,6 @@ void mergesort(slice<T> data) {
     std::pair< slice<T>, slice<T> > halves = data.halves();
     /* Run this in parallel if you want: */
     mergesort(halves.first); /* first "half" always has a power-of-two size */
-    std::cout<<"========== iloop: " << iloop << std::endl;
-    halves.first.print();
-    std::cout<<"========== iloop: " << iloop << std::endl;
     iloop++;
     mergesort(halves.second); /* second is the remaining */
     oddevenmerge(data);
@@ -254,7 +253,7 @@ int main() {
 	// 				    {6, 58},
 	// 				    {21, 58},
 	// 				    {23, 56}};
-
+	
 	const uint32_t TcECh[nofTcs][2] = { {18, 87},
 					    {2, 87},
 					    {16, 87},
@@ -303,42 +302,94 @@ int main() {
 					    {40, 58},
 					    {39, 58},
 					    {47, 57}};
-
+	
 	TriggerCellArray tcArray;
 	for(uint32_t itc=0;itc<nofTcs;itc++) tcArray.setTc(TcECh[itc][1], TcECh[itc][0]);
+	tcArray.setTc(0, 48);
 	tcArray.print();
-	mergesort(tcArray.getTc());
-	print(tcArray);
-	tcArray.print();
+	// mergesort(tcArray.getTc());
+	// print(tcArray);
+	// tcArray.print();
 	
-	///////wikipedia
-	// // 
-	// // for p = 1, 2, 4, 8, ... # as long as p < n;
-	// // for k = p, p/2, p/4, p/8, ... # as long as k >= 1;
-	// // for j = mod(k,p) to (n-1-k) with a step size of 2k;
-	// // for i = 0 to min(k-1, n-j-k-1) with a step size of 1;
-        // // if floor((i+j) / (p*2)) == floor((i+j+k) / (p*2));
-	// // compare and sort elements (i+j) and (i+j+k);
-	// // return 0;
+	// ///////wikipedia
+	// // // 
+	// // // for p = 1, 2, 4, 8, ... # as long as p < n;
+	// // // for k = p, p/2, p/4, p/8, ... # as long as k >= 1;
+	// // // for j = mod(k,p) to (n-1-k) with a step size of 2k;
+	// // // for i = 0 to min(k-1, n-j-k-1) with a step size of 1;
+        // // // if floor((i+j) / (p*2)) == floor((i+j+k) / (p*2));
+	// // // compare and sort elements (i+j) and (i+j+k);
+	// // // return 0;
 
+	// std::vector<TriggerCell>& tc = tcArray.getTc();
+	// print(tc);
+	// for(uint32_t ip=0;ip<6;ip++){
+	//   uint32_t p = uint32_t(pow(2,ip));
+	//   std::cout << "ip: " << ip << ", p: "<<p<<std::endl;
+	//   for(uint32_t ik=0, k=p; k>=1 ; ik++,k = k/pow(2,ik)){
+	//     std::cout << "  ik: " << ik << ", k: "<<k<<std::endl;
+	//     for(uint32_t j=k%p; j<=(nofTcs-1-k) ; j+=2*k){
+	//       std::cout << "\tj: " <<j<<std::endl;
+	//       for(uint32_t i=0; i<=std::min((k-1),(nofTcs-j-k-1)) ; i++){
+	// 	std::cout << "\t  i: " <<i<<std::endl;
+	// 	if (floor((i+j)/(p*2)) == floor((i+j+k)/(p*2))){
+	// 	  if(tc[i+j] > tc[i+j+k]) std::swap(tc[i+j],tc[i+j+k]);
+	// 	}
+	//       }//iloop
+	//     }//jloop
+	//   }//ik loop
+	// }//ip loop
+
+	// print(tc);
+
+	//// The following is from https://github.com/dnoonan08/ECONT_Emulator/blob/c71cfa2acb7dea9b0b025cc8ac1a1eb845d0e71d/ASICBlocks/bestchoice.py#L15 and https://github.com/dnoonan08/ECONT_Emulator/blob/c71cfa2acb7dea9b0b025cc8ac1a1eb845d0e71d/ASICBlocks/bestchoice.py#L94 and 
+	// //def sorter(ar, adr):
+	// // N = int(ar.shape[0])
+	// // t = int(m.ceil(m.log(N)/m.log(2)))
+	// // p = int(2**(t-1))
+	// // while p>=1:
+	// //     q = 2**(t-1)
+	// //     r = 0
+	// //     d = p
+	// //     while q>=p:
+	// //         for i in range(N-d):
+	// //             if i & p != r: continue
+	// //             if ar[i] < ar[i+d]:
+	// //                 ar[i+d], ar[i] = ar[i], ar[i+d]
+	// //                 adr[i+d], adr[i] = adr[i], adr[i+d]
+	// //         d = q - p
+	// //         q = q//2
+	// //         r = p
+	// //     p = p//2
+	// // return ar, adr
+	
+	// for(uint32_t itc=0;itc<nofTcs;itc++) std::cout<<tcArray[itc].getE()<<", ";
+	// std::cout<<std::endl;
+	
 	std::vector<TriggerCell>& tc = tcArray.getTc();
-	print(tc);
-	for(uint32_t ip=0;ip<6;ip++){
-	  uint32_t p = uint32_t(pow(2,ip));
-	  std::cout << "ip: " << ip << ", p: "<<p<<std::endl;
-	  for(uint32_t ik=0, k=p; k>=1 ; ik++,k = k/pow(2,ik)){
-	    std::cout << "  ik: " << ik << ", k: "<<k<<std::endl;
-	    for(uint32_t j=k%p; j<=(nofTcs-1-k) ; j+=2*k){
-	      std::cout << "\tj: " <<j<<std::endl;
-	      for(uint32_t i=0; i<=std::min((k-1),(nofTcs-j-k-1)) ; i++){
-		std::cout << "\t  i: " <<i<<std::endl;
-		if (floor((i+j)/(p*2)) == floor((i+j+k)/(p*2))){
-		  if(tc[i+j] > tc[i+j+k]) std::swap(tc[i+j],tc[i+j+k]);
-		}
-	      }//iloop
-	    }//jloop
-	  }//ik loop
-	}//ip loop
-
+	uint32_t N = uint32_t(tc.size());
+	uint32_t t = uint32_t(ceil(log(N)/log(2)));
+	uint32_t p = uint32_t(pow(2,(t-1)));
+	std::cout <<"N : " << N << ", t: " << t << ", p : " << p << std::endl;
+	while(p>=1){
+	  uint32_t q = uint32_t(pow(2,(t-1)));
+	  uint32_t r = 0;
+	  uint32_t d = p;
+	  while (q>=p){
+	    for(uint32_t i=0; i<(N-d) ; i++){
+	      //uint32_t ip =  (i & p) ; 
+	      //std::cout <<"\t before i : " << i << ", p: " << p << ", r: "<< r << ", ip: "<<ip<< std::endl;
+	      if ((i & p) != r) continue;
+	      //std::cout <<"\t after i : " << i << ", p: " << p << ", r: "<< r << std::endl;
+	      if (tc[i] < tc[i+d]) std::swap(tc[i], tc[i+d]);
+	    }
+	    d = q - p;
+	    q = floor(q/2);
+	    r = p;
+	    //std::cout <<"    d : " << d << ", q: " << q << ", r: "<< r << std::endl;
+	  }
+	  p = floor(p/2);
+	  //std::cout <<"  q : " << q << ", r: " << r << ", d: "<< d << ", p : " << p << std::endl;
+	}
 	print(tc);
 }
